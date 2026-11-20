@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Datenschutz: Diese Richtlinie verbietet dem Browser jede Netzwerkverbindung. Alle Daten bleiben lokal. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; form-action 'none'">
+<title>Personalplanung Fakultät IuI</title>
+<style>
+:root{
+  color-scheme: light;
+  --page:#f9f9f7; --surface:#fcfcfb; --card:#ffffff;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+  --vacant:#c3c2b7; --neutral-mid:#f0efec;
+  --pos:#2a78d6; --neg:#e34948;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --good-text:#006300;
+  --accent:#2a78d6;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --page:#0d0d0d; --surface:#1a1a19; --card:#1a1a19;
+    --text-primary:#f0efec; --text-secondary:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#0ca30c; --s7:#9085e9; --s8:#e66767;
+    --vacant:#52514e; --neutral-mid:#383835;
+    --pos:#3987e5; --neg:#e66767; --good-text:#0ca30c; --accent:#3987e5;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--page);color:var(--text-primary);font-size:14px;line-height:1.45}
+header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+header h1{font-size:16px;margin:0 12px 0 0;font-weight:650}
+header .file{color:var(--text-secondary);font-size:12px}
+.ctl{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)}
+.ctl label{white-space:nowrap}
+input[type=date],select,button{font:inherit;font-size:13px;color:var(--text-primary);background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 8px}
+button{cursor:pointer}
+button.primary{background:var(--accent);color:#fff;border-color:transparent;padding:6px 14px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:4px 10px;background:transparent;color:var(--text-secondary)}
+.seg button.on{background:var(--accent);color:#fff}
+nav.tabs{display:flex;gap:2px;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:var(--hh,52px);z-index:19;overflow-x:auto}
+nav.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;padding:10px 14px;color:var(--text-secondary);white-space:nowrap}
+nav.tabs button.on{border-bottom-color:var(--accent);color:var(--text-primary);font-weight:600}
+nav.tabs .badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;font-size:11px;background:var(--critical);color:#fff}
+main{padding:20px;max-width:1500px;margin:0 auto}
+section.view{display:none}
+section.view.on{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:16px}
+.card h2{font-size:15px;margin:0 0 4px;font-weight:650}
+.card .sub{color:var(--text-secondary);font-size:12.5px;margin:0 0 12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px}
+.grid2>.card{margin-bottom:0}
+.mb{margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.kpi .l{font-size:12px;color:var(--text-secondary)}
+.kpi .v{font-size:26px;font-weight:600;margin-top:2px}
+.kpi .d{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.up{color:var(--pos)} .down{color:var(--neg)}
+.chartbox{position:relative;width:100%}
+.multiples{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.multiples .m{border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.multiples .m h3{font-size:13px;margin:0 0 2px}
+.multiples .m .t{font-size:12px;color:var(--text-secondary);margin-bottom:6px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 8px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--text-secondary);font-size:12px;position:sticky;top:0;background:var(--card)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+td.n{white-space:nowrap}
+tr.tot td{font-weight:650;border-top:1px solid var(--axis)}
+.scroll{max-height:460px;overflow:auto}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;padding:1px 7px;border-radius:9px;border:1px solid var(--border);white-space:nowrap}
+.sev-E{color:var(--critical);border-color:var(--critical)}
+.sev-W{color:#b07400;border-color:var(--warning)}
+.sev-I{color:var(--text-secondary)}
+@media (prefers-color-scheme: dark){.sev-W{color:var(--warning)}}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--text-secondary);margin:4px 0 10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+#start{max-width:760px;margin:40px auto}
+.drop{border:2px dashed var(--axis);border-radius:12px;padding:40px;text-align:center;background:var(--card)}
+.drop.over{border-color:var(--accent)}
+.note{font-size:12.5px;color:var(--text-secondary)}
+.row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:12px}
+.hidden{display:none!important}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.bar-inline{height:8px;border-radius:2px;background:var(--s1);display:inline-block;vertical-align:middle}
+.click{cursor:pointer}
+.click:hover td{background:var(--neutral-mid)}
+.sumrow.sel td{background:var(--neutral-mid)}
+details summary{cursor:pointer;color:var(--text-secondary);font-size:13px}
+</style>
+</head>
+<body>
+<header id="hdr">
+  <h1>Personalplanung Fakultät IuI</h1>
+  <span class="file" id="fileInfo"></span>
+  <div class="ctl hidden" data-loaded><label for="today">Stichtag „heute“</label><input type="date" id="today"></div>
+  <div class="ctl hidden" data-loaded><span>Maßeinheit</span>
+    <div class="seg" id="measureSeg"><button data-v="koepfe" class="on">Köpfe</button><button data-v="vzae">VZÄ</button></div></div>
+  <div class="ctl hidden" data-loaded title="Annahme für Prognosen: Stellen ohne kw-Vermerk bleiben nach Vertragsende erhalten und werden nachbesetzt.">
+    <input type="checkbox" id="refill"><label for="refill">Nicht-kw-Stellen nach Vertragsende als offene Stellen weiterführen</label></div>
+  <div class="ctl hidden" data-loaded style="margin-left:auto"><button id="reload">Andere Datei laden</button></div>
+</header>
+<nav class="tabs hidden" id="tabs">
+  <button data-t="check" class="on">Datenprüfung<span class="badge" id="errBadge"></span></button>
+  <button data-t="overview">Mitarbeiterkreise</button>
+  <button data-t="semester">Semesterverlauf</button>
+  <button data-t="forecast">Forecast</button>
+  <button data-t="ratio">Betreuung &amp; WiMi</button>
+</nav>
+
+<div id="start">
+  <div class="drop" id="drop">
+    <h2 style="margin-top:0">Excel-Datei einlesen</h2>
+    <p>Datei hierher ziehen oder auswählen (.xlsx / .xls)</p>
+    <input type="file" id="file" accept=".xlsx,.xlsm,.xls">
+    <p class="note" style="margin-top:22px">🔒 Die Datei wird ausschließlich lokal in diesem Browserfenster verarbeitet.
+    Die Anwendung enthält alle Bibliotheken selbst und darf per Sicherheitsrichtlinie keine Netzwerkverbindung aufbauen.
+    Nach dem Schließen des Fensters sind die Daten nicht mehr im Speicher.</p>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h2>Erwarteter Aufbau</h2>
+    <p class="note"><b>Blatt 1 (Personal):</b> Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich.<br>
+    <b>Blatt 2 (Studierende):</b> Studiengang, Cluster, Studierende.<br>
+    Die Blätter und Spalten werden anhand der Überschriften erkannt; Reihenfolge und Blattnamen sind egal.</p>
+  </div>
+</div>
+
+<main id="app" class="hidden">
+
+<!-- ================= Datenprüfung ================= -->
+<section class="view on" id="v-check">
+  <div class="kpis" id="checkKpis"></div>
+  <div class="card">
+    <h2>Plausibilitätsprüfung</h2>
+    <p class="sub">Klick auf eine Prüfung filtert die Einzelbefunde unten. <b>Fehler</b> verfälschen Auswertungen wahrscheinlich, <b>Warnungen</b> sollten geprüft werden, <b>Hinweise</b> sind informativ.</p>
+    <div class="row">
+      <label class="ctl"><input type="checkbox" id="exclDup" checked> Exakt doppelte Zeilen nur einmal zählen</label>
+      <button id="csvIssues">Prüfbericht als CSV speichern</button>
+    </div>
+    <div id="colInfo" class="note mb"></div>
+    <table id="issueSummary"></table>
+  </div>
+  <div class="card">
+    <h2>Einzelbefunde <span id="issueFilterLbl" class="note"></span></h2>
+    <div class="row">
+      <div class="seg" id="sevSeg"><button data-v="all" class="on">Alle</button><button data-v="E">Fehler</button><button data-v="W">Warnungen</button><button data-v="I">Hinweise</button></div>
+      <button id="clearIssueFilter" class="hidden">Filter zurücksetzen</button>
+    </div>
+    <div class="scroll"><table id="issueTable"></table></div>
+  </div>
+</section>
+
+<!-- ================= Übersicht ================= -->
+<section class="view" id="v-overview">
+  <div class="kpis" id="ovKpis"></div>
+  <div class="grid2 mb">
+    <div class="card">
+      <h2>Mitarbeiterkreise – Fakultät gesamt</h2>
+      <p class="sub" id="ovSub1"></p>
+      <div class="chartbox" style="height:260px"><canvas id="cKreisTotal"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Mitarbeiterkreise je Cluster</h2>
+      <p class="sub">Gestapelt nach Mitarbeiterkreis, nur aktive Verträge.</p>
+      <div class="legend" id="lgCluster"></div>
+      <div class="chartbox" style="height:260px"><canvas id="cKreisCluster"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Je Cluster einzeln</h2>
+    <p class="sub">Gleiche Skala in allen Feldern, damit die Cluster direkt vergleichbar sind.</p>
+    <div class="multiples" id="multiples"></div>
+  </div>
+  <div class="card">
+    <h2>Tabelle: Cluster × Mitarbeiterkreis</h2>
+    <div class="scroll" id="ovTable"></div>
+  </div>
+</section>
+
+<!-- ================= Semester ================= -->
+<section class="view" id="v-semester">
+  <div class="card">
+    <div class="row">
+      <label class="ctl">Cluster <select id="semCluster"></select></label>
+      <label class="ctl">Zeitraum
+        <select id="semPast"><option value="4">4 Semester zurück</option><option value="2">2 Semester zurück</option><option value="0">ab aktuellem Semester</option></select>
+        bis <select id="semAhead"><option value="10">10 Semester voraus</option><option value="20" selected>20 Semester voraus</option></select></label>
+    </div>
+    <h2>Personalbestand je Semester</h2>
+    <p class="sub">Stand jeweils zu Semesterbeginn (WS: 01.09., SS: 01.03.). <span id="semRefillNote"></span></p>
+    <div class="legend" id="lgSem"></div>
+    <div class="chartbox" style="height:340px"><canvas id="cSem"></canvas></div>
+  </div>
+  <div class="grid2 mb">
+    <div class="card">
+      <h2>Zu- und Abgänge je Semester</h2>
+      <p class="sub">Abgänge = Vertragsende im Semester (nach unten), Zugänge = Vertragsbeginn im Semester (nach oben). Klick auf ein Semester zeigt die Personen.</p>
+      <div class="legend" id="lgFlow"></div>
+      <div class="chartbox" style="height:300px"><canvas id="cFlow"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Personen mit Vertragsende in <select id="semDetail"></select></h2>
+      <div class="scroll" id="semDetailTable" style="max-height:330px"></div>
+    </div>
+  </div>
+  <div class="card"><h2>Tabelle: Semester × Mitarbeiterkreis</h2><div class="scroll" id="semTable"></div></div>
+</section>
+
+<!-- ================= Forecast ================= -->
+<section class="view" id="v-forecast">
+  <div class="card">
+    <div class="row">
+      <div class="seg" id="fcMode"><button data-v="sem" class="on">Semester wählen</button><button data-v="date">Datum eingeben</button></div>
+      <select id="fcSem"></select>
+      <input type="date" id="fcDate" class="hidden">
+      <label class="ctl">Cluster <select id="fcCluster"></select></label>
+    </div>
+    <p class="sub" id="fcInfo" style="margin:0"></p>
+  </div>
+  <div class="kpis" id="fcKpis"></div>
+  <div class="grid2 mb">
+    <div class="card">
+      <h2>Heute vs. Prognose je Mitarbeiterkreis</h2>
+      <div class="legend" id="lgFc"></div>
+      <div class="chartbox" style="height:300px"><canvas id="cFc"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Veränderung je Cluster und Mitarbeiterkreis</h2>
+      <p class="sub">Differenz Prognose − heute. Blau = mehr, Rot = weniger.</p>
+      <div class="scroll" id="fcDelta"></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h2>Abgänge bis zum Zielzeitpunkt</h2><p class="sub">Vertragsende zwischen heute und Zielzeitpunkt.</p><div class="scroll" id="fcOut"></div></div>
+    <div class="card"><h2>Zugänge bis zum Zielzeitpunkt</h2><p class="sub">Vertragsbeginn nach heute, bis Zielzeitpunkt.</p><div class="scroll" id="fcIn"></div></div>
+  </div>
+</section>
+
+<!-- ================= Betreuung ================= -->
+<section class="view" id="v-ratio">
+  <div class="card">
+    <div class="row">
+      <label class="ctl">Stichtag <select id="raWhen"></select></label>
+      <span class="note" id="raNote"></span>
+    </div>
+    <h2>Studierende je Professor/in (inkl. LfbA) und je WiMi</h2>
+    <p class="sub" id="raSub"></p>
+    <div class="legend" id="lgRa"></div>
+    <div class="chartbox" id="raBox" style="height:360px"><canvas id="cRa"></canvas></div>
+  </div>
+  <div class="card"><h2>Betreuungsrelationen – Tabelle</h2><div class="scroll" id="raTable"></div></div>
+  <div class="grid2 mb">
+    <div class="card">
+      <h2>WiMi je Professur</h2>
+      <p class="sub" id="wmSub"></p>
+      <div class="chartbox" id="wmBox" style="height:300px"><canvas id="cWm"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Verteilung der WiMi im Vergleich zu den Professuren</h2>
+      <p class="sub">Welcher Anteil aller Professuren und aller WiMi der Fakultät entfällt auf den Cluster? Ist der WiMi-Anteil größer als der Professuren-Anteil, ist der Cluster überdurchschnittlich mit WiMi ausgestattet.</p>
+      <div class="legend" id="lgWmShare"></div>
+      <div class="chartbox" id="wmShareBox" style="height:300px"><canvas id="cWmShare"></canvas></div>
+    </div>
+  </div>
+  <div class="card"><h2>WiMi-Ausstattung je Cluster und Organisationseinheit</h2><p class="sub">Ohne LfbA. Blau = über, Rot = unter dem Fakultätsdurchschnitt.</p><div class="scroll" id="wmTable" style="max-height:620px"></div></div>
+  <div class="grid2">
+    <div class="card">
+      <h2>Zuordnung der Mitarbeiterkreise</h2>
+      <p class="sub">Automatisch erkannt – bitte prüfen und bei Bedarf anpassen. LfbA zählen im Betreuungsverhältnis als Professor/innen, in der WiMi-Übersicht gar nicht.</p>
+      <div id="catMapBox"></div>
+    </div>
+    <div class="card"><h2>Studierende je Studiengang</h2><div class="scroll" id="stTable"></div></div>
+  </div>
+</section>
+</main>
+
+<script>/*XLSX*/</script>
+<script>/*CHARTJS*/</script>
+<script>
+"use strict";
+/* ============================== Hilfsfunktionen ============================== */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DAY = 864e5;
+const pad = n => String(n).padStart(2, '0');
+const toDay = (y, m, d) => Math.round(Date.UTC(y, m - 1, d) / DAY);
+const fromDay = n => { const d = new Date(n * DAY); return {y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate()}; };
+const fmtD = n => { if (n == null) return '–'; const o = fromDay(n); return `${pad(o.d)}.${pad(o.m)}.${o.y}`; };
+const isoD = n => { const o = fromDay(n); return `${o.y}-${pad(o.m)}-${pad(o.d)}`; };
+const parseIso = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? toDay(+m[1], +m[2], +m[3]) : null; };
+const nf0 = new Intl.NumberFormat('de-DE', {maximumFractionDigits: 0});
+/* Alle Berechnungen werden auf zwei Nachkommastellen gerundet und mit zwei Nachkommastellen angezeigt */
+const r2 = x => x == null || !isFinite(x) ? x : Math.round((x + Math.sign(x) * Number.EPSILON) * 100) / 100;
+const nf1 = new Intl.NumberFormat('de-DE', {maximumFractionDigits: 2, minimumFractionDigits: 2});
+const nf2 = nf1;
+const sumBy = (list, f) => r2(list.reduce((t, x) => t + (f(x) || 0), 0));
+const pct = (a, b) => b ? r2(a / b * 100) : 0;
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* Semester: WS = 01.09.–28./29.02., SS = 01.03.–31.08.  Index: SS j → 2j, WS j/j+1 → 2j+1 */
+const semIdx = n => { const {y, m} = fromDay(n); return m >= 9 ? y * 2 + 1 : (m <= 2 ? (y - 1) * 2 + 1 : y * 2); };
+const semStart = i => { const y = Math.floor(i / 2); return i % 2 ? toDay(y, 9, 1) : toDay(y, 3, 1); };
+const semEnd = i => semStart(i + 1) - 1;
+const semLabel = i => { const y = Math.floor(i / 2); return i % 2 ? `WS ${y}/${pad((y + 1) % 100)}` : `SS ${y}`; };
+
+/* ============================== Zustand ============================== */
+const S = {
+  raw: null, recs: [], students: [], issues: [], colMap: {}, missingCols: [],
+  today: null, measure: 'koepfe', refill: false, excludeDup: true,
+  catMap: {}, kreisOrder: [], clusters: [], sevFilter: 'all', checkFilter: null, tab: 'check'
+};
+const CATS = ['Professor/in', 'LfbA', 'WiMi', 'Sonstige'];
+
+/* ============================== Einlesen ============================== */
+const FIELDS = [
+  ['pnr', 'Personalnummer', ['personalnummer', 'persnr', 'personalnr', 'pnr']],
+  ['vorname', 'Vorname', ['vorname']],
+  ['name', 'Name', ['name', 'nachname', 'familienname']],
+  ['kreis', 'Mitarbeiterkreis', ['mitarbeiterkreis', 'mitarbeitergruppe', 'personalkreis']],
+  ['arb', 'ArbAnteil', ['arbanteil', 'arbeitsanteil', 'arbeitszeitanteil', 'beschäftigungsumfang']],
+  ['vz', 'VZÄ', ['vzä', 'vzae', 'vza', 'vollzeitäquivalent']],
+  ['tarif', 'TrfGr', ['trfgr', 'tarifgruppe', 'tarif', 'entgeltgruppe', 'besoldungsgruppe']],
+  ['vart', 'Vertragsart', ['vertragsart', 'befristung']],
+  ['beginn', 'Beginn', ['beginn', 'vertragsbeginn', 'eintritt']],
+  ['ende', 'Vertragsende', ['vertragsende', 'ende', 'befristungsende', 'befristetbis', 'austritt']],
+  ['kw', 'kw', ['kw', 'kannwegfallen']],
+  ['cluster', 'Cluster', ['cluster']],
+  ['oe', 'Organisationseinheit', ['organisationseinheit', 'orgeinheit', 'oe']],
+  ['labor', 'Laborbereich', ['laborbereich', 'labor']],
+];
+const normH = h => String(h ?? '').toLowerCase().replace(/ß/g, 'ss').replace(/[^a-z0-9äöü]/g, '');
+
+function mapHeaders(row, fields) {
+  const hs = row.map(normH), map = {}, used = new Set();
+  for (const pass of ['exact', 'prefix']) {
+    for (const [key, , pats] of fields) {
+      if (key in map) continue;
+      for (const p of pats) {
+        const i = hs.findIndex((h, j) => !used.has(j) && h && (pass === 'exact' ? h === p : (h.startsWith(p) && (p.length >= 3 || h.length <= 4))));
+        if (i >= 0) { map[key] = i; used.add(i); break; }
+      }
+    }
+  }
+  return map;
+}
+function findTable(rows, fields, minHits) {
+  for (let r = 0; r < Math.min(rows.length, 15); r++) {
+    const map = mapHeaders(rows[r] || [], fields);
+    if (Object.keys(map).length >= minHits) return {headerRow: r, map};
+  }
+  return null;
+}
+
+function parseDate(v) {
+  if (v == null || v === '') return {v: null};
+  if (typeof v === 'number' && isFinite(v)) {
+    const d = Math.floor(v) - 25569;          // Excel-Seriennummer → Tage seit 1970
+    if (d < toDay(1900, 1, 2) || v > 2958465) return {err: true};
+    return {v: fromDay(d).y >= 2100 ? null : d, open: fromDay(d).y >= 2100};
+  }
+  if (v instanceof Date && !isNaN(v)) return {v: toDay(v.getFullYear(), v.getMonth() + 1, v.getDate())};
+  const s = String(v).trim();
+  if (!s || /^(-|–|offen|unbefristet|n\/a)$/i.test(s)) return {v: null};
+  let m = /^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/.exec(s), y, mo, d;
+  if (m) { d = +m[1]; mo = +m[2]; y = +m[3]; if (y < 100) y += y < 70 ? 2000 : 1900; }
+  else if ((m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s))) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+  else return {err: true};
+  const n = toDay(y, mo, d), o = fromDay(n);
+  if (o.m !== mo || o.d !== d) return {err: true};
+  if (y >= 2100) return {v: null, open: true};
+  return {v: n};
+}
+function parseNum(v) {
+  if (v == null || v === '') return {v: null};
+  if (typeof v === 'number') return {v};
+  let s = String(v).trim().replace('%', '').replace(/\s/g, '');
+  if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(s) && s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  else s = s.replace(',', '.');
+  const n = Number(s);
+  return isFinite(n) && s !== '' ? {v: n, pct: String(v).includes('%')} : {err: true};
+}
+const str = v => (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim();
+
+function readWorkbook(buf, fileName) {
+  const wb = XLSX.read(buf, {type: 'array'});
+  let pers = null, stud = null;
+  for (const sn of wb.SheetNames) {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header: 1, raw: true, defval: null, blankrows: false});
+    if (!pers) { const t = findTable(rows, FIELDS, 6); if (t) { pers = {sn, rows, ...t}; continue; } }
+    if (!stud) {
+      const t = findTable(rows, [['sg', 'Studiengang', ['studiengang']], ['cl', 'Cluster', ['cluster']], ['n', 'Studierende', ['studierende', 'anzahl', 'studierendenzahl']]], 2);
+      if (t && 'sg' in t.map) stud = {sn, rows, ...t};
+    }
+  }
+  if (!pers) throw new Error('Kein Tabellenblatt mit Personaldaten gefunden. Erwartet werden Überschriften wie Personalnummer, Name, Mitarbeiterkreis, VZÄ, Vertragsende, Cluster …');
+  S.raw = {fileName, pers, stud, sheetNames: wb.SheetNames};
+  buildRecords();
+}
+
+function buildRecords() {
+  const {pers, stud} = S.raw, M = pers.map;
+  S.colMap = M;
+  S.missingCols = FIELDS.filter(f => !(f[0] in M)).map(f => f[1]);
+  S.parseIssues = [];
+  const get = (row, k) => (k in M ? row[M[k]] : null);
+  S.recs = [];
+  for (let i = pers.headerRow + 1; i < pers.rows.length; i++) {
+    const row = pers.rows[i];
+    if (!row || row.every(c => c == null || String(c).trim() === '')) continue;
+    const r = {row: i + 1, rawRow: row, problems: []};
+    r.pnr = str(get(row, 'pnr')); r.name = str(get(row, 'name')); r.vorname = str(get(row, 'vorname'));
+    r.kreisRaw = get(row, 'kreis'); r.kreis = str(r.kreisRaw);
+    r.tarif = str(get(row, 'tarif')).toUpperCase().replace(/\s/g, '');
+    r.vart = str(get(row, 'vart'));
+    r.clusterRaw = get(row, 'cluster'); r.cluster = str(r.clusterRaw);
+    r.oe = str(get(row, 'oe')); r.labor = str(get(row, 'labor'));
+    const a = parseNum(get(row, 'arb')), v = parseNum(get(row, 'vz'));
+    r.arbErr = a.err; r.vzErr = v.err;
+    r.arb = a.v; if (r.arb != null && (a.pct ? false : r.arb <= 1.0001) && r.arb > 0) { r.arb = r.arb * 100; r.arbScaled = true; }
+    r.vz = v.v; if (r.vz != null && r.vz > 1.5 && r.vz <= 100) { r.vzWasPct = true; r.vz = r.vz / 100; }
+    if (r.vz == null && r.arb != null) { r.vz = r.arb / 100; r.vzDerived = true; }
+    r.arb = r2(r.arb); r.vz = r2(r.vz);
+    const b = parseDate(get(row, 'beginn')), e = parseDate(get(row, 'ende'));
+    r.beginn = b.v; r.beginnErr = b.err; r.ende = e.v; r.endeErr = e.err; r.endeOpenSentinel = e.open;
+    const kwRaw = str(get(row, 'kw')).toLowerCase();
+    r.kwRaw = kwRaw;
+    r.kw = /^(x|ja|j|1|true|wahr|yes|kw|k\.?w\.?)$/.test(kwRaw);
+    r.kwUnclear = kwRaw !== '' && !r.kw && !/^(nein|n|0|false|falsch|no|-)$/.test(kwRaw);
+    const va = r.vart.toLowerCase();
+    r.befr = /unbefr|lebenszeit|dauer|planm/.test(va) ? false : (/befr|zeit|probe|auf zeit/.test(va) ? true : null);
+    S.recs.push(r);
+  }
+  // Studierende
+  S.students = [];
+  if (stud) {
+    for (let i = stud.headerRow + 1; i < stud.rows.length; i++) {
+      const row = stud.rows[i]; if (!row || row.every(c => c == null || String(c).trim() === '')) continue;
+      const n = parseNum(stud.map.n != null ? row[stud.map.n] : null);
+      S.students.push({row: i + 1, sg: str(row[stud.map.sg]), clusterRaw: stud.map.cl != null ? row[stud.map.cl] : '', cluster: str(stud.map.cl != null ? row[stud.map.cl] : ''), n: n.v, nErr: n.err});
+    }
+  }
+  normalizeCategories();
+  // Kategorien der Mitarbeiterkreise
+  const counts = {};
+  S.recs.forEach(r => { counts[r.kreis || '(ohne Angabe)'] = (counts[r.kreis || '(ohne Angabe)'] || 0) + 1; });
+  for (const k of Object.keys(counts)) if (!(k in S.catMap)) S.catMap[k] = guessCat(k);
+  S.kreisCounts = counts;
+  orderKreise();
+}
+
+function guessCat(k) {
+  const s = k.toLowerCase();
+  if (/hilfskr|\bshk\b|\bwhk\b|\bshk|tutor|azubi|auszubild/.test(s)) return 'Sonstige';
+  if (/lfba|lehrkr|lehrkraft|besondere aufgaben/.test(s)) return 'LfbA';
+  if (/prof/.test(s)) return 'Professor/in';
+  if (/wimi|wiss|wissenschaftl/.test(s)) return 'WiMi';
+  return 'Sonstige';
+}
+function orderKreise() {
+  const ks = Object.keys(S.kreisCounts);
+  ks.sort((a, b) => CATS.indexOf(S.catMap[a]) - CATS.indexOf(S.catMap[b]) || S.kreisCounts[b] - S.kreisCounts[a] || a.localeCompare(b, 'de'));
+  S.kreisOrder = ks;
+}
+const kreisOf = r => r.kreis || '(ohne Angabe)';
+const clusterOf = r => r.cluster || '(ohne Cluster)';
+function kreisColor(k) {
+  const i = S.kreisOrder.indexOf(k);
+  return i >= 0 && i < 8 ? css('--s' + (i + 1)) : css('--muted');
+}
+const catColor = c => css('--s' + (CATS.indexOf(c) + 1));
+
+/* Schreibvarianten vereinheitlichen (Groß/Klein, Leerzeichen) */
+function normalizeCategories() {
+  for (const field of ['cluster', 'kreis']) {
+    const freq = {}, byLow = {};
+    const all = S.recs.map(r => r[field]).concat(field === 'cluster' ? S.students.map(s => s.cluster) : []);
+    all.forEach(v => { if (v) freq[v] = (freq[v] || 0) + 1; });
+    for (const v of Object.keys(freq)) { const l = v.toLowerCase(); if (!byLow[l] || freq[v] > freq[byLow[l]]) byLow[l] = v; }
+    const fix = o => { if (o[field] && byLow[o[field].toLowerCase()] !== o[field]) { o[field + 'Case'] = o[field]; o[field] = byLow[o[field].toLowerCase()]; } };
+    S.recs.forEach(fix);
+    if (field === 'cluster') S.students.forEach(fix);
+  }
+}
+
+/* ============================== Plausibilitätsprüfung ============================== */
+function lev(a, b) {
+  a = a.toLowerCase(); b = b.toLowerCase();
+  const d = Array.from({length: a.length + 1}, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+const tarifNum = t => { const m = /^[EW]?(\d+)/.exec(t.replace(/^TV-?L?/, '')); return m ? +m[1] : null; };
+
+function runChecks() {
+  const I = [], T = S.today;
+  const add = (sev, check, r, field, msg) => I.push({sev, check, row: r ? r.row : null, pnr: r ? r.pnr : '', person: r ? [r.name, r.vorname].filter(Boolean).join(', ') : '', field, msg, sheet: r && r.sg != null ? 'Studierende' : 'Personal'});
+
+  S.missingCols.forEach(c => add(c === 'Laborbereich' || c === 'Organisationseinheit' ? 'W' : 'E', 'Spalte fehlt', null, c, `Spalte „${c}“ wurde im Personalblatt nicht gefunden.`));
+  if (!S.raw.stud) add('E', 'Studierendenblatt fehlt', null, '', 'Kein Tabellenblatt mit Studiengang/Cluster/Studierende gefunden – Betreuungsverhältnis nicht berechenbar.');
+
+  // exakte Duplikate
+  const seen = new Map();
+  S.recs.forEach(r => {
+    r.excluded = false;
+    const key = JSON.stringify(r.rawRow);
+    if (seen.has(key)) { r.dupOf = seen.get(key); r.excluded = S.excludeDup; add('E', 'Doppelte Zeile', r, '(ganze Zeile)', `Identisch mit Zeile ${seen.get(key)}.` + (S.excludeDup ? ' Wird nur einmal gezählt.' : ' Wird doppelt gezählt!')); }
+    else seen.set(key, r.row);
+  });
+  const recs = S.recs.filter(r => !r.excluded);
+
+  for (const r of recs) {
+    const cat = S.catMap[kreisOf(r)];
+    if (!r.pnr) add('E', 'Pflichtfeld leer', r, 'Personalnummer', 'Personalnummer fehlt.');
+    if (!r.name) add('E', 'Pflichtfeld leer', r, 'Name', 'Name fehlt.');
+    if (!r.vorname && 'vorname' in S.colMap) add('W', 'Pflichtfeld leer', r, 'Vorname', 'Vorname fehlt.');
+    if (!r.kreis) add('E', 'Pflichtfeld leer', r, 'Mitarbeiterkreis', 'Mitarbeiterkreis fehlt – Person wird unter „(ohne Angabe)“ geführt.');
+    if (!r.cluster) add('E', 'Pflichtfeld leer', r, 'Cluster', 'Cluster fehlt – Person wird unter „(ohne Cluster)“ geführt.');
+    if (r.beginn == null && !r.beginnErr) add('W', 'Pflichtfeld leer', r, 'Beginn', 'Vertragsbeginn fehlt – Vertrag wird als bereits begonnen gewertet.');
+    if (!r.tarif && 'tarif' in S.colMap) add('W', 'Pflichtfeld leer', r, 'TrfGr', 'Tarifgruppe fehlt.');
+    if (!r.vart && 'vart' in S.colMap) add('W', 'Pflichtfeld leer', r, 'Vertragsart', 'Vertragsart fehlt.');
+    if (r.beginnErr) add('E', 'Datum nicht lesbar', r, 'Beginn', `„${str(r.rawRow[S.colMap.beginn])}“ ist kein gültiges Datum.`);
+    if (r.endeErr) add('E', 'Datum nicht lesbar', r, 'Vertragsende', `„${str(r.rawRow[S.colMap.ende])}“ ist kein gültiges Datum – Vertrag wird als unbefristet gewertet.`);
+    if (r.arbErr) add('E', 'Zahl nicht lesbar', r, 'ArbAnteil', 'ArbAnteil ist keine Zahl.');
+    if (r.vzErr) add('E', 'Zahl nicht lesbar', r, 'VZÄ', 'VZÄ ist keine Zahl.');
+    if (r.beginn != null && r.ende != null && r.beginn > r.ende) add('E', 'Beginn nach Vertragsende', r, 'Beginn/Vertragsende', `Beginn ${fmtD(r.beginn)} liegt nach Vertragsende ${fmtD(r.ende)} – Vertrag ist nie aktiv.`);
+    if (r.arb != null && (r.arb <= 0 || r.arb > 100)) add('E', 'Wert außerhalb des Bereichs', r, 'ArbAnteil', `ArbAnteil ${nf2.format(r.arb)} % liegt außerhalb von 0–100 %.`);
+    if (r.vz != null && !r.vzDerived && (r.vz <= 0 || r.vz > 1)) add('E', 'Wert außerhalb des Bereichs', r, 'VZÄ', `VZÄ ${nf2.format(r.vz)} liegt außerhalb von 0–1.`);
+    if (r.vzWasPct) add('W', 'Wert außerhalb des Bereichs', r, 'VZÄ', 'VZÄ scheint in Prozent angegeben – wurde durch 100 geteilt.');
+    if (r.vz == null && r.arb == null) add('E', 'Pflichtfeld leer', r, 'VZÄ/ArbAnteil', 'Weder VZÄ noch ArbAnteil angegeben – VZÄ wird mit 0 gezählt.');
+    else if (r.vzDerived) add('W', 'Pflichtfeld leer', r, 'VZÄ', `VZÄ fehlt – aus ArbAnteil abgeleitet (${nf2.format(r.vz)}).`);
+    else if (r.arb != null && Math.abs(r.arb / 100 - r.vz) > 0.011) add('W', 'VZÄ passt nicht zu ArbAnteil', r, 'VZÄ/ArbAnteil', `ArbAnteil ${nf2.format(r.arb)} % ergibt ${nf2.format(r.arb / 100)} VZÄ, eingetragen sind ${nf2.format(r.vz)}. Gezählt wird der VZÄ-Wert.`);
+    // Vertragsart / Ende / kw
+    if (r.befr === true && r.ende == null && !r.endeErr) add('E', 'Befristet ohne Vertragsende', r, 'Vertragsende', 'Vertragsart „befristet“, aber kein Vertragsende – wird in Prognosen als unbefristet gezählt.');
+    if (r.befr === false && r.ende != null) add('I', 'Unbefristet mit Enddatum', r, 'Vertragsende', `Unbefristeter Vertrag mit Ende ${fmtD(r.ende)} (z. B. Ruhestand?) – das Datum wird berücksichtigt.`);
+    if (r.befr === null && r.vart) add('W', 'Vertragsart unklar', r, 'Vertragsart', `Vertragsart „${r.vart}“ nicht als befristet/unbefristet erkannt.`);
+    if (r.kw && r.ende == null) add('W', 'kw-Vermerk ohne Vertragsende', r, 'kw', 'kw-Vermerk, aber kein Vertragsende – die Stelle entfällt in der Prognose nie.');
+    if (r.kwUnclear) add('W', 'kw-Wert unklar', r, 'kw', `kw-Wert „${r.kwRaw}“ nicht erkannt – als „kein kw“ gewertet. Erwartet: x / ja / leer.`);
+    // Tarif vs. Kreis
+    if (r.tarif) {
+      const isW = /^W\d|^C\d/.test(r.tarif), tn = tarifNum(r.tarif);
+      if (cat === 'Professor/in' && !isW) add('W', 'Tarifgruppe passt nicht zum Mitarbeiterkreis', r, 'TrfGr', `Professur mit Tarifgruppe ${r.tarif} (erwartet W1–W3 bzw. C).`);
+      if (cat !== 'Professor/in' && /^W[1-3]$/.test(r.tarif)) add('W', 'Tarifgruppe passt nicht zum Mitarbeiterkreis', r, 'TrfGr', `W-Besoldung ${r.tarif} bei Mitarbeiterkreis „${r.kreis}“.`);
+      if ((cat === 'WiMi' || cat === 'LfbA') && /^E/.test(r.tarif) && tn != null && tn < 13) add('I', 'Tarifgruppe passt nicht zum Mitarbeiterkreis', r, 'TrfGr', `${cat} mit ${r.tarif} (üblich ab E13).`);
+    }
+    // Zeitbezug
+    if (r.ende != null && r.ende < T && !(r.beginn != null && r.beginn > r.ende)) add('I', 'Vertrag bereits ausgelaufen', r, 'Vertragsende', `Vertragsende ${fmtD(r.ende)} liegt vor dem Stichtag – nicht aktiv.`);
+    if (r.beginn != null && r.beginn > T) add('I', 'Vertrag beginnt in der Zukunft', r, 'Beginn', `Beginn ${fmtD(r.beginn)} – noch nicht aktiv, erscheint ab dann in Prognosen.`);
+    if (r.endeOpenSentinel) add('I', 'Platzhalter-Enddatum', r, 'Vertragsende', 'Enddatum ab Jahr 2100 als „unbefristet“ gewertet.');
+    if (r.beginn != null && fromDay(r.beginn).y < 1960) add('W', 'Datum unplausibel', r, 'Beginn', `Beginn ${fmtD(r.beginn)} sehr früh.`);
+    if (r.clusterCase) add('I', 'Schreibweise vereinheitlicht', r, 'Cluster', `„${r.clusterCase}“ als „${r.cluster}“ gezählt.`);
+    if (r.kreisCase) add('I', 'Schreibweise vereinheitlicht', r, 'Mitarbeiterkreis', `„${r.kreisCase}“ als „${r.kreis}“ gezählt.`);
+    if (typeof r.clusterRaw === 'string' && r.clusterRaw !== r.clusterRaw.trim() && r.cluster) add('I', 'Leerzeichen entfernt', r, 'Cluster', `Überzählige Leerzeichen in „${r.clusterRaw}“ entfernt.`);
+  }
+
+  // Personalnummern
+  const byP = {};
+  recs.forEach(r => { if (r.pnr) (byP[r.pnr] = byP[r.pnr] || []).push(r); });
+  for (const [p, rs] of Object.entries(byP)) {
+    if (rs.length < 2) continue;
+    const names = new Set(rs.map(r => (r.name + '|' + r.vorname).toLowerCase()));
+    if (names.size > 1) { rs.forEach(r => add('E', 'Personalnummer mehrfach vergeben', r, 'Personalnummer', `Nr. ${p} gehört zu verschiedenen Personen (Zeilen ${rs.map(x => x.row).join(', ')}).`)); continue; }
+    // gleiche Person – Überlappung prüfen
+    let over = false;
+    for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
+      const a = rs[i], b = rs[j];
+      const s = Math.max(a.beginn ?? -1e9, b.beginn ?? -1e9), e = Math.min(a.ende ?? 1e9, b.ende ?? 1e9);
+      if (s <= e && (a.vz || 0) + (b.vz || 0) > 1.0001) over = true;
+    }
+    rs.forEach(r => add(over ? 'E' : 'I', over ? 'Mehr als 1,0 VZÄ je Person' : 'Mehrere Verträge je Person', r, 'Personalnummer',
+      over ? `Personalnummer ${p}: zeitgleich laufende Verträge mit zusammen mehr als 1,0 VZÄ (Zeilen ${rs.map(x => x.row).join(', ')}).`
+           : `Personalnummer ${p} hat ${rs.length} Verträge (Zeilen ${rs.map(x => x.row).join(', ')}) – wird je Vertrag gezählt.`));
+  }
+  const byN = {};
+  recs.forEach(r => { if (r.name && r.vorname && r.pnr) { const k = (r.name + '|' + r.vorname).toLowerCase(); (byN[k] = byN[k] || new Set()).add(r.pnr); } });
+  recs.forEach(r => { const k = (r.name + '|' + r.vorname).toLowerCase(); if (byN[k] && byN[k].size > 1) add('W', 'Gleicher Name, verschiedene Personalnummern', r, 'Name', `${r.vorname} ${r.name} kommt mit ${byN[k].size} Personalnummern vor – Namensgleichheit oder Doppelerfassung?`); });
+
+  // ähnliche Cluster-/Kreisnamen (Tippfehler)
+  for (const field of ['cluster', 'kreis']) {
+    const cnt = {}; recs.forEach(r => { if (r[field]) cnt[r[field]] = (cnt[r[field]] || 0) + 1; });
+    if (field === 'cluster') S.students.forEach(s => { if (s.cluster && !cnt[s.cluster]) cnt[s.cluster] = 0; });
+    const vals = Object.keys(cnt);
+    for (const a of vals) for (const b of vals) {
+      if (a === b || cnt[a] > cnt[b] || (cnt[a] === cnt[b] && a > b)) continue;
+      const d = lev(a, b);
+      if (d > 0 && d <= Math.max(1, Math.min(2, Math.floor(Math.min(a.length, b.length) / 4))))
+        recs.filter(r => r[field] === a).forEach(r => add('W', 'Möglicher Tippfehler', r, field === 'cluster' ? 'Cluster' : 'Mitarbeiterkreis', `„${a}“ ähnelt „${b}“ – Tippfehler? Wird derzeit als eigene Kategorie gezählt.`));
+    }
+  }
+
+  // Studierende
+  const staffCl = new Set(recs.map(clusterOf)), studCl = new Set();
+  const sgSeen = {};
+  for (const s of S.students) {
+    const r = {row: s.row, pnr: '', name: s.sg, vorname: '', sg: s.sg};
+    if (!s.sg) add('W', 'Studierende: Pflichtfeld leer', r, 'Studiengang', 'Studiengang fehlt.');
+    if (!s.cluster) add('E', 'Studierende: Pflichtfeld leer', r, 'Cluster', 'Cluster fehlt – Studierende werden keinem Cluster zugeordnet.');
+    if (s.nErr || s.n == null) add('E', 'Studierende: Zahl fehlt/unlesbar', r, 'Studierende', 'Anzahl Studierende fehlt oder ist keine Zahl.');
+    else if (s.n < 0 || !Number.isInteger(s.n)) add('E', 'Studierende: Wert unplausibel', r, 'Studierende', `Anzahl ${s.n} ist keine nichtnegative ganze Zahl.`);
+    if (s.sg) { const k = s.sg.toLowerCase(); if (sgSeen[k]) add('W', 'Studierende: Studiengang doppelt', r, 'Studiengang', `Studiengang auch in Zeile ${sgSeen[k]} – wird doppelt gezählt.`); else sgSeen[k] = s.row; }
+    if (s.cluster) { studCl.add(s.cluster); if (!staffCl.has(s.cluster)) add('W', 'Cluster ohne Personal', r, 'Cluster', `Cluster „${s.cluster}“ kommt im Personalblatt nicht vor – Betreuungsrelation nicht berechenbar.`); }
+    if (s.clusterCase) add('I', 'Schreibweise vereinheitlicht', r, 'Cluster', `„${s.clusterCase}“ als „${s.cluster}“ gezählt.`);
+  }
+  if (S.raw.stud) for (const c of staffCl) if (c !== '(ohne Cluster)' && !studCl.has(c)) add('W', 'Cluster ohne Studierende', null, 'Cluster', `Cluster „${c}“ hat im Studierendenblatt keine Studiengänge.`);
+
+  const ord = {E: 0, W: 1, I: 2};
+  I.sort((a, b) => ord[a.sev] - ord[b.sev] || (a.sheet > b.sheet ? 1 : a.sheet < b.sheet ? -1 : 0) || (a.row ?? 0) - (b.row ?? 0));
+  S.issues = I;
+}
+
+/* ============================== Kennzahlen ============================== */
+const used = () => S.recs.filter(r => !r.excluded);
+const val = r => S.measure === 'vzae' ? (r.vz || 0) : 1;
+const fmtV = v => S.measure === 'vzae' ? nf1.format(r2(v)) : nf0.format(Math.round(v));
+const unit = () => S.measure === 'vzae' ? 'VZÄ' : 'Personen';
+const isActive = (r, D) => (r.beginn == null || r.beginn <= D) && (r.ende == null || r.ende >= D);
+/* 'b' = besetzt, 'v' = offene (nicht-kw) Stelle nach Vertragsende, nur im Szenario „weiterführen“ */
+function status(r, D) {
+  if (isActive(r, D)) return 'b';
+  if (S.refill && D > S.today && !r.kw && r.ende != null && r.ende >= S.today && r.ende < D && !(r.beginn != null && r.beginn > r.ende)) return 'v';
+  return null;
+}
+function snapshot(D, clusterFilter) {
+  const res = {total: 0, b: 0, v: 0, byKreis: {}, byCluster: {}, cell: {}};
+  for (const r of used()) {
+    if (clusterFilter && clusterOf(r) !== clusterFilter) continue;
+    const st = status(r, D); if (!st) continue;
+    const w = val(r), k = kreisOf(r), c = clusterOf(r);
+    res.total = r2(res.total + w); res[st] = r2(res[st] + w);
+    const o1 = res.byKreis[k] = res.byKreis[k] || {b: 0, v: 0}; o1[st] = r2(o1[st] + w);
+    const o2 = res.byCluster[c] = res.byCluster[c] || {b: 0, v: 0}; o2[st] = r2(o2[st] + w);
+    const key = c + '\u0000' + k, o3 = res.cell[key] = res.cell[key] || {b: 0, v: 0}; o3[st] = r2(o3[st] + w);
+  }
+  return res;
+}
+const clusterList = () => [...new Set(used().map(clusterOf))].sort((a, b) => (a.startsWith('(') - b.startsWith('(')) || a.localeCompare(b, 'de'));
+const tot = o => o ? r2(o.b + o.v) : 0;
+
+/* ============================== Charts ============================== */
+const charts = {};
+const endLabels = {
+  id: 'endLabels',
+  afterDatasetsDraw(c, _a, opts) {
+    if (!opts || !opts.enabled) return;
+    const ctx = c.ctx; ctx.save(); ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = css('--text-secondary');
+    c.data.datasets.forEach((ds, i) => {
+      const m = c.getDatasetMeta(i); if (m.hidden || (opts.only && !opts.only(ds, i))) return;
+      m.data.forEach((el, j) => {
+        const v = ds.data[j]; if (v == null || !isFinite(v) || v === 0) return;
+        const t = opts.fmt(v);
+        if (c.options.indexAxis === 'y') { ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillText(t, el.x + 4, el.y); }
+        else { ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(t, el.x, el.y - 3); }
+      });
+    });
+    ctx.restore();
+  }
+};
+function chartDefaults() {
+  Chart.defaults.font.family = 'system-ui,-apple-system,"Segoe UI",sans-serif';
+  Chart.defaults.font.size = 12;
+  Chart.defaults.locale = 'de-DE';
+  Chart.defaults.color = css('--text-secondary');
+  Chart.defaults.borderColor = css('--grid');
+  Chart.defaults.plugins.legend.display = false;
+  Chart.defaults.plugins.tooltip.backgroundColor = css('--text-primary');
+  Chart.defaults.plugins.tooltip.titleColor = css('--surface');
+  Chart.defaults.plugins.tooltip.bodyColor = css('--surface');
+  Chart.defaults.plugins.tooltip.padding = 8;
+  Chart.defaults.plugins.tooltip.boxPadding = 4;
+  Chart.defaults.animation = false;
+  Chart.defaults.maintainAspectRatio = false;
+}
+function mkChart(id, cfg) {
+  if (charts[id]) charts[id].destroy();
+  const el = document.getElementById(id); if (!el) return;
+  charts[id] = new Chart(el, cfg);
+  return charts[id];
+}
+const axis = (extra = {}) => Object.assign({grid: {color: css('--grid'), drawTicks: false}, border: {color: css('--axis')}, ticks: {padding: 6}}, extra);
+const legendHtml = items => items.map(([c, l]) => `<span><i style="background:${c}"></i>${esc(l)}</span>`).join('');
+const barDs = (label, data, color, extra = {}) => Object.assign({label, data, backgroundColor: color, borderColor: css('--card'), borderWidth: 0, borderRadius: 3, borderSkipped: false, maxBarThickness: 28}, extra);
+
+/* ============================== Rendering ============================== */
+function renderAll() {
+  runChecks();
+  renderCheck();
+  const t = S.tab;
+  if (t === 'overview') renderOverview();
+  if (t === 'semester') renderSemester();
+  if (t === 'forecast') renderForecast();
+  if (t === 'ratio') renderRatio();
+}
+
+/* ---------- Datenprüfung ---------- */
+function renderCheck() {
+  const I = S.issues, n = s => I.filter(i => i.sev === s).length;
+  const rowsWithErr = new Set(I.filter(i => i.sev === 'E' && i.row && i.sheet === 'Personal').map(i => i.row)).size;
+  $('#errBadge').textContent = n('E') || ''; $('#errBadge').style.display = n('E') ? '' : 'none';
+  $('#checkKpis').innerHTML = [
+    ['Datensätze Personal', nf0.format(S.recs.length), `${nf0.format(used().length)} ausgewertet`],
+    ['Studiengänge', nf0.format(S.students.length), `${nf0.format(S.students.reduce((a, s) => a + (s.n || 0), 0))} Studierende`],
+    ['⛔ Fehler', nf0.format(n('E')), `in ${rowsWithErr} Personalzeilen`],
+    ['⚠ Warnungen', nf0.format(n('W')), 'bitte prüfen'],
+    ['ℹ Hinweise', nf0.format(n('I')), 'informativ'],
+  ].map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+  const P = S.raw.pers;
+  $('#colInfo').innerHTML = `Personalblatt: <b>${esc(P.sn)}</b> (Überschriften in Zeile ${P.headerRow + 1}) · Studierendenblatt: <b>${S.raw.stud ? esc(S.raw.stud.sn) : '— nicht gefunden'}</b>` +
+    (S.missingCols.length ? ` · <span class="sev-E">Nicht gefundene Spalten: ${S.missingCols.map(esc).join(', ')}</span>` : ' · alle 14 Spalten erkannt');
+  // Zusammenfassung je Prüfung
+  const groups = {};
+  I.forEach(i => { const k = i.sev + '\u0000' + i.check; groups[k] = groups[k] || {sev: i.sev, check: i.check, n: 0}; groups[k].n++; });
+  const sevLbl = {E: '⛔ Fehler', W: '⚠ Warnung', I: 'ℹ Hinweis'};
+  const gs = Object.values(groups);
+  $('#issueSummary').innerHTML = gs.length ? '<tr><th>Schwere</th><th>Prüfung</th><th class="n">Befunde</th></tr>' + gs.map(g =>
+    `<tr class="click sumrow ${S.checkFilter === g.check ? 'sel' : ''}" data-check="${esc(g.check)}"><td><span class="pill sev-${g.sev}">${sevLbl[g.sev]}</span></td><td>${esc(g.check)}</td><td class="n">${g.n}</td></tr>`).join('')
+    : '<tr><td>✅ Keine Auffälligkeiten gefunden.</td></tr>';
+  $$('#issueSummary tr[data-check]').forEach(tr => tr.onclick = () => { S.checkFilter = S.checkFilter === tr.dataset.check ? null : tr.dataset.check; renderCheck(); });
+  const F = I.filter(i => (S.sevFilter === 'all' || i.sev === S.sevFilter) && (!S.checkFilter || i.check === S.checkFilter));
+  $('#issueFilterLbl').textContent = `(${F.length}${S.checkFilter ? ' · ' + S.checkFilter : ''})`;
+  $('#clearIssueFilter').classList.toggle('hidden', !S.checkFilter);
+  $('#issueTable').innerHTML = '<tr><th>Schwere</th><th>Blatt</th><th class="n">Zeile</th><th>Pers.-Nr.</th><th>Person / Studiengang</th><th>Feld</th><th>Befund</th></tr>' +
+    F.slice(0, 2000).map(i => `<tr><td><span class="pill sev-${i.sev}">${sevLbl[i.sev]}</span></td><td>${i.row ? esc(i.sheet) : ''}</td><td class="n">${i.row ?? ''}</td><td>${esc(i.pnr)}</td><td>${esc(i.person)}</td><td>${esc(i.field)}</td><td>${esc(i.msg)}</td></tr>`).join('');
+}
+
+/* ---------- Übersicht ---------- */
+function renderOverview() {
+  const T = S.today, snap = snapshot(T), cl = clusterList().filter(c => snap.byCluster[c]);
+  const act = used().filter(r => isActive(r, T));
+  const befr = act.filter(r => r.ende != null), kw = act.filter(r => r.kw);
+  const in12 = act.filter(r => r.ende != null && r.ende <= T + 365);
+  const vzSum = sumBy(act, r => r.vz);
+  $('#ovKpis').innerHTML = [
+    ['Aktive Verträge', nf0.format(act.length), `${nf1.format(vzSum)} VZÄ`],
+    ['Befristet', `${nf1.format(pct(befr.length, act.length))} %`, `${befr.length} Verträge mit Enddatum`],
+    ['kw-Vermerk', nf0.format(kw.length), `${nf1.format(sumBy(kw, r => r.vz))} VZÄ entfallen künftig`],
+    ['Vertragsende in 12 Monaten', nf0.format(in12.length), `${nf1.format(sumBy(in12, r => r.vz))} VZÄ, davon ${in12.filter(r => r.kw).length} mit kw`],
+    ['Cluster', nf0.format(cl.length), `${S.kreisOrder.length} Mitarbeiterkreise`],
+  ].map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+  $('#ovSub1').textContent = `${unit()} mit aktivem Vertrag am ${fmtD(T)} (Beginn ≤ Stichtag ≤ Vertragsende).`;
+  const ks = S.kreisOrder.filter(k => snap.byKreis[k]);
+  const fmt = v => fmtV(v) + ' · ' + nf1.format(pct(v, snap.total)) + ' %';
+  mkChart('cKreisTotal', {type: 'bar', plugins: [endLabels], data: {labels: ks, datasets: [barDs(unit(), ks.map(k => tot(snap.byKreis[k])), ks.map(kreisColor))]},
+    options: {indexAxis: 'y', layout: {padding: {right: 70}}, scales: {x: axis({beginAtZero: true}), y: axis({grid: {display: false}})},
+      plugins: {endLabels: {enabled: true, fmt}, tooltip: {callbacks: {label: c => ' ' + fmt(c.raw) + ' ' + unit()}}}}});
+  $('#lgCluster').innerHTML = legendHtml(ks.map(k => [kreisColor(k), k]));
+  $('#cKreisCluster').parentElement.style.height = Math.max(200, cl.length * 46 + 60) + 'px';
+  // Summe am Ende jedes Stapels
+  const stackTot = {id: 'stackTot', afterDatasetsDraw(c) {
+    const ctx = c.ctx; ctx.save(); ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = css('--text-secondary'); ctx.textBaseline = 'middle';
+    cl.forEach((cn, j) => { let maxX = 0, y = 0; c.data.datasets.forEach((_, i) => { const el = c.getDatasetMeta(i).data[j]; if (el && el.x > maxX) { maxX = el.x; y = el.y; } }); ctx.fillText(fmtV(tot(snap.byCluster[cn])), maxX + 5, y); });
+    ctx.restore(); }};
+  mkChart('cKreisCluster', {type: 'bar', plugins: [stackTot], data: {labels: cl, datasets: ks.map(k => barDs(k, cl.map(c => tot(snap.cell[c + '\u0000' + k])), kreisColor(k), {borderWidth: {right: 2}, borderColor: css('--card'), borderRadius: 0}))},
+    options: {indexAxis: 'y', layout: {padding: {right: 50}}, scales: {x: axis({stacked: true, beginAtZero: true}), y: axis({stacked: true, grid: {display: false}})},
+      plugins: {tooltip: {mode: 'index', filter: x => x.raw > 0, callbacks: {label: c => ` ${c.dataset.label}: ${fmtV(c.raw)}`, footer: it => 'Summe: ' + fmtV(sumBy(it, x => x.raw))}}}}});
+  // Small multiples
+  const maxV = Math.max(1, ...Object.values(snap.cell).map(tot));
+  $('#multiples').innerHTML = cl.map((c, i) => `<div class="m"><h3>${esc(c)}</h3><div class="t">${fmtV(tot(snap.byCluster[c]))} ${unit()}</div><div class="chartbox" style="height:${ks.length * 24 + 30}px"><canvas id="cm${i}"></canvas></div></div>`).join('');
+  cl.forEach((c, i) => {
+    const data = ks.map(k => tot(snap.cell[c + '\u0000' + k]));
+    mkChart('cm' + i, {type: 'bar', plugins: [endLabels], data: {labels: ks, datasets: [barDs(unit(), data, ks.map(kreisColor), {maxBarThickness: 16})]},
+      options: {indexAxis: 'y', layout: {padding: {right: 34}}, scales: {x: axis({beginAtZero: true, max: maxV, ticks: {display: false}, grid: {display: false}}), y: axis({grid: {display: false}, ticks: {font: {size: 11}, callback: (_v, j) => ks[j].length > 18 ? ks[j].slice(0, 17) + '…' : ks[j]}})},
+        plugins: {endLabels: {enabled: true, fmt: fmtV}, tooltip: {callbacks: {title: x => ks[x[0].dataIndex], label: x => ` ${fmtV(x.raw)} ${unit()}`}}}}});
+  });
+  // Tabelle
+  $('#ovTable').innerHTML = `<table><tr><th>Cluster</th>${ks.map(k => `<th class="n"><span class="sw" style="background:${kreisColor(k)}"></span>${esc(k)}</th>`).join('')}<th class="n">Summe</th></tr>` +
+    cl.map(c => `<tr><td>${esc(c)}</td>${ks.map(k => `<td class="n">${fmtV(tot(snap.cell[c + '\u0000' + k]))}</td>`).join('')}<td class="n"><b>${fmtV(tot(snap.byCluster[c]))}</b></td></tr>`).join('') +
+    `<tr class="tot"><td>Fakultät</td>${ks.map(k => `<td class="n">${fmtV(tot(snap.byKreis[k]))}</td>`).join('')}<td class="n">${fmtV(snap.total)}</td></tr></table>`;
+}
+
+/* ---------- Semester ---------- */
+function fillClusterSelect(sel) {
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Alle Cluster</option>' + clusterList().map(c => `<option>${esc(c)}</option>`).join('');
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+function renderSemester() {
+  fillClusterSelect($('#semCluster'));
+  const cf = $('#semCluster').value || null, cur = semIdx(S.today);
+  const sems = []; for (let i = cur - +$('#semPast').value; i <= cur + +$('#semAhead').value; i++) sems.push(i);
+  const snaps = sems.map(i => snapshot(semStart(i), cf));
+  const ks = S.kreisOrder.filter(k => snaps.some(s => s.byKreis[k]));
+  const labels = sems.map(i => semLabel(i) + (i === cur ? ' ◂' : ''));
+  const ds = ks.map(k => barDs(k, snaps.map(s => s.byKreis[k] ? s.byKreis[k].b : 0), kreisColor(k), {borderRadius: 0, borderWidth: {top: 1}, borderColor: css('--card'), maxBarThickness: 40}));
+  if (S.refill) ds.push(barDs('Offene Stellen (ohne kw, nachzubesetzen)', snaps.map(s => s.v), css('--vacant'), {borderRadius: 0, borderWidth: {top: 1}, borderColor: css('--card'), maxBarThickness: 40}));
+  $('#lgSem').innerHTML = legendHtml(ds.map(d => [d.backgroundColor, d.label]));
+  $('#semRefillNote').textContent = S.refill ? 'Szenario: Stellen ohne kw-Vermerk werden nach Vertragsende als offene Stellen weitergeführt (grau).' : 'Nur bestehende Verträge – auslaufende Stellen werden nicht ersetzt. (Szenario „weiterführen“ oben einschaltbar.)';
+  mkChart('cSem', {type: 'bar', data: {labels, datasets: ds},
+    options: {scales: {x: axis({stacked: true, grid: {display: false}, ticks: {maxRotation: 60, autoSkip: false, font: c => ({weight: sems[c.index] === cur ? '700' : '400'})}}), y: axis({stacked: true, beginAtZero: true, title: {display: true, text: unit()}})},
+      plugins: {tooltip: {mode: 'index', filter: x => x.raw > 0, callbacks: {title: it => semLabel(sems[it[0].dataIndex]) + ' (Stand ' + fmtD(semStart(sems[it[0].dataIndex])) + ')', label: c => ` ${c.dataset.label}: ${fmtV(c.raw)}`, footer: it => 'Summe: ' + fmtV(sumBy(it, x => x.raw))}}}}});
+  // Zu-/Abgänge
+  const rs = used().filter(r => !cf || clusterOf(r) === cf);
+  const inSem = (d, i) => d != null && d >= semStart(i) && d <= semEnd(i);
+  const outKw = sems.map(i => -sumBy(rs.filter(r => r.kw && inSem(r.ende, i)), val));
+  const outRe = sems.map(i => -sumBy(rs.filter(r => !r.kw && inSem(r.ende, i)), val));
+  const inn = sems.map(i => sumBy(rs.filter(r => inSem(r.beginn, i)), val));
+  const fds = [barDs('Zugänge', inn, css('--s3'), {stack: 's'}), barDs('Abgänge – Stelle bleibt (ohne kw)', outRe, css('--s1'), {stack: 's'}), barDs('Abgänge – Stelle entfällt (kw)', outKw, css('--s2'), {stack: 's'})];
+  $('#lgFlow').innerHTML = legendHtml(fds.map(d => [d.backgroundColor, d.label]));
+  mkChart('cFlow', {type: 'bar', data: {labels, datasets: fds},
+    options: {onClick: (_e, el) => { if (el.length) { $('#semDetail').value = sems[el[0].index]; renderSemDetail(); } },
+      scales: {x: axis({stacked: true, grid: {display: false}, ticks: {maxRotation: 60, autoSkip: false}}), y: axis({stacked: true, ticks: {callback: v => fmtV(Math.abs(v))}})},
+      plugins: {tooltip: {mode: 'index', callbacks: {label: c => ` ${c.dataset.label}: ${fmtV(Math.abs(c.raw))}`}}}}});
+  const sd = $('#semDetail'), prev = sd.value;
+  sd.innerHTML = sems.map(i => `<option value="${i}">${semLabel(i)}</option>`).join('');
+  sd.value = sems.includes(+prev) ? prev : cur;
+  renderSemDetail();
+  $('#semTable').innerHTML = `<table><tr><th>Semester</th><th>Stichtag</th>${ks.map(k => `<th class="n"><span class="sw" style="background:${kreisColor(k)}"></span>${esc(k)}</th>`).join('')}${S.refill ? '<th class="n">offen</th>' : ''}<th class="n">Summe</th><th class="n">Zugänge</th><th class="n">Abgänge (davon kw)</th></tr>` +
+    sems.map((i, j) => `<tr${i === cur ? ' style="font-weight:600"' : ''}><td>${semLabel(i)}</td><td>${fmtD(semStart(i))}</td>${ks.map(k => `<td class="n">${fmtV(snaps[j].byKreis[k] ? snaps[j].byKreis[k].b : 0)}</td>`).join('')}${S.refill ? `<td class="n">${fmtV(snaps[j].v)}</td>` : ''}<td class="n"><b>${fmtV(snaps[j].total)}</b></td><td class="n">${fmtV(inn[j])}</td><td class="n">${fmtV(r2(-(outKw[j] + outRe[j])))} (${fmtV(-outKw[j])})</td></tr>`).join('') + '</table>';
+}
+function personTable(list, extraCol) {
+  if (!list.length) return '<p class="note">Keine.</p>';
+  return `<table><tr><th>Name</th><th>Mitarbeiterkreis</th><th>Cluster</th><th class="n">VZÄ</th><th>${extraCol[0]}</th><th>Stelle</th></tr>` +
+    list.map(r => `<tr><td>${esc([r.name, r.vorname].filter(Boolean).join(', '))}</td><td><span class="sw" style="background:${kreisColor(kreisOf(r))}"></span>${esc(kreisOf(r))}</td><td>${esc(clusterOf(r))}</td><td class="n">${nf2.format(r.vz || 0)}</td><td class="n">${fmtD(extraCol[1](r))}</td><td>${extraCol[2](r)}</td></tr>`).join('') + '</table>';
+}
+const stelleTxt = r => r.kw ? '<span class="pill" style="border-color:var(--s2)">entfällt (kw)</span>' : '<span class="pill">bleibt – Nachbesetzung</span>';
+function renderSemDetail() {
+  const i = +$('#semDetail').value, cf = $('#semCluster').value || null;
+  const list = used().filter(r => (!cf || clusterOf(r) === cf) && r.ende != null && r.ende >= semStart(i) && r.ende <= semEnd(i)).sort((a, b) => a.ende - b.ende || a.name.localeCompare(b.name, 'de'));
+  $('#semDetailTable').innerHTML = personTable(list, ['Vertragsende', r => r.ende, stelleTxt]);
+}
+
+/* ---------- Forecast ---------- */
+let fcMode = 'sem';
+function renderForecast() {
+  fillClusterSelect($('#fcCluster'));
+  const cur = semIdx(S.today), fs = $('#fcSem'), prev = fs.value;
+  fs.innerHTML = Array.from({length: 20}, (_, j) => cur + 1 + j).map(i => `<option value="${i}">${semLabel(i)} (Beginn ${fmtD(semStart(i))})</option>`).join('');
+  fs.value = prev && [...fs.options].some(o => o.value === prev) ? prev : String(cur + 2);
+  if (!$('#fcDate').value) $('#fcDate').value = isoD(S.today + 365);
+  $('#fcDate').min = isoD(S.today + 1); $('#fcDate').max = isoD(semEnd(cur + 20));
+  let D = fcMode === 'sem' ? semStart(+fs.value) : parseIso($('#fcDate').value);
+  if (D == null) D = S.today + 365;
+  const cf = $('#fcCluster').value || null, T = S.today;
+  const a = snapshot(T, cf), b = snapshot(D, cf);
+  const past = D <= T;
+  $('#fcInfo').innerHTML = `Vergleich <b>heute (${fmtD(T)})</b> mit <b>${fmtD(D)}</b>${fcMode === 'sem' ? ' = Beginn ' + semLabel(+fs.value) : ' (' + semLabel(semIdx(D)) + ')'}${cf ? ' · Cluster ' + esc(cf) : ''}. ` +
+    (past ? '<span class="sev-W">Zielzeitpunkt liegt nicht in der Zukunft.</span> ' : '') +
+    (S.refill ? 'Szenario: Stellen ohne kw werden nach Vertragsende als offene Stellen mitgezählt.' : 'Szenario: nur bestehende Verträge, keine Nachbesetzung.');
+  const rs = used().filter(r => !cf || clusterOf(r) === cf);
+  const outs = rs.filter(r => isActive(r, T) && !isActive(r, D) && r.ende != null && r.ende < D).sort((x, y) => x.ende - y.ende);
+  const ins = rs.filter(r => !isActive(r, T) && r.beginn != null && r.beginn > T && r.beginn <= D && isActive(r, D)).sort((x, y) => x.beginn - y.beginn);
+  const s = l => sumBy(l, val);
+  const delta = (x, y) => { const d = r2(y - x); return `<span class="${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲ +' : d < 0 ? '▼ −' : '± '}${fmtV(Math.abs(d))}</span>`; };
+  const kpis = [
+    [S.refill ? 'Stellen gesamt' : 'Besetzte Verträge', fmtV(b.total), `heute ${fmtV(a.total)} · ${delta(a.total, b.total)}`],
+    ['davon besetzt', fmtV(b.b), `heute ${fmtV(a.b)} · ${delta(a.b, b.b)}`],
+  ];
+  if (S.refill) kpis.push(['Offene Stellen (ohne kw)', fmtV(b.v), 'nach Vertragsende nachzubesetzen']);
+  kpis.push(['Abgänge', fmtV(s(outs)), `${outs.length} Verträge, davon ${outs.filter(r => r.kw).length} kw (${fmtV(s(outs.filter(r => r.kw)))} ${unit()} entfallen)`]);
+  kpis.push(['Zugänge', fmtV(s(ins)), `${ins.length} bereits vereinbarte Verträge`]);
+  $('#fcKpis').innerHTML = kpis.map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+  const ks = S.kreisOrder.filter(k => a.byKreis[k] || b.byKreis[k]);
+  const dsF = [barDs('heute', ks.map(k => tot(a.byKreis[k])), css('--muted'), {maxBarThickness: 14}), barDs('Prognose ' + fmtD(D) + (S.refill ? ' – besetzt' : ''), ks.map(k => b.byKreis[k] ? b.byKreis[k].b : 0), css('--s1'), {maxBarThickness: 14, stack: 'p'})];
+  dsF[0].stack = 'h';
+  if (S.refill) dsF.push(barDs('Prognose – offene Stellen', ks.map(k => b.byKreis[k] ? b.byKreis[k].v : 0), css('--vacant'), {maxBarThickness: 14, stack: 'p'}));
+  $('#lgFc').innerHTML = legendHtml(dsF.map(d => [d.backgroundColor, d.label]));
+  $('#cFc').parentElement.style.height = Math.max(220, ks.length * 52 + 40) + 'px';
+  mkChart('cFc', {type: 'bar', data: {labels: ks, datasets: dsF},
+    options: {indexAxis: 'y', scales: {x: axis({beginAtZero: true, stacked: true}), y: axis({stacked: true, grid: {display: false}})},
+      plugins: {tooltip: {mode: 'index', callbacks: {label: c => ` ${c.dataset.label}: ${fmtV(c.raw)}`, footer: it => { const k = ks[it[0].dataIndex]; const d = r2(tot(b.byKreis[k]) - tot(a.byKreis[k])); return 'Veränderung: ' + (d >= 0 ? '+' : '−') + fmtV(Math.abs(d)); }}}}}});
+  // Delta-Matrix
+  const cl = clusterList().filter(c => !cf || c === cf).filter(c => a.byCluster[c] || b.byCluster[c]);
+  const dv = (c, k) => r2(tot(b.cell[c + '\u0000' + k]) - tot(a.cell[c + '\u0000' + k]));
+  const maxAbs = Math.max(0.0001, ...cl.flatMap(c => ks.map(k => Math.abs(dv(c, k)))));
+  const cell = d => { const al = Math.round(Math.min(1, Math.abs(d) / maxAbs) * 45 + (d ? 10 : 0)); const col = d > 0 ? css('--pos') : css('--neg');
+    return `<td class="n" style="background:${d ? `color-mix(in srgb, ${col} ${al}%, transparent)` : 'transparent'}">${d ? (d > 0 ? '+' : '−') + fmtV(Math.abs(d)) : '·'}</td>`; };
+  $('#fcDelta').innerHTML = `<table><tr><th>Cluster</th>${ks.map(k => `<th class="n">${esc(k)}</th>`).join('')}<th class="n">Summe</th></tr>` +
+    cl.map(c => `<tr><td>${esc(c)}<div class="note">${fmtV(tot(a.byCluster[c]))} → ${fmtV(tot(b.byCluster[c]))}</div></td>${ks.map(k => cell(dv(c, k))).join('')}${cell(r2(tot(b.byCluster[c]) - tot(a.byCluster[c])))}</tr>`).join('') +
+    `<tr class="tot"><td>Gesamt</td>${ks.map(k => cell(r2(tot(b.byKreis[k]) - tot(a.byKreis[k])))).join('')}${cell(r2(b.total - a.total))}</tr></table>`;
+  $('#fcOut').innerHTML = personTable(outs, ['Vertragsende', r => r.ende, stelleTxt]);
+  $('#fcIn').innerHTML = personTable(ins, ['Beginn', r => r.beginn, r => r.kw ? 'kw' : '']);
+}
+
+/* ---------- Betreuungsverhältnis ---------- */
+function renderRatio() {
+  const cur = semIdx(S.today), sel = $('#raWhen'), prev = sel.value;
+  sel.innerHTML = `<option value="today">heute (${fmtD(S.today)})</option>` + Array.from({length: 20}, (_, j) => cur + 1 + j).map(i => `<option value="${i}">${semLabel(i)}</option>`).join('');
+  sel.value = [...sel.options].some(o => o.value === prev) ? prev : 'today';
+  const D = sel.value === 'today' ? S.today : semStart(+sel.value);
+  $('#raNote').textContent = sel.value === 'today' ? '' : `Stand ${fmtD(D)} – Studierendenzahlen unverändert angenommen.`;
+  // Studierende je Cluster
+  const stud = {}; S.students.forEach(s => { if (s.cluster && s.n > 0) stud[s.cluster] = (stud[s.cluster] || 0) + s.n; });
+  const unitLbl = S.measure === 'vzae' ? 'VZÄ' : 'Köpfe';
+  // Personal je Cluster: P = Professor/innen ohne LfbA, L = LfbA, PL = Professor/innen inkl. LfbA, W = WiMi
+  const staff = {}, oeStaff = {};
+  const addS = (o, k, w) => { o[k] = r2((o[k] || 0) + w); };
+  for (const r of used()) {
+    if (!isActive(r, D)) continue;
+    const c = clusterOf(r), cat = S.catMap[kreisOf(r)], w = val(r);
+    const o = staff[c] = staff[c] || {P: 0, L: 0, PL: 0, W: 0};
+    const oeKey = c + '\u0000' + (r.oe || '(ohne Organisationseinheit)');
+    const q = oeStaff[oeKey] = oeStaff[oeKey] || {c, oe: r.oe || '(ohne Organisationseinheit)', P: 0, W: 0};
+    if (cat === 'Professor/in') { addS(o, 'P', w); addS(o, 'PL', w); addS(q, 'P', w); }
+    else if (cat === 'LfbA') { addS(o, 'L', w); addS(o, 'PL', w); }
+    else if (cat === 'WiMi') { addS(o, 'W', w); addS(q, 'W', w); }
+  }
+  const cls = [...new Set([...Object.keys(stud), ...clusterList()])].filter(c => stud[c] || (staff[c] && c !== '(ohne Cluster)')).sort((a, b) => a.localeCompare(b, 'de'));
+  const both = cls.filter(c => stud[c] && staff[c]);
+  const G = {P: 0, L: 0, PL: 0, W: 0}; let Gs = 0;
+  both.forEach(c => { Gs += stud[c]; for (const k in G) G[k] = r2(G[k] + staff[c][k]); });
+  const ratio = (n, d) => (n && d) ? r2(n / d) : null;
+  const rc = v => v == null ? '<span class="note">–</span>' : nf1.format(v);
+  const FAK = 'Fakultät gesamt';
+  const labels = [...both, FAK];
+  const st = c => c === FAK ? G : staff[c];
+  const sn = c => c === FAK ? Gs : stud[c];
+  const groups = [['PL', 'Professor/innen (inkl. LfbA)', catColor('Professor/in')], ['W', 'WiMi', catColor('WiMi')]];
+  const ds = groups.map(([k, l, col]) => barDs('Studierende je ' + l, labels.map(c => ratio(sn(c), st(c)[k])), col, {maxBarThickness: 16}));
+  $('#lgRa').innerHTML = legendHtml(ds.map(d => [d.backgroundColor, d.label]));
+  $('#raSub').textContent = `Studierende im Cluster geteilt durch ${unitLbl} der jeweiligen Gruppe mit aktivem Vertrag am ${fmtD(D)}. LfbA zählen als Professor/innen. Fehlende Balken: keine Person dieser Gruppe im Cluster.`;
+  $('#raBox').style.height = Math.max(220, labels.length * 52 + 50) + 'px';
+  const boldFak = (lbls) => ({font: c => ({weight: lbls[c.index] === FAK ? '700' : '400'})});
+  mkChart('cRa', {type: 'bar', plugins: [endLabels], data: {labels, datasets: ds},
+    options: {indexAxis: 'y', layout: {padding: {right: 50}}, scales: {x: axis({beginAtZero: true, title: {display: true, text: 'Studierende je ' + (S.measure === 'vzae' ? 'VZÄ' : 'Person')}}), y: axis({grid: {display: false}, ticks: boldFak(labels)})},
+      plugins: {endLabels: {enabled: true, fmt: v => nf1.format(v)}, tooltip: {callbacks: {label: c => ` ${c.dataset.label}: ${nf1.format(c.raw)}`}}}}});
+  const row = (n, o) => `<td class="n">${n ? nf0.format(n) : '<span class="note">–</span>'}</td>` +
+    `<td class="n">${fmtV(o.P)}</td><td class="n">${fmtV(o.L)}</td><td class="n">${fmtV(o.PL)}</td><td class="n"><b>${rc(ratio(n, o.PL))}</b></td>` +
+    `<td class="n">${fmtV(o.W)}</td><td class="n"><b>${rc(ratio(n, o.W))}</b></td><td class="n">${rc(ratio(n, r2(o.PL + o.W)))}</td>`;
+  $('#raTable').innerHTML = `<table><tr><th>Cluster</th><th class="n">Studierende</th><th class="n">Professor/innen (${unitLbl})</th><th class="n">+ LfbA (${unitLbl})</th><th class="n"><span class="sw" style="background:${catColor('Professor/in')}"></span>Prof. inkl. LfbA</th><th class="n">Stud. je Prof. inkl. LfbA</th><th class="n"><span class="sw" style="background:${catColor('WiMi')}"></span>WiMi (${unitLbl})</th><th class="n">Stud. je WiMi</th><th class="n">Stud. je (Prof. inkl. LfbA + WiMi)</th></tr>` +
+    cls.map(c => `<tr><td>${esc(c)}${!stud[c] ? ' <span class="pill sev-W">keine Studierenden</span>' : !staff[c] ? ' <span class="pill sev-W">kein Personal</span>' : ''}</td>${row(stud[c], staff[c] || {P: 0, L: 0, PL: 0, W: 0})}</tr>`).join('') +
+    `<tr class="tot"><td>${FAK}*</td>${row(Gs, G)}</tr></table><p class="note">* Summe nur über Cluster, für die sowohl Studierende als auch Personal vorliegen. Alle Werte auf zwei Nachkommastellen gerundet.</p>`;
+
+  // ---------- WiMi je Professur (ohne LfbA) ----------
+  const wcl = cls.filter(c => staff[c] && (staff[c].P || staff[c].W));
+  const WG = {P: sumBy(wcl, c => staff[c].P), W: sumBy(wcl, c => staff[c].W)};
+  const wLabels = [...wcl, FAK];
+  const wst = c => c === FAK ? WG : staff[c];
+  const wr = wLabels.map(c => ratio(wst(c).W, wst(c).P));
+  const avg = ratio(WG.W, WG.P);
+  $('#wmSub').textContent = `${S.measure === 'vzae' ? 'WiMi-VZÄ je Professur-VZÄ' : 'WiMi je Professor/in (Köpfe)'} am ${fmtD(D)}. LfbA werden hier nicht berücksichtigt. Linie = Fakultätsdurchschnitt ${avg == null ? '–' : nf1.format(avg)}.`;
+  $('#wmBox').style.height = Math.max(200, wLabels.length * 38 + 50) + 'px';
+  const avgLine = {id: 'avgLine', afterDatasetsDraw(c) {
+    if (avg == null) return; const x = c.scales.x.getPixelForValue(avg), {top, bottom} = c.chartArea, ctx = c.ctx;
+    ctx.save(); ctx.strokeStyle = css('--text-secondary'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bottom); ctx.stroke(); ctx.restore(); }};
+  mkChart('cWm', {type: 'bar', plugins: [endLabels, avgLine], data: {labels: wLabels, datasets: [barDs('WiMi je Professur', wr, wLabels.map(c => c === FAK ? css('--muted') : catColor('WiMi')), {maxBarThickness: 18})]},
+    options: {indexAxis: 'y', layout: {padding: {right: 50}}, scales: {x: axis({beginAtZero: true, title: {display: true, text: 'WiMi je Professur'}}), y: axis({grid: {display: false}, ticks: boldFak(wLabels)})},
+      plugins: {endLabels: {enabled: true, fmt: v => nf1.format(v)}, tooltip: {callbacks: {label: c => { const o = wst(wLabels[c.dataIndex]); return [` ${nf1.format(c.raw)} WiMi je Professur`, ` ${fmtV(o.W)} WiMi / ${fmtV(o.P)} Professuren (${unitLbl})`]; }}}}}});
+  // Verteilung: Anteil an allen Professuren vs. Anteil an allen WiMi
+  const shP = wcl.map(c => pct(staff[c].P, WG.P)), shW = wcl.map(c => pct(staff[c].W, WG.W));
+  $('#lgWmShare').innerHTML = legendHtml([[catColor('Professor/in'), 'Anteil an allen Professuren'], [catColor('WiMi'), 'Anteil an allen WiMi']]);
+  $('#wmShareBox').style.height = Math.max(200, wcl.length * 52 + 50) + 'px';
+  mkChart('cWmShare', {type: 'bar', plugins: [endLabels], data: {labels: wcl, datasets: [barDs('Anteil an allen Professuren', shP, catColor('Professor/in'), {maxBarThickness: 14}), barDs('Anteil an allen WiMi', shW, catColor('WiMi'), {maxBarThickness: 14})]},
+    options: {indexAxis: 'y', layout: {padding: {right: 60}}, scales: {x: axis({beginAtZero: true, ticks: {callback: v => v + ' %'}}), y: axis({grid: {display: false}})},
+      plugins: {endLabels: {enabled: true, fmt: v => nf1.format(v) + ' %'}, tooltip: {callbacks: {label: c => ` ${c.dataset.label}: ${nf1.format(c.raw)} %`}}}}});
+  // Tabelle je Cluster mit Organisationseinheiten
+  const oes = Object.values(oeStaff).filter(o => o.P || o.W);
+  const hasOe = 'oe' in S.colMap;
+  const flag = (P, W) => !P && W ? ' <span class="pill sev-W">WiMi ohne Professur</span>' : (P && !W ? ' <span class="pill sev-I">keine WiMi</span>' : '');
+  const devCell = v => { if (v == null || avg == null) return '<td class="n"><span class="note">–</span></td>'; const d = r2(v - avg);
+    return `<td class="n"><span class="${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '+' : d < 0 ? '−' : '±'}${nf1.format(Math.abs(d))}</span></td>`; };
+  $('#wmTable').innerHTML = `<table><tr><th>Cluster${hasOe ? ' / Organisationseinheit' : ''}</th><th class="n">Professuren (${unitLbl})</th><th class="n">WiMi (${unitLbl})</th><th class="n">WiMi je Professur</th><th class="n">Abweichung vom Fakultätsschnitt</th><th class="n">Anteil Professuren</th><th class="n">Anteil WiMi</th></tr>` +
+    wcl.map((c, i) => { const o = staff[c], v = ratio(o.W, o.P);
+      return `<tr class="tot"><td>${esc(c)}${flag(o.P, o.W)}</td><td class="n">${fmtV(o.P)}</td><td class="n">${fmtV(o.W)}</td><td class="n">${rc(v)}</td>${devCell(v)}<td class="n">${nf1.format(shP[i])} %</td><td class="n">${nf1.format(shW[i])} %</td></tr>` +
+        (hasOe ? oes.filter(q => q.c === c).sort((x, y) => x.oe.localeCompare(y.oe, 'de')).map(q => { const qv = ratio(q.W, q.P);
+          return `<tr><td style="padding-left:20px">${esc(q.oe)}${flag(q.P, q.W)}</td><td class="n">${fmtV(q.P)}</td><td class="n">${fmtV(q.W)}</td><td class="n">${rc(qv)}</td>${devCell(qv)}<td class="n">${nf1.format(pct(q.P, WG.P))} %</td><td class="n">${nf1.format(pct(q.W, WG.W))} %</td></tr>`; }).join('') : ''); }).join('') +
+    `<tr class="tot"><td>${FAK}</td><td class="n">${fmtV(WG.P)}</td><td class="n">${fmtV(WG.W)}</td><td class="n">${rc(avg)}</td><td></td><td class="n">100,00 %</td><td class="n">100,00 %</td></tr></table>`;
+  // Zuordnung
+  $('#catMapBox').innerHTML = `<table><tr><th>Mitarbeiterkreis (aus Daten)</th><th class="n">Datensätze</th><th>Zählt als</th></tr>` +
+    S.kreisOrder.map(k => `<tr><td><span class="sw" style="background:${kreisColor(k)}"></span>${esc(k)}</td><td class="n">${S.kreisCounts[k]}</td><td><select data-k="${esc(k)}">${CATS.map(c => `<option${S.catMap[k] === c ? ' selected' : ''}>${c}</option>`).join('')}</select></td></tr>`).join('') + '</table>';
+  $$('#catMapBox select').forEach(s => s.onchange = () => { S.catMap[s.dataset.k] = s.value; orderKreise(); renderAll(); });
+  // Studiengänge
+  const maxN = Math.max(1, ...S.students.map(s => s.n || 0));
+  const byC = {}; S.students.forEach(s => (byC[s.cluster || '(ohne Cluster)'] = byC[s.cluster || '(ohne Cluster)'] || []).push(s));
+  $('#stTable').innerHTML = `<table><tr><th>Studiengang</th><th class="n">Studierende</th><th style="width:40%"></th></tr>` +
+    Object.keys(byC).sort((a, b) => a.localeCompare(b, 'de')).map(c => `<tr class="tot"><td>${esc(c)}</td><td class="n">${nf0.format(byC[c].reduce((t, s) => t + (s.n || 0), 0))}</td><td></td></tr>` +
+      byC[c].map(s => `<tr><td style="padding-left:18px">${esc(s.sg)}</td><td class="n">${s.n != null ? nf0.format(s.n) : '–'}</td><td><span class="bar-inline" style="width:${(s.n || 0) / maxN * 100}%"></span></td></tr>`).join('')).join('') + '</table>';
+}
+
+/* ============================== Bedienung ============================== */
+function showTab(t) {
+  S.tab = t;
+  $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  $$('section.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + t));
+  renderAll();
+}
+async function loadFile(f) {
+  try {
+    const buf = await f.arrayBuffer();
+    S.catMap = {};
+    readWorkbook(buf, f.name);
+    $('#fileInfo').textContent = `${f.name} · ${S.recs.length} Personaldatensätze · ${S.students.length} Studiengänge`;
+    $('#start').classList.add('hidden'); $('#app').classList.remove('hidden'); $('#tabs').classList.remove('hidden');
+    $$('[data-loaded]').forEach(e => e.classList.remove('hidden'));
+    document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px');
+    showTab('check');
+  } catch (e) {
+    console.error(e);
+    alert('Die Datei konnte nicht gelesen werden:\n' + e.message);
+  }
+}
+function init() {
+  chartDefaults();
+  const n = new Date(); S.today = toDay(n.getFullYear(), n.getMonth() + 1, n.getDate());
+  $('#today').value = isoD(S.today);
+  $('#file').onchange = e => e.target.files[0] && loadFile(e.target.files[0]);
+  const dr = $('#drop');
+  dr.ondragover = e => { e.preventDefault(); dr.classList.add('over'); };
+  dr.ondragleave = () => dr.classList.remove('over');
+  dr.ondrop = e => { e.preventDefault(); dr.classList.remove('over'); e.dataTransfer.files[0] && loadFile(e.dataTransfer.files[0]); };
+  $('#reload').onclick = () => { $('#file').value = ''; $('#app').classList.add('hidden'); $('#tabs').classList.add('hidden'); $('#start').classList.remove('hidden'); $$('[data-loaded]').forEach(e => e.classList.add('hidden')); $('#fileInfo').textContent = ''; };
+  $$('#tabs button').forEach(b => b.onclick = () => showTab(b.dataset.t));
+  $('#today').onchange = () => { const d = parseIso($('#today').value); if (d != null) { S.today = d; renderAll(); } };
+  $$('#measureSeg button').forEach(b => b.onclick = () => { S.measure = b.dataset.v; $$('#measureSeg button').forEach(x => x.classList.toggle('on', x === b)); renderAll(); });
+  $('#refill').onchange = e => { S.refill = e.target.checked; renderAll(); };
+  $('#exclDup').onchange = e => { S.excludeDup = e.target.checked; renderAll(); };
+  $$('#sevSeg button').forEach(b => b.onclick = () => { S.sevFilter = b.dataset.v; $$('#sevSeg button').forEach(x => x.classList.toggle('on', x === b)); renderCheck(); });
+  $('#clearIssueFilter').onclick = () => { S.checkFilter = null; renderCheck(); };
+  $('#csvIssues').onclick = () => {
+    const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const lines = [['Schwere', 'Prüfung', 'Blatt', 'Zeile', 'Personalnummer', 'Person/Studiengang', 'Feld', 'Befund'].map(q).join(';')]
+      .concat(S.issues.map(i => [{E: 'Fehler', W: 'Warnung', I: 'Hinweis'}[i.sev], i.check, i.row ? i.sheet : '', i.row, i.pnr, i.person, i.field, i.msg].map(q).join(';')));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'}));
+    a.download = 'Pruefbericht_Personaldaten.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  ['#semCluster', '#semPast', '#semAhead'].forEach(s => $(s).onchange = renderSemester);
+  $('#semDetail').onchange = renderSemDetail;
+  $$('#fcMode button').forEach(b => b.onclick = () => { fcMode = b.dataset.v; $$('#fcMode button').forEach(x => x.classList.toggle('on', x === b)); $('#fcSem').classList.toggle('hidden', fcMode !== 'sem'); $('#fcDate').classList.toggle('hidden', fcMode !== 'date'); renderForecast(); });
+  ['#fcSem', '#fcDate', '#fcCluster'].forEach(s => $(s).onchange = renderForecast);
+  $('#raWhen').onchange = renderRatio;
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { chartDefaults(); if (S.raw) renderAll(); });
+  window.addEventListener('resize', () => document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px'));
+}
+init();
+</script>
+</body>
+</html>

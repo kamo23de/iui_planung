@@ -1,0 +1,61 @@
+# Personalplanung Fakultät IuI
+
+Interaktives Dashboard für die Personalplanung, das **vollständig lokal im Browser** läuft.
+Personenbezogene Daten verlassen den Rechner nicht.
+
+## Benutzung
+
+1. `Personalplanung_IuI.html` herunterladen und per Doppelklick im Browser öffnen.
+2. Excel-Datei auswählen oder in das Fenster ziehen.
+3. Zuerst den Reiter **Datenprüfung** ansehen, dann die Auswertungen.
+
+Zum Ausprobieren gibt es `testdaten/Testdaten_Personalplanung.xlsx`. Die Datei enthält erfundene Personen und absichtlich eingebaute Fehler.
+
+## Datenschutz
+
+- Alle Bibliotheken (SheetJS, Chart.js) sind in der HTML-Datei eingebettet. Es wird nichts nachgeladen.
+- Eine Content-Security-Policy in der Datei verbietet dem Browser jede Netzwerkverbindung.
+- Die Daten liegen nur im Arbeitsspeicher des Browserfensters und sind nach dem Schließen weg.
+- **Echte Excel-Dateien gehören nicht in dieses Repository** – es ist öffentlich. Die `.gitignore` schließt Excel- und CSV-Dateien aus, ausgenommen die Testdatei.
+
+## Erwarteter Aufbau der Excel-Datei
+
+**Blatt Personal:** Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich
+
+**Blatt Studierende:** Studiengang, Cluster, Studierende
+
+Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blattnamen sind egal.
+
+## Funktionen
+
+| Reiter | Inhalt |
+|---|---|
+| Datenprüfung | Plausibilitätscheck mit Fehlern, Warnungen und Hinweisen samt Zeilennummer; Export als CSV |
+| Mitarbeiterkreise | Aktive Stellen für die ganze Fakultät, je Cluster gestapelt und je Cluster einzeln |
+| Semesterverlauf | Bestand zu jedem Semesterbeginn, Zu- und Abgänge je Semester, bis 20 Semester voraus |
+| Forecast | Zielzeitpunkt als Datum oder Semester (max. 20 voraus), Vergleich mit heute, Ab- und Zugangslisten |
+| Betreuung & WiMi | Studierende je Professor/in (inkl. LfbA) und je WiMi; WiMi je Professur (ohne LfbA) je Cluster und Organisationseinheit |
+
+## Festgelegte Regeln
+
+- **Aktiv:** Beginn ≤ Stichtag ≤ Vertragsende. Ein leeres Vertragsende oder ein Enddatum ab 2100 zählt als unbefristet.
+- **Semester:** Wintersemester 01.09.–28./29.02., Sommersemester 01.03.–31.08. Bestand je Semester = Stand am ersten Tag.
+- **kw:** Stellen mit kw-Vermerk entfallen nach Vertragsende. Optional werden Stellen ohne kw als offene, nachzubesetzende Stellen weitergeführt (Schalter oben).
+- **Rundung:** Alle Berechnungen auf zwei Nachkommastellen. Kopfzahlen bleiben ganze Zahlen.
+- **Betreuungsverhältnis:** LfbA zählen als Professor/innen. In der WiMi-je-Professur-Auswertung werden LfbA nicht berücksichtigt.
+- Die Zuordnung der Mitarbeiterkreise zu Professor/in, LfbA, WiMi und Sonstige wird aus den Bezeichnungen erraten und lässt sich im Reiter „Betreuung & WiMi“ ändern.
+
+## Entwicklung
+
+Der Quelltext liegt in `src/app.html`. Die fertige Einzeldatei wird so gebaut:
+
+```bash
+npm install
+npm run build        # erzeugt Personalplanung_IuI.html
+```
+
+Testdaten neu erzeugen (Python mit openpyxl):
+
+```bash
+python3 scripts/make_testdata.py
+```

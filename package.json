@@ -1,0 +1,13 @@
+{
+  "name": "iui-planung",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Lokales, interaktives Dashboard für die Personalplanung der Fakultät IuI",
+  "scripts": {
+    "build": "node scripts/build.js"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.0",
+    "xlsx": "0.18.5"
+  }
+}

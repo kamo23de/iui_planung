@@ -1,0 +1,8 @@
+node_modules/
+
+# Echte Personaldaten niemals einchecken – das Repository ist öffentlich.
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+!testdaten/Testdaten_Personalplanung.xlsx
