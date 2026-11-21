@@ -343,7 +343,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
 <!-- ================= Detailansicht ================= -->
 <section class="view" id="v-detail">
   <div class="card">
-    <div class="row"><label class="ctl">Cluster <select id="dtCluster"></select></label><label class="ctl">Laborbereich <select id="dtLab"></select></label></div>
+    <div class="row"><label class="ctl">Cluster <select id="dtCluster"></select></label><label class="ctl">Laborbereich <select id="dtLab"></select></label><label class="ctl">Organisationseinheit <select id="dtOE"></select></label></div>
     <h2 id="dtRatioTitle">Betreuungsverhältnis</h2>
     <p class="sub" id="dtRatioSub"></p>
     <div class="ratio-row" id="dtRatio"></div>
@@ -1165,16 +1165,28 @@ function staffStats(list) {
   const PL = [...g.P, ...g.L], MA = [...g.W, ...g.O];
   return {g, PL, MA, K, V};
 }
-const q2 = (a, b) => (a && b) ? r2(a / b) : null;
+const q2 = (a, b) => b ? r2((a || 0) / b) : null;   // Teiler 0 → nicht berechenbar; Zähler 0 → 0,00
 const f2 = v => v == null ? '–' : nf1.format(v);
 const inCluster = r => { const cf = $('#dtCluster').value; return !cf || clusterOf(r) === cf; };
 const inLab = r => { const lf = selLab(); return !lf || labKey(r) === lf; };
+const NOOE = '(ohne Organisationseinheit)';
+const oeOf = r => r.oe || NOOE;
+const selOE = () => $('#dtOE').value ? decodeURIComponent($('#dtOE').value) : null;
+const inOE = r => { const o = selOE(); return !o || oeOf(r) === o; };
+/* Organisationseinheiten: nur der Name, eingeschränkt auf gewählten Cluster und Laborbereich */
+function fillOESelect() {
+  const sel = $('#dtOE'), cur = selOE();
+  const names = [...new Set(used().filter(r => inCluster(r) && inLab(r)).map(oeOf))]
+    .sort((a, b) => ((a === NOOE) - (b === NOOE)) || a.localeCompare(b, 'de'));
+  sel.innerHTML = '<option value="">Alle Organisationseinheiten</option>' + names.map(n => `<option value="${encodeURIComponent(n)}">${esc(n)}</option>`).join('');
+  sel.value = names.includes(cur) ? encodeURIComponent(cur) : '';
+}
 
 function detailRows() {
   const q = $('#dtSearch').value.trim().toLowerCase();
   const all = $('#dtAll').checked, soon = $('#dtSoon').checked, T = S.today;
   return used().filter(r => {
-    if (!inCluster(r) || !inLab(r)) return false;
+    if (!inCluster(r) || !inLab(r) || !inOE(r)) return false;
     if (!all && !isActive(r, T)) return false;
     if (soon && !(isActive(r, T) && r.ende != null && r.ende <= T + 365)) return false;
     if (q && ![r.pnr, r.name, r.vorname, r.oe, r.labor, r.tarif, r.vart, kreisOf(r)].join(' ').toLowerCase().includes(q)) return false;
@@ -1190,15 +1202,17 @@ function fillLabSelect() {
 function renderDetail() {
   fillClusterSelect($('#dtCluster'));
   fillLabSelect();
+  fillOESelect();
   const cf = $('#dtCluster').value || null, lf = selLab(), T = S.today;
-  const scope = lf ? `Laborbereich ${labLabel(lf, !cf)}` + (cf ? ` · Cluster ${cf}` : '') : cf ? `Cluster ${cf}` : 'Fakultät gesamt';
+  const oe = selOE();
+  const scope = [oe ? `Organisationseinheit ${oe}` : '', lf ? `Laborbereich ${labLabel(lf, !cf)}` : '', cf ? `Cluster ${cf}` : ''].filter(Boolean).join(' · ') || 'Fakultät gesamt';
   // ---- Betreuungsverhältnis ----
-  const act = used().filter(r => isActive(r, T) && inCluster(r) && inLab(r));
+  const act = used().filter(r => isActive(r, T) && inCluster(r) && inLab(r) && inOE(r));
   const {g, PL, MA, K, V} = staffStats(act);
-  const withStud = !lf;
+  const withStud = !lf && !oe;
   const studN = withStud ? S.students.filter(s => s.n > 0 && (!cf || s.cluster === cf)).reduce((t, s) => t + s.n, 0) : 0;
   const byV = S.measure === 'vzae', base = l => byV ? V(l) : K(l);
-  const amount = l => byV ? `${nf1.format(V(l))} VZÄ` : `${nf0.format(K(l))} Personen`;
+  const amount = l => byV ? `${nf1.format(V(l))} VZÄ` : `${nf0.format(K(l))} ${K(l) === 1 ? 'Person' : 'Personen'}`;
   const tiles = [
     ['Professur (inkl. LfbA)', '1', amount(PL)],
     ['WiMi', f2(q2(base(g.W), base(PL))), amount(g.W)],
@@ -1207,7 +1221,7 @@ function renderDetail() {
   if (withStud) tiles.push(['Studierende', f2(q2(studN, base(PL))), `${nf0.format(studN)} Studierende`]);
   $('#dtRatioTitle').textContent = `${withStud ? 'Betreuungsverhältnis' : 'Verhältnis Professuren : Mitarbeitende'} – ${scope}`;
   $('#dtRatioSub').textContent = `Auf eine Professur (inkl. LfbA) kommen … · Basis ${byV ? 'VZÄ' : 'Köpfe'} (oben umschaltbar), Stand ${fmtD(T)}, nur aktive Verträge.` +
-    (withStud ? (cf ? '' : ' Fakultät = alle Personen und alle Studierenden.') : ' Studierende sind keinem Laborbereich zugeordnet und werden hier nicht berücksichtigt.');
+    (withStud ? (cf ? '' : ' Fakultät = alle Personen und alle Studierenden.') : ` Studierende sind keine${lf && oe ? 'm Laborbereich und keiner Organisationseinheit' : lf ? 'm Laborbereich' : 'r Organisationseinheit'} zugeordnet und werden hier nicht berücksichtigt.`);
   $('#dtRatio').innerHTML = tiles.map(([l, v, d], i) => `${i ? '<div class="ratio-sep">:</div>' : ''}<div class="kpi ratio-tile"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
   const sc = withStud ? (l => `<td class="n">${f2(q2(studN, K(l)))}</td><td class="n">${f2(q2(studN, V(l)))}</td>`) : (() => '');
   const rowR = (lbl, l, strong) => `<tr${strong ? ' class="tot"' : ''}><td>${lbl}</td><td class="n">${nf0.format(K(l))}</td><td class="n">${nf1.format(V(l))}</td><td class="n">${f2(q2(K(l), K(PL)))}</td><td class="n">${f2(q2(V(l), V(PL)))}</td>${sc(l)}</tr>`;
@@ -1222,15 +1236,15 @@ function renderDetail() {
 /* Verhältnis Professuren : Mitarbeitende je Laborbereich (innerhalb des gewählten Clusters) */
 function renderLabBreakdown() {
   const cf = $('#dtCluster').value || null, lf = selLab(), T = S.today, byV = S.measure === 'vzae';
-  const act = used().filter(r => isActive(r, T) && inCluster(r));
+  const act = used().filter(r => isActive(r, T) && inCluster(r) && inOE(r));
   const keys = [...new Set(act.map(labKey))].sort(labSort);
   const st = Object.fromEntries(keys.map(k => [k, staffStats(act.filter(r => labKey(r) === k))]));
   const tot = staffStats(act);
   const m = (s, l) => byV ? s.V(l) : s.K(l);
   const ratioW = s => q2(m(s, s.g.W), m(s, s.PL)), ratioO = s => q2(m(s, s.g.O), m(s, s.PL));
   const avg = q2(m(tot, tot.MA), m(tot, tot.PL));
-  $('#dtLabTitle').textContent = `Professuren und Mitarbeitende je Laborbereich – ${cf ? 'Cluster ' + cf : 'alle Cluster'}`;
-  $('#dtLabSub').textContent = `Mitarbeitende (WiMi + sonstige) je Professur inkl. LfbA, Basis ${byV ? 'VZÄ' : 'Köpfe'}, Stand ${fmtD(T)}. Linie = Durchschnitt ${cf ? 'des Clusters' : 'der Fakultät'} (${f2(avg)}). Laborbereiche ohne Professur haben keinen Balken.`;
+  $('#dtLabTitle').textContent = `Professuren und Mitarbeitende je Laborbereich – ${cf ? 'Cluster ' + cf : 'alle Cluster'}${selOE() ? ' · Organisationseinheit ' + selOE() : ''}`;
+  $('#dtLabSub').textContent = `Mitarbeitende (WiMi + sonstige) je Professur inkl. LfbA, Basis ${byV ? 'VZÄ' : 'Köpfe'}, Stand ${fmtD(T)}. Linie = Durchschnitt ${selOE() ? 'der Organisationseinheit' + (cf ? ' im Cluster' : '') : cf ? 'des Clusters' : 'der Fakultät'} (${f2(avg)}). Laborbereiche ohne Professur haben keinen Balken.`;
   const labels = keys.map(k => labLabel(k, !cf));
   const dsW = barDs('WiMi je Professur', keys.map(k => ratioW(st[k])), catColor('WiMi'), {stack: 's', borderRadius: 0, borderWidth: {right: 2}, borderColor: css('--card'), maxBarThickness: 18});
   const dsO = barDs('Sonstige Mitarbeitende je Professur', keys.map(k => ratioO(st[k])), css('--s4'), {stack: 's', borderRadius: 0, maxBarThickness: 18});
@@ -1316,7 +1330,7 @@ function detailCsv() {
   const n = v => v == null ? '' : nf1.format(v);
   const lines = [head.map(q).join(';')].concat(rows.map(r => [kreisOf(r), S.catMap[kreisOf(r)], r.pnr, r.name, r.vorname, clusterOf(r), r.oe, r.labor, r.tarif, n(r.arb), n(r.vz), r.vart,
     r.beginn == null ? '' : fmtD(r.beginn), r.ende == null ? 'unbefristet' : fmtD(r.ende), n(restJahre(r)), r.kw ? 'x' : '', contractStatus(r).txt].map(q).join(';')));
-  const lab = selLab() ? '_' + labLabel(selLab(), false) : '';
+  const lab = (selLab() ? '_' + labLabel(selLab(), false) : '') + (selOE() ? '_' + selOE() : '');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'}));
   a.download = ('Personalliste_' + ($('#dtCluster').value || 'Fakultaet') + lab).replace(/[^\wäöüÄÖÜß-]+/g, '_') + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -1454,6 +1468,7 @@ function init() {
   $('#raWhen').onchange = renderRatio;
   $('#dtCluster').onchange = renderDetail;
   $('#dtLab').onchange = renderDetail;
+  $('#dtOE').onchange = renderDetail;
   $$('#dtGroup button').forEach(b => b.onclick = () => { DT.group = b.dataset.v; $$('#dtGroup button').forEach(x => x.classList.toggle('on', x === b)); renderDetailList(); });
   ['#dtAll', '#dtSoon'].forEach(x => $(x).onchange = renderDetailList);
   $('#dtSearch').oninput = renderDetailList;
