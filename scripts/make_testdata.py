@@ -61,6 +61,14 @@ for cl, kreis, tg in [("Informatik", "Professor/in", "W2"), ("Elektrotechnik", "
                  "befristet" if kreis != "Professor/in" else "unbefristet", d(2027, 3, 1),
                  d(2030, 2, 28) if kreis != "Professor/in" else None, "", cl, clusters[cl][0], labs[cl][0]])
 
+# Nachfolge: neue Professur ab 01.09.2027, Ruhestand einer Professur zum 29.02.2028 (gleicher Cluster)
+pn += 11
+rows.append([pn, "Neumann", "Clara", "Professor/in", 100, 1.0, "W2", "unbefristet", d(2027, 9, 1), None, "",
+             "Maschinenbau", "Konstruktion", labs["Maschinenbau"][2]])
+pn += 5
+rows.append([pn, "Albrecht", "Wolfgang", "Professor/in", 100, 1.0, "W3", "unbefristet", d(1998, 9, 1), d(2028, 2, 29), "",
+             "Maschinenbau", "Konstruktion", labs["Maschinenbau"][2]])
+
 # ---- absichtlich eingebaute Fehler ----
 rows[3][0] = rows[2][0]                      # doppelte Personalnummer (andere Person)
 rows[10][8], rows[10][9] = d(2027, 9, 1), d(2025, 8, 31); rows[10][7] = "befristet"  # Beginn nach Ende
