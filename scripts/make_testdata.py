@@ -11,7 +11,12 @@ clusters = {
     "Maschinenbau": ["Konstruktion", "Fertigungstechnik", "Werkstoffe"],
     "Medientechnik": ["Mediendesign", "Audio/Video"],
 }
-labs = ["Labor A", "Labor B", "Labor C", ""]
+labs = {
+    "Informatik": ["Labor Verteilte Systeme", "Labor KI & Data Science", "Labor IT-Sicherheit", ""],
+    "Elektrotechnik": ["Hochspannungslabor", "Labor Kommunikationstechnik", ""],
+    "Maschinenbau": ["Labor Fertigungstechnik", "Werkstoffprüflabor", "Labor CAD/CAE", ""],
+    "Medientechnik": ["Tonstudio", "Labor Bewegtbild", ""],
+}
 nach = ["Müller","Schmidt","Schneider","Fischer","Weber","Meyer","Wagner","Becker","Schulz","Hoffmann","Koch","Richter","Klein","Wolf","Schröder","Neumann","Schwarz","Braun","Zimmermann","Krüger","Hartmann","Lange","Werner","Krause","Lehmann","Köhler","Maier","Huber","Kaiser","Fuchs","Peters","Lang","Scholz","Möller","Weiß","Jung","Hahn","Vogel","Keller","Günther","Frank","Berger","Roth","Beck","Lorenz","Baumann","Franke","Albrecht"]
 vor = ["Anna","Lena","Julia","Sarah","Laura","Lisa","Maria","Katharina","Sophie","Johanna","Jonas","Lukas","Felix","Paul","Leon","Tim","Jan","David","Moritz","Simon","Thomas","Michael","Stefan","Andreas","Claudia","Petra","Sabine","Martin","Markus","Frank"]
 
@@ -46,7 +51,7 @@ for cl, oes in clusters.items():
             kw = "x" if bef and random.random() < 0.35 else ""
             rows.append([pn, random.choice(nach), random.choice(vor), kreis, arb, arb / 100,
                          random.choice(tarifs), "befristet" if bef else "unbefristet", beginn, ende, kw,
-                         cl, random.choice(oes), random.choice(labs)])
+                         cl, random.choice(oes), random.choice(labs[cl])])
 
 # zukünftige Einstellungen
 for cl, kreis, tg in [("Informatik", "Professor/in", "W2"), ("Elektrotechnik", "Wiss. Mitarbeiter/in", "E13"),
@@ -54,7 +59,7 @@ for cl, kreis, tg in [("Informatik", "Professor/in", "W2"), ("Elektrotechnik", "
     pn += 7
     rows.append([pn, random.choice(nach), random.choice(vor), kreis, 100, 1.0, tg,
                  "befristet" if kreis != "Professor/in" else "unbefristet", d(2027, 3, 1),
-                 d(2030, 2, 28) if kreis != "Professor/in" else None, "", cl, clusters[cl][0], ""])
+                 d(2030, 2, 28) if kreis != "Professor/in" else None, "", cl, clusters[cl][0], labs[cl][0]])
 
 # ---- absichtlich eingebaute Fehler ----
 rows[3][0] = rows[2][0]                      # doppelte Personalnummer (andere Person)
