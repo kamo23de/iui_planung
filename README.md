@@ -14,6 +14,7 @@ Personenbezogene Daten verlassen den Rechner nicht.
 Ist GitHub Pages eingeschaltet (Settings → Pages → Deploy from a branch → `main` / root), läuft die Anwendung unter
 https://kamo23de.github.io/iui_planung/. In Safari lässt sie sich über Teilen → „Zum Home-Bildschirm“ wie eine App ablegen.
 Die Excel-Datei wird auch dort nur auf dem Gerät verarbeitet und nicht hochgeladen.
+Die App-Symbole liegen in `icons/` (Quelle: `icons/icon.svg`), das Web-App-Manifest in `manifest.webmanifest`.
 
 Zum Ausprobieren gibt es `testdaten/Testdaten_Personalplanung.xlsx`. Die Datei enthält erfundene Personen und absichtlich eingebaute Fehler.
 
