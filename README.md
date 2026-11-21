@@ -16,7 +16,14 @@ https://kamo23de.github.io/iui_planung/. In Safari lässt sie sich über Teilen 
 Die Excel-Datei wird auch dort nur auf dem Gerät verarbeitet und nicht hochgeladen.
 Die App-Symbole liegen in `icons/` (Quelle: `icons/icon.svg`), das Web-App-Manifest in `manifest.webmanifest`.
 
-Zum Ausprobieren gibt es `testdaten/Testdaten_Personalplanung.xlsx`. Die Datei enthält erfundene Personen und absichtlich eingebaute Fehler.
+### Demo-Modus
+
+Auf der Startseite lädt **„Demo mit fiktiven Daten starten“** eine eingebaute Beispieltabelle. Mit ihr lassen sich alle Funktionen ohne echte Daten vorführen.
+Im Demo-Modus sind Kopfzeile und Fenstertitel deutlich als „DEMO · fiktive Daten“ markiert.
+**„Demodaten entladen“** entfernt die Daten aus dem Speicher und kehrt zur Startseite zurück, wo die echte Tabelle wie gewohnt geladen wird.
+Die Demodaten sind die Testdatei `testdaten/Testdaten_Personalplanung.xlsx`; `npm run build` bettet sie in die HTML-Datei ein.
+
+Zum Ausprobieren gibt es außerdem `testdaten/Testdaten_Personalplanung.xlsx`. Die Datei enthält erfundene Personen und absichtlich eingebaute Fehler.
 
 ## Datenschutz
 

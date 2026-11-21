@@ -116,6 +116,10 @@ th.sortable:hover{color:var(--text-primary)}
 .ratio-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin-bottom:16px}
 .ratio-tile{flex:1 1 150px;text-align:center}
 .ratio-tile .v{font-size:30px}
+.demo-start{margin-top:18px;display:flex;flex-direction:column;align-items:center;gap:8px}
+button.demo{background:var(--s2);color:#fff;border-color:transparent;padding:7px 16px;font-weight:600}
+.demo-badge{background:var(--s2);color:#fff;font-weight:700;font-size:12px;letter-spacing:.04em;padding:4px 10px;border-radius:6px}
+body.is-demo header{border-bottom:3px solid var(--s2)}
 .flow{font-size:11px;font-weight:400;white-space:nowrap;margin-top:1px}
 .flow .fin{color:var(--good-text)}
 .flow .fout{color:var(--neg)}
@@ -132,7 +136,10 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
     <div class="seg" id="measureSeg"><button data-v="koepfe" class="on">Köpfe</button><button data-v="vzae">VZÄ</button></div></div>
   <div class="ctl hidden" data-loaded title="Annahme für Prognosen: Stellen ohne kw-Vermerk bleiben nach Vertragsende erhalten und werden nachbesetzt.">
     <input type="checkbox" id="refill"><label for="refill">Nicht-kw-Stellen nach Vertragsende als offene Stellen weiterführen</label></div>
-  <div class="ctl hidden" data-loaded style="margin-left:auto"><button id="reload">Andere Datei laden</button></div>
+  <div class="ctl hidden" data-loaded style="margin-left:auto">
+    <span id="demoBadge" class="demo-badge hidden">DEMO · fiktive Daten</span>
+    <button id="demoUnload" class="demo hidden">Demodaten entladen</button>
+    <button id="reload">Andere Datei laden</button></div>
 </header>
 <nav class="tabs hidden" id="tabs">
   <button data-t="check" class="on">Datenprüfung<span class="badge" id="errBadge"></span></button>
@@ -148,6 +155,11 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
     <h2 style="margin-top:0">Excel-Datei einlesen</h2>
     <p>Datei hierher ziehen oder auswählen (.xlsx / .xls)</p>
     <input type="file" id="file" accept=".xlsx,.xlsm,.xls">
+    <div class="demo-start">
+      <span class="note">oder</span>
+      <button id="demoBtn" class="demo">▶ Demo mit fiktiven Daten starten</button>
+      <div class="note">Lädt eine eingebaute Beispieltabelle mit erfundenen Personen (inkl. absichtlich eingebauter Datenfehler), um alle Funktionen vorzuführen.</div>
+    </div>
     <p class="note" style="margin-top:22px">🔒 Die Datei wird ausschließlich lokal in diesem Browserfenster verarbeitet.
     Die Anwendung enthält alle Bibliotheken selbst und darf per Sicherheitsrichtlinie keine Netzwerkverbindung aufbauen.
     Nach dem Schließen des Fensters sind die Daten nicht mehr im Speicher.</p>
@@ -1250,20 +1262,45 @@ function showTab(t) {
   $$('section.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + t));
   renderAll();
 }
+/* Demodaten: fiktive Testtabelle, beim Bauen als Base64 eingebettet (scripts/build.js) */
+const DEMO_XLSX_B64 = '/*DEMO_XLSX_B64*/';
+const hasDemo = () => !DEMO_XLSX_B64.startsWith('/*');
 async function loadFile(f) {
+  try { loadBuffer(await f.arrayBuffer(), f.name, false); }
+  catch (e) { console.error(e); alert('Die Datei konnte nicht gelesen werden:\n' + e.message); }
+}
+function loadDemo() {
   try {
-    const buf = await f.arrayBuffer();
+    const bin = atob(DEMO_XLSX_B64), buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    loadBuffer(buf.buffer, 'Demodaten (fiktiv)', true);
+  } catch (e) { console.error(e); alert('Die Demodaten konnten nicht geladen werden:\n' + e.message); }
+}
+/* Alle geladenen Daten aus dem Speicher entfernen und zur Startseite zurückkehren */
+function unloadData() {
+  Object.keys(charts).forEach(id => { charts[id].destroy(); delete charts[id]; });
+  Object.assign(S, {raw: null, recs: [], students: [], issues: [], colMap: {}, missingCols: [], catMap: {}, kreisOrder: [], kreisCounts: {}, checkFilter: null, isDemo: false});
+  ['#issueTable', '#issueSummary', '#dtLists', '#fcOut', '#fcIn', '#semDetailTable', '#ovTable', '#semTable', '#raTable', '#wmTable', '#stTable', '#dtRatioTable', '#dtLabTable', '#fcDelta', '#multiples'].forEach(x => { const el = $(x); if (el) el.innerHTML = ''; });
+  $('#dtSearch').value = '';
+  $('#file').value = '';
+  $('#app').classList.add('hidden'); $('#tabs').classList.add('hidden'); $('#start').classList.remove('hidden');
+  $$('[data-loaded]').forEach(e => e.classList.add('hidden'));
+  $('#fileInfo').textContent = '';
+  document.body.classList.remove('is-demo'); document.title = 'Personalplanung Fakultät IuI';
+}
+function loadBuffer(buf, name, isDemo) {
     S.catMap = {};
-    readWorkbook(buf, f.name);
-    $('#fileInfo').textContent = `${f.name} · ${S.recs.length} Personaldatensätze · ${S.students.length} Studiengänge`;
+    readWorkbook(buf, name);
+    S.isDemo = isDemo;
+    document.body.classList.toggle('is-demo', isDemo);
+    document.title = (isDemo ? 'DEMO – ' : '') + 'Personalplanung Fakultät IuI';
+    $('#demoBadge').classList.toggle('hidden', !isDemo); $('#demoUnload').classList.toggle('hidden', !isDemo);
+    $('#reload').textContent = isDemo ? 'Echte Tabelle laden' : 'Andere Datei laden';
+    $('#fileInfo').textContent = `${name} · ${S.recs.length} Personaldatensätze · ${S.students.length} Studiengänge`;
     $('#start').classList.add('hidden'); $('#app').classList.remove('hidden'); $('#tabs').classList.remove('hidden');
     $$('[data-loaded]').forEach(e => e.classList.remove('hidden'));
     document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px');
     showTab('check');
-  } catch (e) {
-    console.error(e);
-    alert('Die Datei konnte nicht gelesen werden:\n' + e.message);
-  }
 }
 function init() {
   chartDefaults();
@@ -1274,7 +1311,10 @@ function init() {
   dr.ondragover = e => { e.preventDefault(); dr.classList.add('over'); };
   dr.ondragleave = () => dr.classList.remove('over');
   dr.ondrop = e => { e.preventDefault(); dr.classList.remove('over'); e.dataTransfer.files[0] && loadFile(e.dataTransfer.files[0]); };
-  $('#reload').onclick = () => { $('#file').value = ''; $('#app').classList.add('hidden'); $('#tabs').classList.add('hidden'); $('#start').classList.remove('hidden'); $$('[data-loaded]').forEach(e => e.classList.add('hidden')); $('#fileInfo').textContent = ''; };
+  $('#reload').onclick = unloadData;
+  $('#demoUnload').onclick = unloadData;
+  $('#demoBtn').onclick = loadDemo;
+  if (!hasDemo()) $('#demoBtn').parentElement.classList.add('hidden');
   $$('#tabs button').forEach(b => b.onclick = () => showTab(b.dataset.t));
   $('#today').onchange = () => { const d = parseIso($('#today').value); if (d != null) { S.today = d; renderAll(); } };
   $$('#measureSeg button').forEach(b => b.onclick = () => { S.measure = b.dataset.v; $$('#measureSeg button').forEach(x => x.classList.toggle('on', x === b)); renderAll(); });
