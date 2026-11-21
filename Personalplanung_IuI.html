@@ -110,7 +110,17 @@ details summary{cursor:pointer;color:var(--text-secondary);font-size:13px}
 details.kreis{border:1px solid var(--border);border-radius:8px;margin-bottom:10px;padding:0 10px}
 details.kreis>summary{color:var(--text-primary);font-size:14px;padding:10px 0;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
 details.kreis .ksum{color:var(--text-secondary);font-size:12.5px;margin-left:auto}
-table.dt td{white-space:nowrap}
+table.dt td{white-space:normal;hyphens:auto;-webkit-hyphens:auto}
+table.dt td.n,table.dt td:first-child{white-space:nowrap}
+@media (max-width:999px){
+  table.dt{font-size:12.5px}
+  table.dt th,table.dt td{padding:5px 5px}
+  main{padding:14px}
+  .card{padding:14px 12px}
+  details.kreis{padding:0 6px}
+}
+table.dt .pill{white-space:nowrap}
+table.dt th{white-space:normal}
 th.sortable{cursor:pointer;user-select:none}
 th.sortable:hover{color:var(--text-primary)}
 .ratio-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin-bottom:16px}
@@ -348,7 +358,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
   </div>
   <div class="card">
     <h2>Personalliste <span class="note" id="dtCount"></span></h2>
-    <p class="sub"><b>Erweitern</b> blendet TrfGr, ArbAnteil, Vertragsart und Beginn ein. Klick auf eine Zeile zeigt alle Daten zur Person, Klick auf eine Spaltenüberschrift sortiert. ⛔/⚠ markiert Zeilen mit Befunden aus der Datenprüfung (Maus darüber bzw. antippen zeigt Details).</p>
+    <p class="sub"><b>Erweitern</b> blendet TrfGr, ArbAnteil, Vertragsart und Beginn ein (auf schmalen Bildschirmen auch Organisationseinheit und Laborbereich). Klick auf eine Zeile zeigt alle Daten zur Person, Klick auf eine Spaltenüberschrift sortiert. ⛔/⚠ markiert Zeilen mit Befunden aus der Datenprüfung (Maus darüber bzw. antippen zeigt Details).</p>
     <div class="row">
       <input type="search" id="dtSearch" placeholder="Suche: Name, Pers.-Nr., OE, Tarif …" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);min-width:260px">
       <label class="ctl"><input type="checkbox" id="dtAll"> auch ausgelaufene und künftige Verträge</label>
@@ -1108,7 +1118,11 @@ function renderRatio() {
 
 /* ---------- Detailansicht ---------- */
 const DT = {sort: 'name', dir: 1, group: 'kreis', expanded: false};
-const DT_EXT = new Set(['tarif', 'arb', 'vart', 'beginn']);   // nur in der erweiterten Ansicht
+const DT_EXT = new Set(['tarif', 'arb', 'vart', 'beginn']);
+/* Schmale Bildschirme (z. B. iPad hochkant): zusätzlich OE und Laborbereich erst beim Erweitern */
+const DT_EXT_NARROW = new Set(['oe', 'labor']);
+const DT_NARROW_PX = 1000;
+const isNarrow = () => window.innerWidth < DT_NARROW_PX;   // nur in der erweiterten Ansicht
 const NOLAB = '(ohne Laborbereich)';
 const labOf = r => r.labor || NOLAB;
 const labKey = r => clusterOf(r) + '\u0000' + labOf(r);
@@ -1129,8 +1143,8 @@ const DT_COLS = [
   ['vz', 'VZÄ', r => r.vz, 'n'],
   ['vart', 'Vertragsart', r => r.vart],
   ['beginn', 'Beginn', r => r.beginn, 'n'],
-  ['ende', 'Vertragsende', r => r.ende == null ? Infinity : r.ende, 'n'],
-  ['rest', 'Restlaufzeit (Jahre)', r => restJahre(r) ?? Infinity, 'n'],
+  ['ende', 'Vertrags\u00adende', r => r.ende == null ? Infinity : r.ende, 'n'],
+  ['rest', 'Rest\u00adlaufzeit (Jahre)', r => restJahre(r) ?? Infinity, 'n'],
   ['kw', 'kw', r => r.kw ? 1 : 0],
   ['status', 'Status', r => contractStatus(r).o],
 ];
@@ -1140,7 +1154,7 @@ function contractStatus(r) {
   if (r.beginn != null && r.ende != null && r.beginn > r.ende) return {o: 9, t: '<span class="pill sev-E">ungültig</span>', txt: 'ungültig'};
   if (r.beginn != null && r.beginn > T) return {o: 3, t: '<span class="pill">beginnt künftig</span>', txt: 'beginnt künftig'};
   if (r.ende != null && r.ende < T) return {o: 4, t: '<span class="pill sev-I">ausgelaufen</span>', txt: 'ausgelaufen'};
-  if (r.ende != null && r.ende <= T + 365) return {o: 1, t: '<span class="pill sev-W">endet ≤ 12 Mon.</span>', txt: 'aktiv, endet in 12 Monaten'};
+  if (r.ende != null && r.ende <= T + 365) return {o: 1, t: '<span class="pill sev-W">endet ≤ 12 M.</span>', txt: 'aktiv, endet in 12 Monaten'};
   return {o: 0, t: '<span class="pill" style="border-color:var(--good)">aktiv</span>', txt: 'aktiv'};
 }
 /* Gruppenbildung: P = Professor/innen, L = LfbA, W = WiMi, O = sonstige Mitarbeitende */
@@ -1251,7 +1265,7 @@ function renderDetailList() {
   const cf = $('#dtCluster').value || null, rows = detailRows(), byLab = DT.group === 'lab';
   const issuesByRow = {};
   S.issues.filter(i => i.sheet === 'Personal' && i.row && i.sev !== 'I').forEach(i => (issuesByRow[i.row] = issuesByRow[i.row] || []).push(i));
-  const cols = DT_COLS.filter(c => !(cf && c[0] === 'cluster') && !(byLab ? c[0] === 'labor' : c[0] === 'kreis') && (DT.expanded || !DT_EXT.has(c[0])));
+  const cols = DT_COLS.filter(c => !((cf || byLab) && c[0] === 'cluster') && !(byLab ? c[0] === 'labor' : c[0] === 'kreis') && (DT.expanded || (!DT_EXT.has(c[0]) && !(isNarrow() && DT_EXT_NARROW.has(c[0])))));
   const col = DT_COLS.find(c => c[0] === DT.sort) || DT_COLS[1];
   const cmp = (a, b) => { const x = col[2](a), y = col[2](b);
     const d = (typeof x === 'number' || typeof y === 'number') ? ((x ?? -Infinity) - (y ?? -Infinity)) : String(x ?? '').localeCompare(String(y ?? ''), 'de');
@@ -1289,7 +1303,9 @@ function renderDetailList() {
   $$('#dtLists th.sortable').forEach(th => th.onclick = () => { if (DT.sort === th.dataset.k) DT.dir *= -1; else { DT.sort = th.dataset.k; DT.dir = 1; } renderDetailList(); });
   $$('#dtLists tr.prow').forEach(tr => tr.onclick = () => showPerson(+tr.dataset.row));
   $('#dtExpand').textContent = DT.expanded ? '◂ Reduzieren' : 'Erweitern ▸';
-  $('#dtExpand').title = DT.expanded ? 'TrfGr, ArbAnteil, Vertragsart und Beginn ausblenden' : 'TrfGr, ArbAnteil, Vertragsart und Beginn einblenden';
+  const extNames = (isNarrow() ? 'Organisationseinheit, Laborbereich, ' : '') + 'TrfGr, ArbAnteil, Vertragsart und Beginn';
+  $('#dtExpand').title = (DT.expanded ? 'Ausblenden: ' : 'Einblenden: ') + extNames;
+  DT.lastNarrow = isNarrow();
 }
 function detailCsv() {
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
@@ -1448,7 +1464,12 @@ function init() {
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#pdOverlay').classList.contains('hidden')) closePerson(); });
   $('#dtOpen').onclick = () => { const d = $$('#dtLists details'); const open = !d.every(x => x.open); d.forEach(x => x.open = open); };
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { chartDefaults(); if (S.raw) renderAll(); });
-  window.addEventListener('resize', () => document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px'));
+  let rsT;
+  window.addEventListener('resize', () => {
+    document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px');
+    // Spaltenauswahl der Personalliste anpassen, wenn sich die Breite über die Schwelle ändert (z. B. iPad drehen)
+    clearTimeout(rsT); rsT = setTimeout(() => { if (S.raw && S.tab === 'detail' && DT.lastNarrow !== isNarrow()) renderDetailList(); }, 150);
+  });
 }
 init();
 </script>
