@@ -42,6 +42,7 @@ Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blatt
 | Semesterverlauf | Bestand zu jedem Semesterbeginn, Zu- und Abgänge je Semester, bis 20 Semester voraus |
 | Forecast | Zielzeitpunkt als Datum oder Semester (max. 20 voraus), Vergleich mit heute, Ab- und Zugangslisten |
 | Betreuung & WiMi | Studierende je Professor/in (inkl. LfbA) und je WiMi; WiMi je Professur (ohne LfbA) je Cluster und Organisationseinheit |
+| Detailansicht | Je Cluster oder Fakultät: genaues Betreuungsverhältnis Professur : WiMi : sonstige Mitarbeitende : Studierende (Köpfe und VZÄ) und vollständige Personalliste je Mitarbeiterkreis mit Vertragsdaten, Restlaufzeit, kw und Status; sortierbar, durchsuchbar, als CSV speicherbar |
 
 ## Festgelegte Regeln
 

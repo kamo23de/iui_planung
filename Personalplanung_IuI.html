@@ -107,6 +107,16 @@ tr.tot td{font-weight:650;border-top:1px solid var(--axis)}
 .click:hover td{background:var(--neutral-mid)}
 .sumrow.sel td{background:var(--neutral-mid)}
 details summary{cursor:pointer;color:var(--text-secondary);font-size:13px}
+details.kreis{border:1px solid var(--border);border-radius:8px;margin-bottom:10px;padding:0 10px}
+details.kreis>summary{color:var(--text-primary);font-size:14px;padding:10px 0;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+details.kreis .ksum{color:var(--text-secondary);font-size:12.5px;margin-left:auto}
+table.dt td{white-space:nowrap}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--text-primary)}
+.ratio-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin-bottom:16px}
+.ratio-tile{flex:1 1 150px;text-align:center}
+.ratio-tile .v{font-size:30px}
+.ratio-sep{align-self:center;font-size:28px;color:var(--muted);font-weight:300}
 </style>
 </head>
 <body>
@@ -126,6 +136,7 @@ details summary{cursor:pointer;color:var(--text-secondary);font-size:13px}
   <button data-t="semester">Semesterverlauf</button>
   <button data-t="forecast">Forecast</button>
   <button data-t="ratio">Betreuung &amp; WiMi</button>
+  <button data-t="detail">Detailansicht</button>
 </nav>
 
 <div id="start">
@@ -290,6 +301,28 @@ details summary{cursor:pointer;color:var(--text-secondary);font-size:13px}
       <div id="catMapBox"></div>
     </div>
     <div class="card"><h2>Studierende je Studiengang</h2><div class="scroll" id="stTable"></div></div>
+  </div>
+</section>
+<!-- ================= Detailansicht ================= -->
+<section class="view" id="v-detail">
+  <div class="card">
+    <div class="row"><label class="ctl">Cluster <select id="dtCluster"></select></label></div>
+    <h2 id="dtRatioTitle">Betreuungsverhältnis</h2>
+    <p class="sub" id="dtRatioSub"></p>
+    <div class="ratio-row" id="dtRatio"></div>
+    <div class="scroll" id="dtRatioTable"></div>
+  </div>
+  <div class="card">
+    <h2>Personal nach Mitarbeiterkreis <span class="note" id="dtCount"></span></h2>
+    <p class="sub">Klick auf eine Spaltenüberschrift sortiert. ⛔/⚠ markiert Zeilen mit Befunden aus der Datenprüfung (Maus darüber bzw. antippen zeigt Details).</p>
+    <div class="row">
+      <input type="search" id="dtSearch" placeholder="Suche: Name, Pers.-Nr., OE, Tarif …" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);min-width:260px">
+      <label class="ctl"><input type="checkbox" id="dtAll"> auch ausgelaufene und künftige Verträge</label>
+      <label class="ctl"><input type="checkbox" id="dtSoon"> nur Vertragsende in den nächsten 12 Monaten</label>
+      <button id="dtCsv">Liste als CSV speichern</button>
+      <button id="dtOpen">Alle auf-/zuklappen</button>
+    </div>
+    <div id="dtLists"></div>
   </div>
 </section>
 </main>
@@ -740,6 +773,7 @@ function renderAll() {
   if (t === 'semester') renderSemester();
   if (t === 'forecast') renderForecast();
   if (t === 'ratio') renderRatio();
+  if (t === 'detail') renderDetail();
 }
 
 /* ---------- Datenprüfung ---------- */
@@ -1016,6 +1050,124 @@ function renderRatio() {
       byC[c].map(s => `<tr><td style="padding-left:18px">${esc(s.sg)}</td><td class="n">${s.n != null ? nf0.format(s.n) : '–'}</td><td><span class="bar-inline" style="width:${(s.n || 0) / maxN * 100}%"></span></td></tr>`).join('')).join('') + '</table>';
 }
 
+/* ---------- Detailansicht ---------- */
+const DT = {sort: 'name', dir: 1};
+const DT_COLS = [
+  ['pnr', 'Pers.-Nr.', r => r.pnr],
+  ['name', 'Name', r => r.name],
+  ['vorname', 'Vorname', r => r.vorname],
+  ['cluster', 'Cluster', r => clusterOf(r)],
+  ['oe', 'Organisationseinheit', r => r.oe],
+  ['labor', 'Laborbereich', r => r.labor],
+  ['tarif', 'TrfGr', r => r.tarif],
+  ['arb', 'ArbAnteil', r => r.arb, 'n'],
+  ['vz', 'VZÄ', r => r.vz, 'n'],
+  ['vart', 'Vertragsart', r => r.vart],
+  ['beginn', 'Beginn', r => r.beginn, 'n'],
+  ['ende', 'Vertragsende', r => r.ende == null ? Infinity : r.ende, 'n'],
+  ['rest', 'Restlaufzeit (Jahre)', r => restJahre(r) ?? Infinity, 'n'],
+  ['kw', 'kw', r => r.kw ? 1 : 0],
+  ['status', 'Status', r => contractStatus(r).o],
+];
+const restJahre = r => (r.ende == null || r.ende < S.today) ? null : r2((r.ende - S.today + 1) / 365.25);
+function contractStatus(r) {
+  const T = S.today;
+  if (r.beginn != null && r.ende != null && r.beginn > r.ende) return {o: 9, t: '<span class="pill sev-E">ungültig</span>', txt: 'ungültig'};
+  if (r.beginn != null && r.beginn > T) return {o: 3, t: '<span class="pill">beginnt künftig</span>', txt: 'beginnt künftig'};
+  if (r.ende != null && r.ende < T) return {o: 4, t: '<span class="pill sev-I">ausgelaufen</span>', txt: 'ausgelaufen'};
+  if (r.ende != null && r.ende <= T + 365) return {o: 1, t: '<span class="pill sev-W">endet ≤ 12 Mon.</span>', txt: 'aktiv, endet in 12 Monaten'};
+  return {o: 0, t: '<span class="pill" style="border-color:var(--good)">aktiv</span>', txt: 'aktiv'};
+}
+function detailRows() {
+  const cf = $('#dtCluster').value || null, q = $('#dtSearch').value.trim().toLowerCase();
+  const all = $('#dtAll').checked, soon = $('#dtSoon').checked, T = S.today;
+  return used().filter(r => {
+    if (cf && clusterOf(r) !== cf) return false;
+    if (!all && !isActive(r, T)) return false;
+    if (soon && !(isActive(r, T) && r.ende != null && r.ende <= T + 365)) return false;
+    if (q && ![r.pnr, r.name, r.vorname, r.oe, r.labor, r.tarif, r.vart, kreisOf(r)].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function renderDetail() {
+  fillClusterSelect($('#dtCluster'));
+  const cf = $('#dtCluster').value || null, T = S.today;
+  const scope = cf ? `Cluster ${cf}` : 'Fakultät gesamt';
+  // ---- Betreuungsverhältnis (immer Köpfe und VZÄ) ----
+  const act = used().filter(r => isActive(r, T) && (!cf || clusterOf(r) === cf));
+  const grp = {P: [], L: [], W: [], O: []};
+  act.forEach(r => { const c = S.catMap[kreisOf(r)]; grp[c === 'Professor/in' ? 'P' : c === 'LfbA' ? 'L' : c === 'WiMi' ? 'W' : 'O'].push(r); });
+  const K = l => l.length, V = l => sumBy(l, r => r.vz);
+  const PL = [...grp.P, ...grp.L], MA = [...grp.W, ...grp.O], ALL = act;
+  const studN = S.students.filter(s => s.n > 0 && (!cf || s.cluster === cf)).reduce((t, s) => t + s.n, 0);
+  const q2 = (a, b) => (a && b) ? r2(a / b) : null;
+  const f2 = v => v == null ? '–' : nf1.format(v);
+  const byV = S.measure === 'vzae', base = l => byV ? V(l) : K(l);
+  const tiles = [
+    ['Professur (inkl. LfbA)', '1', `${byV ? nf1.format(V(PL)) : nf0.format(K(PL))} ${byV ? 'VZÄ' : 'Personen'}`],
+    ['WiMi', f2(q2(base(grp.W), base(PL))), `${byV ? nf1.format(V(grp.W)) : nf0.format(K(grp.W))} ${byV ? 'VZÄ' : 'Personen'}`],
+    ['Sonstige Mitarbeitende', f2(q2(base(grp.O), base(PL))), `${byV ? nf1.format(V(grp.O)) : nf0.format(K(grp.O))} ${byV ? 'VZÄ' : 'Personen'} (Technik, Verwaltung …)`],
+    ['Studierende', f2(q2(studN, base(PL))), `${nf0.format(studN)} Studierende`],
+  ];
+  $('#dtRatioTitle').textContent = `Betreuungsverhältnis – ${scope}`;
+  $('#dtRatioSub').textContent = `Auf eine Professur (inkl. LfbA) kommen … · Basis ${byV ? 'VZÄ' : 'Köpfe'} (oben umschaltbar), Stand ${fmtD(T)}, nur aktive Verträge.` + (cf ? '' : ' Fakultät = alle Personen und alle Studierenden, auch aus Clustern ohne Gegenstück im anderen Blatt.');
+  $('#dtRatio').innerHTML = tiles.map(([l, v, d], i) => `${i ? '<div class="ratio-sep">:</div>' : ''}<div class="kpi ratio-tile"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+  const rowR = (lbl, l, strong) => `<tr${strong ? ' class="tot"' : ''}><td>${lbl}</td><td class="n">${nf0.format(K(l))}</td><td class="n">${nf1.format(V(l))}</td><td class="n">${f2(q2(K(l), K(PL)))}</td><td class="n">${f2(q2(V(l), V(PL)))}</td><td class="n">${f2(q2(studN, K(l)))}</td><td class="n">${f2(q2(studN, V(l)))}</td></tr>`;
+  $('#dtRatioTable').innerHTML = `<table><tr><th>Gruppe</th><th class="n">Köpfe</th><th class="n">VZÄ</th><th class="n">je Professur (Köpfe)</th><th class="n">je Professur (VZÄ)</th><th class="n">Studierende je Person</th><th class="n">Studierende je VZÄ</th></tr>` +
+    rowR('Professor/innen', grp.P) + rowR('LfbA', grp.L) + rowR('Professuren inkl. LfbA', PL, true) +
+    rowR('WiMi', grp.W) + rowR('Sonstige Mitarbeitende', grp.O) + rowR('Mitarbeitende gesamt', MA, true) + rowR('Personal gesamt', ALL, true) +
+    `<tr><td>Studierende</td><td class="n">${nf0.format(studN)}</td><td></td><td class="n">${f2(q2(studN, K(PL)))}</td><td class="n">${f2(q2(studN, V(PL)))}</td><td></td><td></td></tr></table>` +
+    `<p class="note">Zum Vergleich ohne LfbA: ${f2(q2(K(grp.W), K(grp.P)))} WiMi je Professor/in (Köpfe), ${f2(q2(V(grp.W), V(grp.P)))} (VZÄ). Zuordnung der Mitarbeiterkreise zu den Gruppen: Reiter „Betreuung &amp; WiMi“.</p>`;
+  renderDetailList();
+}
+function renderDetailList() {
+  const cf = $('#dtCluster').value || null, rows = detailRows();
+  const issuesByRow = {};
+  S.issues.filter(i => i.sheet === 'Personal' && i.row && i.sev !== 'I').forEach(i => (issuesByRow[i.row] = issuesByRow[i.row] || []).push(i));
+  const cols = DT_COLS.filter(c => !(cf && c[0] === 'cluster'));
+  const col = DT_COLS.find(c => c[0] === DT.sort) || DT_COLS[1];
+  const cmp = (a, b) => { const x = col[2](a), y = col[2](b);
+    const d = (typeof x === 'number' || typeof y === 'number') ? ((x ?? -Infinity) - (y ?? -Infinity)) : String(x ?? '').localeCompare(String(y ?? ''), 'de');
+    return d * DT.dir || a.name.localeCompare(b.name, 'de'); };
+  const cell = (k, r) => {
+    switch (k) {
+      case 'arb': return r.arb == null ? '–' : nf1.format(r.arb) + ' %';
+      case 'vz': return r.vz == null ? '–' : nf1.format(r.vz);
+      case 'beginn': return fmtD(r.beginn);
+      case 'ende': return r.ende == null ? 'unbefristet' : fmtD(r.ende);
+      case 'rest': { const j = restJahre(r); return j == null ? '–' : nf1.format(j); }
+      case 'kw': return r.kw ? '<span class="pill" style="border-color:var(--s2)">kw</span>' : '';
+      case 'status': return contractStatus(r).t;
+      case 'cluster': return esc(clusterOf(r));
+      default: return esc(r[k]);
+    }
+  };
+  const ks = S.kreisOrder.filter(k => rows.some(r => kreisOf(r) === k));
+  const T = S.today;
+  $('#dtCount').textContent = `${rows.length} Verträge · ${nf1.format(sumBy(rows, r => r.vz))} VZÄ`;
+  $('#dtLists').innerHTML = ks.length ? ks.map(k => {
+    const l = rows.filter(r => kreisOf(r) === k).sort(cmp), a = l.filter(r => isActive(r, T));
+    const befr = a.filter(r => r.ende != null).length, kw = a.filter(r => r.kw).length, soon = a.filter(r => r.ende != null && r.ende <= T + 365).length;
+    return `<details open class="kreis"><summary><span class="sw" style="background:${kreisColor(k)}"></span><b>${esc(k)}</b> <span class="note">(${esc(S.catMap[k])})</span>
+      <span class="ksum">${l.length} Verträge · ${nf1.format(sumBy(l, r => r.vz))} VZÄ · befristet ${befr} · kw ${kw} · Ende ≤ 12 Mon. ${soon}</span></summary>
+      <div style="overflow-x:auto"><table class="dt"><tr><th></th>${cols.map(c => `<th class="${c[3] || ''} sortable" data-k="${c[0]}">${c[1]}${DT.sort === c[0] ? (DT.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr>` +
+      l.map(r => { const is = issuesByRow[r.row]; return `<tr><td>${is ? `<span title="${esc(is.map(i => i.msg).join('\n'))}" class="${is.some(i => i.sev === 'E') ? 'sev-E' : 'sev-W'}">${is.some(i => i.sev === 'E') ? '⛔' : '⚠'}</span>` : ''}</td>${cols.map(c => `<td class="${c[3] || ''}">${cell(c[0], r)}</td>`).join('')}</tr>`; }).join('') +
+      `<tr class="tot"><td></td>${cols.map(c => `<td class="${c[3] || ''}">${c[0] === 'name' ? 'Summe' : c[0] === 'vz' ? nf1.format(sumBy(l, r => r.vz)) : ''}</td>`).join('')}</tr></table></div></details>`;
+  }).join('') : '<p class="note">Keine Verträge für diese Auswahl.</p>';
+  $$('#dtLists th.sortable').forEach(th => th.onclick = () => { if (DT.sort === th.dataset.k) DT.dir *= -1; else { DT.sort = th.dataset.k; DT.dir = 1; } renderDetailList(); });
+}
+function detailCsv() {
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const head = ['Mitarbeiterkreis', 'Gruppe', 'Personalnummer', 'Name', 'Vorname', 'Cluster', 'Organisationseinheit', 'Laborbereich', 'TrfGr', 'ArbAnteil', 'VZÄ', 'Vertragsart', 'Beginn', 'Vertragsende', 'Restlaufzeit (Jahre)', 'kw', 'Status'];
+  const rows = detailRows().sort((a, b) => S.kreisOrder.indexOf(kreisOf(a)) - S.kreisOrder.indexOf(kreisOf(b)) || a.name.localeCompare(b.name, 'de'));
+  const n = v => v == null ? '' : nf1.format(v);
+  const lines = [head.map(q).join(';')].concat(rows.map(r => [kreisOf(r), S.catMap[kreisOf(r)], r.pnr, r.name, r.vorname, clusterOf(r), r.oe, r.labor, r.tarif, n(r.arb), n(r.vz), r.vart,
+    r.beginn == null ? '' : fmtD(r.beginn), r.ende == null ? 'unbefristet' : fmtD(r.ende), n(restJahre(r)), r.kw ? 'x' : '', contractStatus(r).txt].map(q).join(';')));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'}));
+  a.download = 'Personalliste_' + ($('#dtCluster').value || 'Fakultaet').replace(/[^\wäöüÄÖÜß-]+/g, '_') + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
 /* ============================== Bedienung ============================== */
 function showTab(t) {
   S.tab = t;
@@ -1068,6 +1220,11 @@ function init() {
   $$('#fcMode button').forEach(b => b.onclick = () => { fcMode = b.dataset.v; $$('#fcMode button').forEach(x => x.classList.toggle('on', x === b)); $('#fcSem').classList.toggle('hidden', fcMode !== 'sem'); $('#fcDate').classList.toggle('hidden', fcMode !== 'date'); renderForecast(); });
   ['#fcSem', '#fcDate', '#fcCluster'].forEach(s => $(s).onchange = renderForecast);
   $('#raWhen').onchange = renderRatio;
+  $('#dtCluster').onchange = renderDetail;
+  ['#dtAll', '#dtSoon'].forEach(x => $(x).onchange = renderDetailList);
+  $('#dtSearch').oninput = renderDetailList;
+  $('#dtCsv').onclick = detailCsv;
+  $('#dtOpen').onclick = () => { const d = $$('#dtLists details'); const open = !d.every(x => x.open); d.forEach(x => x.open = open); };
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { chartDefaults(); if (S.raw) renderAll(); });
   window.addEventListener('resize', () => document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px'));
 }
