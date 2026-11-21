@@ -85,10 +85,24 @@ rows[90][10] = "vielleicht"                  # unklarer kw-Wert
 rows[95][9] = d(2024, 2, 29)                 # bereits ausgelaufen
 dup = list(rows[100]); rows.append(dup)       # exaktes Duplikat
 
+# ---- Lehrdeputat (SWS je Semester), deterministisch aus Mitarbeiterkreis, Anteil und Personalnummer ----
+def deputat(r):
+    pn, kreis, arb = r[0], r[3], r[4] or 0
+    if kreis == "Professor/in": return round(18 * arb / 100, 2)
+    if kreis == "LfbA": return round(20 * arb / 100, 2)
+    if kreis == "Wiss. Mitarbeiter/in": return 4 if pn % 3 == 0 else 0      # Deputat 0 = nur unterstützend
+    if kreis == "Technische/r Mitarbeiter/in": return 0
+    return None                                                            # Verwaltung: keine Angabe
+for r in rows: r.append(deputat(r))
+# absichtlich eingebaute Fehler beim Deputat
+rows[5][14] = 0           # Professur mit Deputat 0
+rows[12][14] = -4         # negatives Deputat
+rows[20][14] = "n.n."     # keine Zahl
+
 wb = Workbook()
 ws = wb.active; ws.title = "Personal"
 hdr = ["Personalnummer", "Name", "Vorname", "Mitarbeiterkreis", "ArbAnteil", "VZÄ", "TrfGr", "Vertragsart",
-       "Beginn", "Vertragsende", "kw", "Cluster", "Organisationseinheit", "Laborbereich"]
+       "Beginn", "Vertragsende", "kw", "Cluster", "Organisationseinheit", "Laborbereich", "Deputat"]
 ws.append(hdr)
 for r in rows: ws.append(r)
 for c in ws[1]: c.font = Font(bold=True)
@@ -96,12 +110,16 @@ for col in "IJ":
     for cell in ws[col][1:]: cell.number_format = "DD.MM.YYYY"
 
 ws2 = wb.create_sheet("Studierende")
-ws2.append(["Studiengang", "Cluster", "Studierende"])
-for r in [("Informatik B.Sc.", "Informatik", 820), ("Informatik M.Sc.", "Informatik", 260),
-          ("Wirtschaftsinformatik B.Sc.", "Informatik", 410), ("Elektrotechnik B.Sc.", "Elektrotechnik", 380),
-          ("Elektrotechnik M.Sc.", "Elektrotechnik", 95), ("Maschinenbau B.Sc.", "Maschinenbau", 540),
-          ("Maschinenbau M.Sc.", "Maschinenbau", 130), ("Medientechnik B.Sc.", "Medientechnik", 300),
-          ("Robotik M.Sc.", "Mechatronik", 60)]:   # Cluster ohne Personal
+ws2.append(["Studiengang", "Cluster", "Art", "CNW", "Studienplätze", "Studierende"])
+for r in [("Informatik B.Sc.", "Informatik", "Bachelor", 6.4, 90, 820),
+          ("Informatik M.Sc.", "Informatik", "Master", 2.6, 35, 260),
+          ("Wirtschaftsinformatik B.Sc.", "Informatik", "Bachelor", 5.8, 55, 410),
+          ("Elektrotechnik B.Sc.", "Elektrotechnik", "Bachelor", 7.2, 75, 380),
+          ("Elektrotechnik M.Sc.", "Elektrotechnik", "Master", 2.9, 30, 95),
+          ("Maschinenbau B.Sc.", "Maschinenbau", "Bachelor", 7.0, 85, 540),
+          ("Maschinenbau M.Sc.", "Maschinenbau", "Master", 2.8, 30, 130),
+          ("Medientechnik B.Sc.", "Medientechnik", "Bachelor", 6.8, 50, 300),
+          ("Robotik M.Sc.", "Mechatronik", "M.Sc.", None, 25, 60)]:   # Cluster ohne Personal, CNW fehlt
     ws2.append(list(r))
 for c in ws2[1]: c.font = Font(bold=True)
 wb.save("testdaten/Testdaten_Personalplanung.xlsx")

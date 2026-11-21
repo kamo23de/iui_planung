@@ -34,9 +34,9 @@ Zum Ausprobieren gibt es außerdem `testdaten/Testdaten_Personalplanung.xlsx`. D
 
 ## Erwarteter Aufbau der Excel-Datei
 
-**Blatt Personal:** Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich
+**Blatt Personal:** Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich, Deputat (Lehrdeputat in SWS je Semester; 0 = nur unterstützend in der Lehre)
 
-**Blatt Studierende:** Studiengang, Cluster, Studierende
+**Blatt Studierende:** Studiengang, Cluster, Art (Bachelor/Master), CNW (Curricularnormwert), Studienplätze (je neuer Studierendengruppe), Studierende (eingeschrieben)
 
 Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blattnamen sind egal.
 
@@ -50,6 +50,7 @@ Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blatt
 | Forecast | Zielzeitpunkt als Datum oder Semester (max. 20 voraus), Vergleich mit heute, Ab- und Zugangslisten |
 | Betreuung & WiMi | Studierende je Professor/in (inkl. LfbA) und je WiMi; WiMi je Professur (ohne LfbA) je Cluster und Organisationseinheit |
 | Detailansicht | Auswahl nach Cluster, Laborbereich und Organisationseinheit (die Liste der Organisationseinheiten richtet sich nach Cluster und Laborbereich). Genaues Verhältnis Professur (inkl. LfbA) : WiMi : sonstige Mitarbeitende : Studierende (Köpfe und VZÄ; Studierende nur ohne Labor-/OE-Auswahl, da diesen nicht zugeordnet). Professuren und Mitarbeitende je Laborbereich mit Diagramm und Tabelle. Vollständige Personalliste, gegliedert nach Mitarbeiterkreis oder Laborbereich, mit Vertragsdaten, Restlaufzeit, kw und Status; sortierbar, durchsuchbar, als CSV speicherbar |
+| Kapazität | Lehrangebot (Summe Deputat) je Cluster und Organisationseinheit, nach Personalgruppe; erforderliche Kapazität (CNW × Studienplätze) je Studiengang neben den eingeschriebenen Studierenden; Bilanz und Auslastung für Fakultät und (vorläufig) je Cluster; Stichtag bis 20 Semester voraus |
 
 ## Festgelegte Regeln
 
@@ -57,6 +58,7 @@ Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blatt
 - **Semester:** Wintersemester 01.09.–28./29.02., Sommersemester 01.03.–31.08. Bestand je Semester = Stand am ersten Tag.
 - **kw:** Stellen mit kw-Vermerk entfallen nach Vertragsende. Optional werden Stellen ohne kw als offene, nachzubesetzende Stellen weitergeführt (Schalter oben).
 - **Rundung:** Alle Berechnungen auf zwei Nachkommastellen. Kopfzahlen bleiben ganze Zahlen.
+- **Kapazität:** Lehrangebot je Jahr = 2 × Summe Deputat (SWS je Semester) der aktiven Verträge, wie in der Kapazitätsverordnung (Aufnahmekapazität = 2 × Lehrangebot je Semester / Curricularanteil). Erforderliche Kapazität = CNW × Studienplätze × Aufnahmen je Jahr. Nicht berücksichtigt: Deputatsermäßigungen, Lehraufträge, Dienstleistungsexport/-import, Schwund, offene Stellen.
 - **Betreuungsverhältnis:** LfbA zählen als Professor/innen. In der WiMi-je-Professur-Auswertung werden LfbA nicht berücksichtigt.
 - Die Zuordnung der Mitarbeiterkreise zu Professor/in, LfbA, WiMi und Sonstige wird aus den Bezeichnungen erraten und lässt sich im Reiter „Betreuung & WiMi“ ändern.
 
