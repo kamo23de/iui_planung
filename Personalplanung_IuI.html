@@ -348,7 +348,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
   </div>
   <div class="card">
     <h2>Personalliste <span class="note" id="dtCount"></span></h2>
-    <p class="sub"><b>Erweitern</b> blendet TrfGr, Vertragsart und Beginn ein. Klick auf eine Zeile zeigt alle Daten zur Person, Klick auf eine Spaltenüberschrift sortiert. ⛔/⚠ markiert Zeilen mit Befunden aus der Datenprüfung (Maus darüber bzw. antippen zeigt Details).</p>
+    <p class="sub"><b>Erweitern</b> blendet TrfGr, ArbAnteil, Vertragsart und Beginn ein. Klick auf eine Zeile zeigt alle Daten zur Person, Klick auf eine Spaltenüberschrift sortiert. ⛔/⚠ markiert Zeilen mit Befunden aus der Datenprüfung (Maus darüber bzw. antippen zeigt Details).</p>
     <div class="row">
       <input type="search" id="dtSearch" placeholder="Suche: Name, Pers.-Nr., OE, Tarif …" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);min-width:260px">
       <label class="ctl"><input type="checkbox" id="dtAll"> auch ausgelaufene und künftige Verträge</label>
@@ -1108,7 +1108,7 @@ function renderRatio() {
 
 /* ---------- Detailansicht ---------- */
 const DT = {sort: 'name', dir: 1, group: 'kreis', expanded: false};
-const DT_EXT = new Set(['tarif', 'vart', 'beginn']);   // nur in der erweiterten Ansicht
+const DT_EXT = new Set(['tarif', 'arb', 'vart', 'beginn']);   // nur in der erweiterten Ansicht
 const NOLAB = '(ohne Laborbereich)';
 const labOf = r => r.labor || NOLAB;
 const labKey = r => clusterOf(r) + '\u0000' + labOf(r);
@@ -1289,7 +1289,7 @@ function renderDetailList() {
   $$('#dtLists th.sortable').forEach(th => th.onclick = () => { if (DT.sort === th.dataset.k) DT.dir *= -1; else { DT.sort = th.dataset.k; DT.dir = 1; } renderDetailList(); });
   $$('#dtLists tr.prow').forEach(tr => tr.onclick = () => showPerson(+tr.dataset.row));
   $('#dtExpand').textContent = DT.expanded ? '◂ Reduzieren' : 'Erweitern ▸';
-  $('#dtExpand').title = DT.expanded ? 'TrfGr, Vertragsart und Beginn ausblenden' : 'TrfGr, Vertragsart und Beginn einblenden';
+  $('#dtExpand').title = DT.expanded ? 'TrfGr, ArbAnteil, Vertragsart und Beginn ausblenden' : 'TrfGr, ArbAnteil, Vertragsart und Beginn einblenden';
 }
 function detailCsv() {
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
