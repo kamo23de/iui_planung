@@ -114,11 +114,29 @@ pick("Technische/r Mitarbeiter/in", lambda r: True)[RUHT] = d(2026, 6, 30)      
 pick("Wiss. Mitarbeiter/in", lambda r: r[9] and r[9] < d(2028, 1, 1))[RUHT] = d(2030, 1, 31) # Fehler: ruht über Vertragsende hinaus
 pick("Verwaltung", lambda r: True)[RUHT] = "bald"                                            # Fehler: kein Datum
 
+# ---- „Ruhestand“: voraussichtliches Ausscheiden bei unbefristeten Verträgen; Vertragsende nur bei Zeitverträgen ----
+import calendar
+RUHESTAND = len(rows[0])
+def monatsende(y, m): return d(y, m, calendar.monthrange(y, m)[1])
+for r in rows:
+    r.append(None)
+    if r[7] == "unbefristet" and r[9] is None and r[0] % 5 in (0, 1, 2):
+        r[RUHESTAND] = monatsende(2027 + r[0] % 14, r[0] % 12 + 1)
+for r in rows:
+    if r[1] == "Albrecht" and r[2] == "Wolfgang":              # Nachfolgefall: Ruhestand statt Vertragsende
+        r[RUHESTAND], r[9] = r[9], None
+# absichtlich eingebaute Fehler/Sonderfälle
+befr = [i for i, r in enumerate(rows[:-3]) if r[7] == "befristet" and r[9] and r[9] > d(2029, 1, 1) and i not in (100,)]
+rows[befr[0]][RUHESTAND] = d(2028, 7, 31)                     # Ruhestand vor Ende des Zeitvertrags
+unbefr = [i for i, r in enumerate(rows[:-3]) if r[7] == "unbefristet" and r[9] is None and r[RUHESTAND] is None and i not in (30, 100)]
+rows[unbefr[0]][9] = d(2031, 3, 31)                           # Altbestand: Ruhestand im Vertragsende eingetragen
+rows[unbefr[1]][RUHESTAND] = "irgendwann"                     # kein Datum
+
 wb = Workbook()
 ws = wb.active; ws.title = "Personal"
 hdr = ["Personalnummer", "Name", "Vorname", "Mitarbeiterkreis", "ArbAnteil", "VZÄ", "TrfGr", "Vertragsart",
        "Beginn", "Vertragsende", "kw", "Cluster", "Organisationseinheit", "Laborbereich", "Deputat"]
-hdr.append("ruht bis")
+hdr.append("ruht bis"); hdr.append("Ruhestand")
 ws.append(hdr)
 for r in rows: ws.append(r)
 for c in ws[1]: c.font = Font(bold=True)
@@ -126,6 +144,7 @@ for col in "IJ":
     for cell in ws[col][1:]: cell.number_format = "DD.MM.YYYY"
 from openpyxl.utils import get_column_letter
 for cell in ws[get_column_letter(RUHT + 1)][1:]: cell.number_format = "DD.MM.YYYY"
+for cell in ws[get_column_letter(RUHESTAND + 1)][1:]: cell.number_format = "DD.MM.YYYY"
 
 ws2 = wb.create_sheet("Studierende")
 ws2.append(["Studiengang", "Cluster", "Art", "CNW", "Studienplätze", "Studierende"])
