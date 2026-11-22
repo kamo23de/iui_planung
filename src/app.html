@@ -95,7 +95,7 @@ tr.tot td{font-weight:650;border-top:1px solid var(--axis)}
 @media (prefers-color-scheme: dark){.sev-W{color:var(--warning)}}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--text-secondary);margin:4px 0 10px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-#start{max-width:760px;margin:40px auto}
+#start{max-width:940px;margin:40px auto;padding:0 16px}
 .drop{border:2px dashed var(--axis);border-radius:12px;padding:40px;text-align:center;background:var(--card)}
 .drop.over{border-color:var(--accent)}
 .note{font-size:12.5px;color:var(--text-secondary)}
@@ -152,6 +152,12 @@ dl.pd dd{margin:0}
 .wip-tab{display:inline-block;margin-left:6px;padding:0 5px;font-size:10px;font-weight:800;letter-spacing:.05em;border-radius:4px;background:#fab219;color:#0b0b0b;vertical-align:1px}
 @media (max-width:600px){.wip-banner{flex-direction:column;align-items:stretch}.wip-banner .wip-logo{align-self:center}}
 @media print{.wip-banner{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.layout-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:8px 24px}
+.layout-h{font-size:13px;margin:10px 0 4px}
+table.layout{font-size:12.5px}
+table.layout td{padding:3px 6px}
+table.layout td:first-child{font-weight:600;white-space:nowrap;width:1%}
+table.layout td:last-child{color:var(--text-secondary)}
 .flow{font-size:11px;font-weight:400;white-space:nowrap;margin-top:1px}
 .flow .fin{color:var(--good-text)}
 .flow .fout{color:var(--neg)}
@@ -198,10 +204,40 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
     Nach dem Schließen des Fensters sind die Daten nicht mehr im Speicher.</p>
   </div>
   <div class="card" style="margin-top:16px">
-    <h2>Erwarteter Aufbau</h2>
-    <p class="note"><b>Blatt 1 (Personal):</b> Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich.<br>
-    <b>Blatt 2 (Studierende):</b> Studiengang, Cluster, Studierende.<br>
-    Die Blätter und Spalten werden anhand der Überschriften erkannt; Reihenfolge und Blattnamen sind egal.</p>
+    <h2>Erwarteter Aufbau der Excel-Datei</h2>
+    <p class="note" style="margin-top:0">Blätter und Spalten werden anhand der Überschriften erkannt; Reihenfolge und Blattnamen sind egal. Fehlt eine Spalte, meldet die Datenprüfung das.</p>
+    <div class="layout-grid">
+      <div>
+        <h3 class="layout-h">Blatt 1 – Personal <span class="note">(eine Zeile je Person bzw. Vertrag)</span></h3>
+        <table class="layout">
+          <tr><td>Personalnummer</td><td></td></tr>
+          <tr><td>Name, Vorname</td><td></td></tr>
+          <tr><td>Mitarbeiterkreis</td><td>z. B. Professor/in, LfbA, Wiss. Mitarbeiter/in</td></tr>
+          <tr><td>ArbAnteil</td><td>Arbeitsanteil in %</td></tr>
+          <tr><td>VZÄ</td><td>Vollzeitäquivalente</td></tr>
+          <tr><td>TrfGr</td><td>Tarifgruppe</td></tr>
+          <tr><td>Vertragsart</td><td>befristet / unbefristet</td></tr>
+          <tr><td>Beginn, Vertragsende</td><td>leeres Vertragsende = unbefristet</td></tr>
+          <tr><td>kw</td><td>„kann wegfallen“ – Stelle entfällt nach Vertragsende</td></tr>
+          <tr><td>Cluster</td><td></td></tr>
+          <tr><td>Organisationseinheit</td><td></td></tr>
+          <tr><td>Laborbereich</td><td></td></tr>
+          <tr><td>Deputat</td><td>Lehrdeputat in SWS je Semester; 0 = nur unterstützend in der Lehre <span class="pill">für Kapazität</span></td></tr>
+        </table>
+      </div>
+      <div>
+        <h3 class="layout-h">Blatt 2 – Studierende <span class="note">(eine Zeile je Studiengang)</span></h3>
+        <table class="layout">
+          <tr><td>Studiengang</td><td>Name des Studiengangs</td></tr>
+          <tr><td>Cluster</td><td>Cluster, in dem der Studiengang angesiedelt ist</td></tr>
+          <tr><td>Art</td><td>Bachelor oder Master <span class="pill">für Kapazität</span></td></tr>
+          <tr><td>CNW</td><td>Curricularnormwert <span class="pill">für Kapazität</span></td></tr>
+          <tr><td>Studienplätze</td><td>Plätze einer neuen Studierendengruppe <span class="pill">für Kapazität</span></td></tr>
+          <tr><td>Studierende</td><td>aktuell eingeschriebene Studierende</td></tr>
+        </table>
+        <p class="note">Spalten mit dem Vermerk <span class="pill">für Kapazität</span> werden nur für die Ansicht „Kapazität“ benötigt. Ältere Dateien ohne diese Spalten funktionieren in allen anderen Ansichten weiter.</p>
+      </div>
+    </div>
   </div>
 </div>
 
