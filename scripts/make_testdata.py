@@ -85,15 +85,33 @@ rows[90][10] = "vielleicht"                  # unklarer kw-Wert
 rows[95][9] = d(2024, 2, 29)                 # bereits ausgelaufen
 dup = list(rows[100]); rows.append(dup)       # exaktes Duplikat
 
+# ---- „ruht bis“: Vertrag ruht bis zu diesem Datum (z. B. Elternzeit, Beurlaubung) ----
+RUHT = len(rows[0])          # Spaltenindex der neuen Spalte
+for r in rows: r.append(None)
+skip = {2, 3, 5, 10, 12, 15, 20, 22, 30, 40, 50, 60, 61, 70, 80, 90, 95, 100}
+def pick(kreis, cond):
+    for i, r in enumerate(rows[:-3]):
+        if i not in skip and r[3] == kreis and r[8] and r[8] <= TODAY and (r[9] is None or r[9] > TODAY) and cond(r):
+            skip.add(i); return r
+pick("Wiss. Mitarbeiter/in", lambda r: r[9] and r[9] > d(2028, 6, 1))[RUHT] = d(2027, 8, 31)   # ruht, kehrt zurück
+pick("Professor/in", lambda r: r[9] is None)[RUHT] = d(2027, 2, 28)                          # ruht, kehrt zurück
+pick("LfbA", lambda r: True)[RUHT] = d(2028, 2, 29)                                          # ruht, kehrt zurück
+pick("Technische/r Mitarbeiter/in", lambda r: True)[RUHT] = d(2026, 6, 30)                   # Ruhen bereits beendet
+pick("Wiss. Mitarbeiter/in", lambda r: r[9] and r[9] < d(2028, 1, 1))[RUHT] = d(2030, 1, 31) # Fehler: ruht über Vertragsende hinaus
+pick("Verwaltung", lambda r: True)[RUHT] = "bald"                                            # Fehler: kein Datum
+
 wb = Workbook()
 ws = wb.active; ws.title = "Personal"
 hdr = ["Personalnummer", "Name", "Vorname", "Mitarbeiterkreis", "ArbAnteil", "VZÄ", "TrfGr", "Vertragsart",
        "Beginn", "Vertragsende", "kw", "Cluster", "Organisationseinheit", "Laborbereich"]
+hdr.append("ruht bis")
 ws.append(hdr)
 for r in rows: ws.append(r)
 for c in ws[1]: c.font = Font(bold=True)
 for col in "IJ":
     for cell in ws[col][1:]: cell.number_format = "DD.MM.YYYY"
+from openpyxl.utils import get_column_letter
+for cell in ws[get_column_letter(RUHT + 1)][1:]: cell.number_format = "DD.MM.YYYY"
 
 ws2 = wb.create_sheet("Studierende")
 ws2.append(["Studiengang", "Cluster", "Studierende"])

@@ -187,7 +187,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
   </div>
   <div class="card" style="margin-top:16px">
     <h2>Erwarteter Aufbau</h2>
-    <p class="note"><b>Blatt 1 (Personal):</b> Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich.<br>
+    <p class="note"><b>Blatt 1 (Personal):</b> Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich, optional „ruht bis“ (Vertrag ruht bis zu diesem Datum und wird bis dahin nicht gezählt).<br>
     <b>Blatt 2 (Studierende):</b> Studiengang, Cluster, Studierende.<br>
     Die Blätter und Spalten werden anhand der Überschriften erkannt; Reihenfolge und Blattnamen sind egal.</p>
   </div>
@@ -294,13 +294,13 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
     </div>
     <div class="card">
       <h2>Veränderung je Cluster und Mitarbeiterkreis</h2>
-      <p class="sub">Saldo Prognose − heute (Blau = mehr, Rot = weniger). Darunter getrennt: Zugänge (+ zu) und Abgänge (− ab) bis zum Zielzeitpunkt – ein Zugang bleibt so auch sichtbar, wenn ihm ein Abgang gegenübersteht.</p>
+      <p class="sub">Saldo Prognose − heute (Blau = mehr, Rot = weniger). Darunter getrennt: Zugänge inkl. Rückkehr nach Ruhen (+ zu) und Abgänge (− ab) bis zum Zielzeitpunkt – ein Zugang bleibt so auch sichtbar, wenn ihm ein Abgang gegenübersteht.</p>
       <div class="scroll" id="fcDelta"></div>
     </div>
   </div>
   <div class="grid2">
     <div class="card"><h2>Abgänge bis zum Zielzeitpunkt</h2><p class="sub">Vertragsende zwischen heute und Zielzeitpunkt.</p><div class="scroll" id="fcOut"></div></div>
-    <div class="card"><h2>Zugänge bis zum Zielzeitpunkt</h2><p class="sub">Vertragsbeginn nach heute, bis Zielzeitpunkt.</p><div class="scroll" id="fcIn"></div></div>
+    <div class="card"><h2>Zugänge bis zum Zielzeitpunkt</h2><p class="sub">Vertragsbeginn nach heute bis zum Zielzeitpunkt sowie Rückkehr aus ruhenden Verträgen.</p><div class="scroll" id="fcIn"></div></div>
   </div>
 </section>
 
@@ -358,7 +358,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
   </div>
   <div class="card">
     <h2>Personalliste <span class="note" id="dtCount"></span></h2>
-    <p class="sub"><b>Erweitern</b> blendet TrfGr, ArbAnteil, Vertragsart und Beginn ein (auf schmalen Bildschirmen auch Organisationseinheit und Laborbereich). Klick auf eine Zeile zeigt alle Daten zur Person, Klick auf eine Spaltenüberschrift sortiert. ⛔/⚠ markiert Zeilen mit Befunden aus der Datenprüfung (Maus darüber bzw. antippen zeigt Details).</p>
+    <p class="sub"><b>Erweitern</b> blendet TrfGr, ArbAnteil, Vertragsart, Beginn und „ruht bis“ ein (auf schmalen Bildschirmen auch Organisationseinheit und Laborbereich). Klick auf eine Zeile zeigt alle Daten zur Person, Klick auf eine Spaltenüberschrift sortiert. ⛔/⚠ markiert Zeilen mit Befunden aus der Datenprüfung (Maus darüber bzw. antippen zeigt Details).</p>
     <div class="row">
       <input type="search" id="dtSearch" placeholder="Suche: Name, Pers.-Nr., OE, Tarif …" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);min-width:260px">
       <label class="ctl"><input type="checkbox" id="dtAll"> auch ausgelaufene und künftige Verträge</label>
@@ -433,6 +433,7 @@ const FIELDS = [
   ['cluster', 'Cluster', ['cluster']],
   ['oe', 'Organisationseinheit', ['organisationseinheit', 'orgeinheit', 'oe']],
   ['labor', 'Laborbereich', ['laborbereich', 'labor']],
+  ['ruht', 'ruht bis', ['ruhtbis', 'ruhendbis', 'ruhenbis', 'ruht', 'ruhend']],
 ];
 const normH = h => String(h ?? '').toLowerCase().replace(/ß/g, 'ss').replace(/[^a-z0-9äöü]/g, '');
 
@@ -528,6 +529,7 @@ function buildRecords() {
     r.arb = r2(r.arb); r.vz = r2(r.vz);
     const b = parseDate(get(row, 'beginn')), e = parseDate(get(row, 'ende'));
     r.beginn = b.v; r.beginnErr = b.err; r.ende = e.v; r.endeErr = e.err; r.endeOpenSentinel = e.open;
+    const ru = parseDate(get(row, 'ruht')); r.ruht = ru.open ? null : ru.v; r.ruhtErr = ru.err; r.ruhtOpen = ru.open;
     const kwRaw = str(get(row, 'kw')).toLowerCase();
     r.kwRaw = kwRaw;
     r.kw = /^(x|ja|j|1|true|wahr|yes|kw|k\.?w\.?)$/.test(kwRaw);
@@ -603,7 +605,7 @@ function runChecks() {
   const I = [], T = S.today;
   const add = (sev, check, r, field, msg) => I.push({sev, check, row: r ? r.row : null, pnr: r ? r.pnr : '', person: r ? [r.name, r.vorname].filter(Boolean).join(', ') : '', field, msg, sheet: r && r.sg != null ? 'Studierende' : 'Personal'});
 
-  S.missingCols.forEach(c => add(c === 'Laborbereich' || c === 'Organisationseinheit' ? 'W' : 'E', 'Spalte fehlt', null, c, `Spalte „${c}“ wurde im Personalblatt nicht gefunden.`));
+  S.missingCols.filter(c => c !== 'ruht bis').forEach(c => add(c === 'Laborbereich' || c === 'Organisationseinheit' ? 'W' : 'E', 'Spalte fehlt', null, c, `Spalte „${c}“ wurde im Personalblatt nicht gefunden.`));
   if (!S.raw.stud) add('E', 'Studierendenblatt fehlt', null, '', 'Kein Tabellenblatt mit Studiengang/Cluster/Studierende gefunden – Betreuungsverhältnis nicht berechenbar.');
 
   // exakte Duplikate
@@ -628,6 +630,14 @@ function runChecks() {
     if (!r.vart && 'vart' in S.colMap) add('W', 'Pflichtfeld leer', r, 'Vertragsart', 'Vertragsart fehlt.');
     if (r.beginnErr) add('E', 'Datum nicht lesbar', r, 'Beginn', `„${str(r.rawRow[S.colMap.beginn])}“ ist kein gültiges Datum.`);
     if (r.endeErr) add('E', 'Datum nicht lesbar', r, 'Vertragsende', `„${str(r.rawRow[S.colMap.ende])}“ ist kein gültiges Datum – Vertrag wird als unbefristet gewertet.`);
+    if (r.ruhtErr) add('E', 'Datum nicht lesbar', r, 'ruht bis', `„${str(r.rawRow[S.colMap.ruht])}“ ist kein gültiges Datum – Vertrag wird als nicht ruhend gewertet.`);
+    if (r.ruhtOpen) add('W', 'Ruhen ohne Ende', r, 'ruht bis', 'Datum ab 2100 bei „ruht bis“ – wird ignoriert. Bitte das tatsächliche Ende des Ruhens eintragen.');
+    if (r.ruht != null) {
+      if (r.beginn != null && r.ruht < r.beginn) add('W', 'Ruhen außerhalb der Vertragslaufzeit', r, 'ruht bis', `„ruht bis“ ${fmtD(r.ruht)} liegt vor Vertragsbeginn ${fmtD(r.beginn)} – ohne Wirkung.`);
+      else if (r.ende != null && r.ruht >= r.ende) add('W', 'Ruhen bis Vertragsende', r, 'ruht bis', `Vertrag ruht bis ${fmtD(r.ruht)}, endet aber am ${fmtD(r.ende)} – die Person kehrt nicht mehr zurück.`);
+      else if (r.ruht >= S.today && inContract(r, S.today)) add('I', 'Vertrag ruht', r, 'ruht bis', `Vertrag ruht bis ${fmtD(r.ruht)} – bis dahin nicht als Stelle${'deputat' in S.colMap ? ' und nicht mit Deputat' : ''} gezählt.`);
+      else if (r.ruht < S.today) add('I', 'Ruhen beendet', r, 'ruht bis', `Ruhen endete am ${fmtD(r.ruht)} – Vertrag wieder aktiv.`);
+    }
     if (r.arbErr) add('E', 'Zahl nicht lesbar', r, 'ArbAnteil', 'ArbAnteil ist keine Zahl.');
     if (r.vzErr) add('E', 'Zahl nicht lesbar', r, 'VZÄ', 'VZÄ ist keine Zahl.');
     if (r.beginn != null && r.ende != null && r.beginn > r.ende) add('E', 'Beginn nach Vertragsende', r, 'Beginn/Vertragsende', `Beginn ${fmtD(r.beginn)} liegt nach Vertragsende ${fmtD(r.ende)} – Vertrag ist nie aktiv.`);
@@ -720,7 +730,13 @@ const used = () => S.recs.filter(r => !r.excluded);
 const val = r => S.measure === 'vzae' ? (r.vz || 0) : 1;
 const fmtV = v => S.measure === 'vzae' ? nf1.format(r2(v)) : nf0.format(Math.round(v));
 const unit = () => S.measure === 'vzae' ? 'VZÄ' : 'Personen';
-const isActive = (r, D) => (r.beginn == null || r.beginn <= D) && (r.ende == null || r.ende >= D);
+/* inContract: Vertrag läuft (Beginn ≤ D ≤ Vertragsende).
+   isResting: Vertrag ruht am Tag D (Spalte „ruht bis“; D ≤ ruht bis). Ruhende Verträge zählen weder als Stelle noch mit Deputat.
+   isActive: Vertrag läuft und ruht nicht – nur diese Verträge werden in allen Auswertungen gezählt. */
+const inContract = (r, D) => (r.beginn == null || r.beginn <= D) && (r.ende == null || r.ende >= D);
+const isResting = (r, D) => r.ruht != null && D <= r.ruht && inContract(r, D);
+const isActive = (r, D) => inContract(r, D) && !isResting(r, D);
+const returnsBetween = (r, T, D) => isResting(r, T) && isActive(r, D);   // Rückkehr nach Ruhen zwischen T und D
 /* 'b' = besetzt, 'v' = offene (nicht-kw) Stelle nach Vertragsende, nur im Szenario „weiterführen“ */
 function status(r, D) {
   if (isActive(r, D)) return 'b';
@@ -813,7 +829,8 @@ function renderCheck() {
   ].map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
   const P = S.raw.pers;
   $('#colInfo').innerHTML = `Personalblatt: <b>${esc(P.sn)}</b> (Überschriften in Zeile ${P.headerRow + 1}) · Studierendenblatt: <b>${S.raw.stud ? esc(S.raw.stud.sn) : '— nicht gefunden'}</b>` +
-    (S.missingCols.length ? ` · <span class="sev-E">Nicht gefundene Spalten: ${S.missingCols.map(esc).join(', ')}</span>` : ' · alle 14 Spalten erkannt');
+    (S.missingCols.filter(c => c !== 'ruht bis').length ? ` · <span class="sev-E">Nicht gefundene Spalten: ${S.missingCols.filter(c => c !== 'ruht bis').map(esc).join(', ')}</span>` : ` · alle ${FIELDS.length - (S.missingCols.includes('ruht bis') ? 1 : 0)} Spalten erkannt`) +
+    (S.missingCols.includes('ruht bis') ? ' · ohne Spalte „ruht bis“ (optional)' : '');
   // Zusammenfassung je Prüfung
   const groups = {};
   I.forEach(i => { const k = i.sev + '\u0000' + i.check; groups[k] = groups[k] || {sev: i.sev, check: i.check, n: 0}; groups[k].n++; });
@@ -833,7 +850,7 @@ function renderCheck() {
 /* ---------- Übersicht ---------- */
 function renderOverview() {
   const T = S.today, snap = snapshot(T), cl = clusterList().filter(c => snap.byCluster[c]);
-  const act = used().filter(r => isActive(r, T));
+  const act = used().filter(r => isActive(r, T)), resting = used().filter(r => isResting(r, T));
   const befr = act.filter(r => r.ende != null), kw = act.filter(r => r.kw);
   const in12 = act.filter(r => r.ende != null && r.ende <= T + 365);
   const vzSum = sumBy(act, r => r.vz);
@@ -842,9 +859,10 @@ function renderOverview() {
     ['Befristet', `${nf1.format(pct(befr.length, act.length))} %`, `${befr.length} Verträge mit Enddatum`],
     ['kw-Vermerk', nf0.format(kw.length), `${nf1.format(sumBy(kw, r => r.vz))} VZÄ entfallen künftig`],
     ['Vertragsende in 12 Monaten', nf0.format(in12.length), `${nf1.format(sumBy(in12, r => r.vz))} VZÄ, davon ${in12.filter(r => r.kw).length} mit kw`],
+    ['Ruhende Verträge', nf0.format(resting.length), resting.length ? `${nf1.format(sumBy(resting, r => r.vz))} VZÄ – nicht mitgezählt` : 'keine'],
     ['Cluster', nf0.format(cl.length), `${S.kreisOrder.length} Mitarbeiterkreise`],
   ].map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
-  $('#ovSub1').textContent = `${unit()} mit aktivem Vertrag am ${fmtD(T)} (Beginn ≤ Stichtag ≤ Vertragsende).`;
+  $('#ovSub1').textContent = `${unit()} mit aktivem Vertrag am ${fmtD(T)} (Beginn ≤ Stichtag ≤ Vertragsende, ruhende Verträge nicht mitgezählt).`;
   const ks = S.kreisOrder.filter(k => snap.byKreis[k]);
   const fmt = v => fmtV(v) + ' · ' + nf1.format(pct(v, snap.total)) + ' %';
   mkChart('cKreisTotal', {type: 'bar', plugins: [endLabels], data: {labels: ks, datasets: [barDs(unit(), ks.map(k => tot(snap.byKreis[k])), ks.map(kreisColor))]},
@@ -901,7 +919,8 @@ function renderSemester() {
   const outKw = sems.map(i => -sumBy(rs.filter(r => r.kw && inSem(r.ende, i)), val));
   const outRe = sems.map(i => -sumBy(rs.filter(r => !r.kw && inSem(r.ende, i)), val));
   const inn = sems.map(i => sumBy(rs.filter(r => inSem(r.beginn, i)), val));
-  const fds = [barDs('Zugänge', inn, css('--s3'), {stack: 's'}), barDs('Abgänge – Stelle bleibt (ohne kw)', outRe, css('--s1'), {stack: 's'}), barDs('Abgänge – Stelle entfällt (kw)', outKw, css('--s2'), {stack: 's'})];
+  const ret = sems.map(i => sumBy(rs.filter(r => r.ruht != null && inSem(r.ruht + 1, i) && isActive(r, r.ruht + 1)), val));
+  const fds = [barDs('Zugänge', inn, css('--s3'), {stack: 's'}), barDs('Rückkehr nach Ruhen', ret, css('--s4'), {stack: 's'}), barDs('Abgänge – Stelle bleibt (ohne kw)', outRe, css('--s1'), {stack: 's'}), barDs('Abgänge – Stelle entfällt (kw)', outKw, css('--s2'), {stack: 's'})];
   $('#lgFlow').innerHTML = legendHtml(fds.map(d => [d.backgroundColor, d.label]));
   mkChart('cFlow', {type: 'bar', data: {labels, datasets: fds},
     options: {onClick: (_e, el) => { if (el.length) { $('#semDetail').value = sems[el[0].index]; renderSemDetail(); } },
@@ -912,7 +931,7 @@ function renderSemester() {
   sd.value = sems.includes(+prev) ? prev : cur;
   renderSemDetail();
   $('#semTable').innerHTML = `<table><tr><th>Semester</th><th>Stichtag</th>${ks.map(k => `<th class="n"><span class="sw" style="background:${kreisColor(k)}"></span>${esc(k)}</th>`).join('')}${S.refill ? '<th class="n">offen</th>' : ''}<th class="n">Summe</th><th class="n">Zugänge</th><th class="n">Abgänge (davon kw)</th></tr>` +
-    sems.map((i, j) => `<tr${i === cur ? ' style="font-weight:600"' : ''}><td>${semLabel(i)}</td><td>${fmtD(semStart(i))}</td>${ks.map(k => `<td class="n">${fmtV(snaps[j].byKreis[k] ? snaps[j].byKreis[k].b : 0)}</td>`).join('')}${S.refill ? `<td class="n">${fmtV(snaps[j].v)}</td>` : ''}<td class="n"><b>${fmtV(snaps[j].total)}</b></td><td class="n">${fmtV(inn[j])}</td><td class="n">${fmtV(r2(-(outKw[j] + outRe[j])))} (${fmtV(-outKw[j])})</td></tr>`).join('') + '</table>';
+    sems.map((i, j) => `<tr${i === cur ? ' style="font-weight:600"' : ''}><td>${semLabel(i)}</td><td>${fmtD(semStart(i))}</td>${ks.map(k => `<td class="n">${fmtV(snaps[j].byKreis[k] ? snaps[j].byKreis[k].b : 0)}</td>`).join('')}${S.refill ? `<td class="n">${fmtV(snaps[j].v)}</td>` : ''}<td class="n"><b>${fmtV(snaps[j].total)}</b></td><td class="n">${fmtV(r2(inn[j] + ret[j]))}</td><td class="n">${fmtV(r2(-(outKw[j] + outRe[j])))} (${fmtV(-outKw[j])})</td></tr>`).join('') + '</table>';
 }
 function personTable(list, extraCol) {
   if (!list.length) return '<p class="note">Keine.</p>';
@@ -945,7 +964,10 @@ function renderForecast() {
     (S.refill ? 'Szenario: Stellen ohne kw werden nach Vertragsende als offene Stellen mitgezählt.' : 'Szenario: nur bestehende Verträge, keine Nachbesetzung.');
   const rs = used().filter(r => !cf || clusterOf(r) === cf);
   const outs = rs.filter(r => isActive(r, T) && !isActive(r, D) && r.ende != null && r.ende < D).sort((x, y) => x.ende - y.ende);
-  const ins = rs.filter(r => !isActive(r, T) && r.beginn != null && r.beginn > T && r.beginn <= D && isActive(r, D)).sort((x, y) => x.beginn - y.beginn);
+  const insNew = rs.filter(r => !isActive(r, T) && !isResting(r, T) && r.beginn != null && r.beginn > T && r.beginn <= D && isActive(r, D));
+  const rets = rs.filter(r => returnsBetween(r, T, D));
+  const zDate = r => rets.includes(r) ? r.ruht + 1 : r.beginn;
+  const ins = [...insNew, ...rets].sort((x, y) => zDate(x) - zDate(y));
   const s = l => sumBy(l, val);
   const delta = (x, y) => { const d = r2(y - x); return `<span class="${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲ +' : d < 0 ? '▼ −' : '± '}${fmtV(Math.abs(d))}</span>`; };
   const kpis = [
@@ -954,19 +976,20 @@ function renderForecast() {
   ];
   if (S.refill) kpis.push(['Offene Stellen (ohne kw)', fmtV(b.v), 'nach Vertragsende nachzubesetzen']);
   kpis.push(['Abgänge', fmtV(s(outs)), `${outs.length} Verträge · davon mit kw (Stelle entfällt): ${outs.filter(r => r.kw).length}`]);
-  kpis.push(['Zugänge', fmtV(s(ins)), `${ins.length} bereits vereinbarte Verträge`]);
+  kpis.push(['Zugänge', fmtV(s(ins)), `${insNew.length} ${insNew.length === 1 ? 'neuer Vertrag' : 'neue Verträge'}` + (rets.length ? ` · ${rets.length} Rückkehr nach Ruhen` : '')]);
   $('#fcKpis').innerHTML = kpis.map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
   const ks = S.kreisOrder.filter(k => a.byKreis[k] || b.byKreis[k]);
   // Zu- und Abgänge getrennt erfassen, damit ein Zugang nicht durch einen gleichzeitigen Abgang „verschwindet“
   const flow = (list, c, k) => sumBy(list.filter(r => (!c || clusterOf(r) === c) && (!k || kreisOf(r) === k)), val);
-  const inK = k => flow(ins, null, k), outK = k => flow(outs, null, k);
+  const inK = k => flow(insNew, null, k), retK = k => flow(rets, null, k), outK = k => flow(outs, null, k);
   const bOf = o => o ? o.b : 0, vOf = o => o ? o.v : 0;
-  const stayK = k => r2(bOf(b.byKreis[k]) - inK(k));
+  const stayK = k => r2(bOf(b.byKreis[k]) - inK(k) - retK(k));
   const P = {maxBarThickness: 14, stack: 'p', borderRadius: 0, borderWidth: {right: 2}, borderColor: css('--card')};
   const dsF = [
     barDs('heute', ks.map(k => tot(a.byKreis[k])), css('--muted'), {maxBarThickness: 14, stack: 'h'}),
     barDs('Prognose: aus heutigem Bestand', ks.map(stayK), css('--s1'), P),
     barDs('Prognose: Zugänge bis Zieldatum', ks.map(inK), css('--s3'), P),
+    barDs('Prognose: Rückkehr nach Ruhen', ks.map(retK), css('--s4'), P),
   ];
   if (S.refill) dsF.push(barDs('Prognose: offene Stellen (ohne kw)', ks.map(k => vOf(b.byKreis[k])), css('--vacant'), P));
   dsF.push(barDs('Abgänge bis Zieldatum', ks.map(outK), css('--s2'), {maxBarThickness: 14, stack: 'o'}));
@@ -976,7 +999,7 @@ function renderForecast() {
     options: {indexAxis: 'y', scales: {x: axis({beginAtZero: true, stacked: true}), y: axis({stacked: true, grid: {display: false}})},
       plugins: {tooltip: {mode: 'index', filter: x => x.raw > 0, callbacks: {label: c => ` ${c.dataset.label}: ${fmtV(c.raw)}`,
         footer: it => { const k = ks[it[0].dataIndex]; const d = r2(tot(b.byKreis[k]) - tot(a.byKreis[k]));
-          return [`Prognose gesamt: ${fmtV(tot(b.byKreis[k]))}`, `Zugänge +${fmtV(inK(k))} · Abgänge −${fmtV(outK(k))}`, 'Saldo: ' + (d >= 0 ? '+' : '−') + fmtV(Math.abs(d))]; }}}}}});
+          return [`Prognose gesamt: ${fmtV(tot(b.byKreis[k]))}`, `Zugänge +${fmtV(r2(inK(k) + retK(k)))} · Abgänge −${fmtV(outK(k))}`, 'Saldo: ' + (d >= 0 ? '+' : '−') + fmtV(Math.abs(d))]; }}}}}});
   // Veränderungs-Matrix: Saldo plus getrennte Zu- und Abgänge
   const cl = clusterList().filter(c => !cf || c === cf).filter(c => a.byCluster[c] || b.byCluster[c]);
   const netOf = (c, k) => r2((k ? tot(b.cell[c + '\u0000' + k]) : tot(b.byCluster[c])) - (k ? tot(a.cell[c + '\u0000' + k]) : tot(a.byCluster[c])));
@@ -987,9 +1010,9 @@ function renderForecast() {
     return `<td class="n" style="background:${d ? `color-mix(in srgb, ${col} ${al}%, transparent)` : 'transparent'}">${d ? (d > 0 ? '+' : '−') + fmtV(Math.abs(d)) : (zin || zout ? '±0' : '·')}${fl}</td>`; };
   $('#fcDelta').innerHTML = `<table><tr><th>Cluster</th>${ks.map(k => `<th class="n">${esc(k)}</th>`).join('')}<th class="n">Summe</th></tr>` +
     cl.map(c => `<tr><td>${esc(c)}<div class="note">${fmtV(tot(a.byCluster[c]))} → ${fmtV(tot(b.byCluster[c]))}</div></td>${ks.map(k => cell(netOf(c, k), flow(ins, c, k), flow(outs, c, k))).join('')}${cell(netOf(c, null), flow(ins, c, null), flow(outs, c, null))}</tr>`).join('') +
-    `<tr class="tot"><td>Gesamt</td>${ks.map(k => cell(r2(tot(b.byKreis[k]) - tot(a.byKreis[k])), inK(k), outK(k))).join('')}${cell(r2(b.total - a.total), s(ins), s(outs))}</tr></table>`;
+    `<tr class="tot"><td>Gesamt</td>${ks.map(k => cell(r2(tot(b.byKreis[k]) - tot(a.byKreis[k])), r2(inK(k) + retK(k)), outK(k))).join('')}${cell(r2(b.total - a.total), s(ins), s(outs))}</tr></table>`;
   $('#fcOut').innerHTML = personTable(outs, ['Vertragsende', r => r.ende, stelleTxt]);
-  $('#fcIn').innerHTML = personTable(ins, ['Beginn', r => r.beginn, r => r.kw ? 'kw' : '']);
+  $('#fcIn').innerHTML = personTable(ins, ['Beginn / Rückkehr', zDate, r => [rets.includes(r) ? '<span class="pill" style="border-color:var(--s4)">Rückkehr nach Ruhen</span>' : '', r.kw ? 'kw' : ''].filter(Boolean).join(' ')]);
 }
 
 /* ---------- Betreuungsverhältnis ---------- */
@@ -1089,7 +1112,7 @@ function renderRatio() {
 
 /* ---------- Detailansicht ---------- */
 const DT = {sort: 'name', dir: 1, group: 'kreis', expanded: false};
-const DT_EXT = new Set(['tarif', 'arb', 'vart', 'beginn']);
+const DT_EXT = new Set(['ruht', 'tarif', 'arb', 'vart', 'beginn']);
 /* Schmale Bildschirme (z. B. iPad hochkant): zusätzlich OE und Laborbereich erst beim Erweitern */
 const DT_EXT_NARROW = new Set(['oe', 'labor']);
 const DT_NARROW_PX = 1000;
@@ -1115,6 +1138,7 @@ const DT_COLS = [
   ['vart', 'Vertragsart', r => r.vart],
   ['beginn', 'Beginn', r => r.beginn, 'n'],
   ['ende', 'Vertrags\u00adende', r => r.ende == null ? Infinity : r.ende, 'n'],
+  ['ruht', 'ruht bis', r => r.ruht ?? -Infinity, 'n'],
   ['rest', 'Rest\u00adlaufzeit (Jahre)', r => restJahre(r) ?? Infinity, 'n'],
   ['kw', 'kw', r => r.kw ? 1 : 0],
   ['status', 'Status', r => contractStatus(r).o],
@@ -1122,6 +1146,7 @@ const DT_COLS = [
 const restJahre = r => (r.ende == null || r.ende < S.today) ? null : r2((r.ende - S.today + 1) / 365.25);
 function contractStatus(r) {
   const T = S.today;
+  if (isResting(r, T)) return {o: 2, t: `<span class="pill" style="border-color:var(--s4)">ruht bis ${fmtD(r.ruht)}</span>`, txt: `ruht bis ${fmtD(r.ruht)}`};
   if (r.beginn != null && r.ende != null && r.beginn > r.ende) return {o: 9, t: '<span class="pill sev-E">ungültig</span>', txt: 'ungültig'};
   if (r.beginn != null && r.beginn > T) return {o: 3, t: '<span class="pill">beginnt künftig</span>', txt: 'beginnt künftig'};
   if (r.ende != null && r.ende < T) return {o: 4, t: '<span class="pill sev-I">ausgelaufen</span>', txt: 'ausgelaufen'};
@@ -1158,7 +1183,7 @@ function detailRows() {
   const all = $('#dtAll').checked, soon = $('#dtSoon').checked, T = S.today;
   return used().filter(r => {
     if (!inCluster(r) || !inLab(r) || !inOE(r)) return false;
-    if (!all && !isActive(r, T)) return false;
+    if (!all && !inContract(r, T)) return false;   // ruhende Verträge stehen in der Liste (markiert), zählen aber nicht
     if (soon && !(isActive(r, T) && r.ende != null && r.ende <= T + 365)) return false;
     if (q && ![r.pnr, r.name, r.vorname, r.oe, r.labor, r.tarif, r.vart, kreisOf(r)].join(' ').toLowerCase().includes(q)) return false;
     return true;
@@ -1261,6 +1286,7 @@ function renderDetailList() {
       case 'vz': return r.vz == null ? '–' : nf1.format(r.vz);
       case 'beginn': return fmtD(r.beginn);
       case 'ende': return r.ende == null ? 'unbefristet' : fmtD(r.ende);
+      case 'ruht': return r.ruht == null ? '' : fmtD(r.ruht);
       case 'rest': { const j = restJahre(r); return j == null ? '–' : nf1.format(j); }
       case 'kw': return r.kw ? '<span class="pill" style="border-color:var(--s2)">kw</span>' : '';
       case 'status': return contractStatus(r).t;
@@ -1276,11 +1302,11 @@ function renderDetailList() {
   $('#dtCount').textContent = `${rows.length} Verträge · ${nf1.format(sumBy(rows, r => r.vz))} VZÄ`;
   $('#dtLists').innerHTML = groups.length ? groups.map(({head, list}) => {
     const l = list.sort(cmp), a = l.filter(r => isActive(r, T));
-    const befr = a.filter(r => r.ende != null).length, kw = a.filter(r => r.kw).length, soon = a.filter(r => r.ende != null && r.ende <= T + 365).length;
+    const befr = a.filter(r => r.ende != null).length, kw = a.filter(r => r.kw).length, soon = a.filter(r => r.ende != null && r.ende <= T + 365).length, rest = l.filter(r => isResting(r, T)).length;
     let extra = '';
     if (byLab) { const s = staffStats(a); extra = ` · Prof. ${s.K(s.PL)} : MA ${s.K(s.MA)} (Köpfe) = 1 : ${f2(q2(s.K(s.MA), s.K(s.PL)))}`; }
     return `<details open class="kreis"><summary>${head}
-      <span class="ksum">${l.length} Verträge · ${nf1.format(sumBy(l, r => r.vz))} VZÄ · befristet ${befr} · kw ${kw} · Ende ≤ 12 Mon. ${soon}${extra}</span></summary>
+      <span class="ksum">${l.length} Verträge · ${nf1.format(sumBy(l, r => r.vz))} VZÄ · befristet ${befr} · kw ${kw} · Ende ≤ 12 Mon. ${soon}${rest ? ` · ruhend ${rest}` : ''}${extra}</span></summary>
       <div style="overflow-x:auto"><table class="dt"><tr><th></th>${cols.map(c => `<th class="${c[3] || ''} sortable" data-k="${c[0]}">${c[1]}${DT.sort === c[0] ? (DT.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr>` +
       l.map(r => { const is = issuesByRow[r.row]; return `<tr class="prow" data-row="${r.row}" title="Klicken für alle Daten zur Person"><td>${is ? `<span title="${esc(is.map(i => i.msg).join('\n'))}" class="${is.some(i => i.sev === 'E') ? 'sev-E' : 'sev-W'}">${is.some(i => i.sev === 'E') ? '⛔' : '⚠'}</span>` : ''}</td>${cols.map(c => `<td class="${c[3] || ''}">${cell(c[0], r)}</td>`).join('')}</tr>`; }).join('') +
       `<tr class="tot"><td></td>${cols.map(c => `<td class="${c[3] || ''}">${c[0] === 'name' ? 'Summe' : c[0] === 'vz' ? nf1.format(sumBy(l, r => r.vz)) : ''}</td>`).join('')}</tr></table></div></details>`;
@@ -1288,19 +1314,19 @@ function renderDetailList() {
   $$('#dtLists th.sortable').forEach(th => th.onclick = () => { if (DT.sort === th.dataset.k) DT.dir *= -1; else { DT.sort = th.dataset.k; DT.dir = 1; } renderDetailList(); });
   $$('#dtLists tr.prow').forEach(tr => tr.onclick = () => showPerson(+tr.dataset.row));
   $('#dtExpand').textContent = DT.expanded ? '◂ Reduzieren' : 'Erweitern ▸';
-  const extNames = (isNarrow() ? 'Organisationseinheit, Laborbereich, ' : '') + 'TrfGr, ArbAnteil, Vertragsart und Beginn';
+  const extNames = (isNarrow() ? 'Organisationseinheit, Laborbereich, ' : '') + 'TrfGr, ArbAnteil, Vertragsart, Beginn und „ruht bis“';
   $('#dtExpand').title = (DT.expanded ? 'Ausblenden: ' : 'Einblenden: ') + extNames;
   DT.lastNarrow = isNarrow();
 }
 function detailCsv() {
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-  const head = ['Mitarbeiterkreis', 'Gruppe', 'Personalnummer', 'Name', 'Vorname', 'Cluster', 'Organisationseinheit', 'Laborbereich', 'TrfGr', 'ArbAnteil', 'VZÄ', 'Vertragsart', 'Beginn', 'Vertragsende', 'Restlaufzeit (Jahre)', 'kw', 'Status'];
+  const head = ['Mitarbeiterkreis', 'Gruppe', 'Personalnummer', 'Name', 'Vorname', 'Cluster', 'Organisationseinheit', 'Laborbereich', 'TrfGr', 'ArbAnteil', 'VZÄ', 'Vertragsart', 'Beginn', 'Vertragsende', 'ruht bis', 'Restlaufzeit (Jahre)', 'kw', 'Status'];
   const rows = detailRows().sort(DT.group === 'lab'
     ? (a, b) => labSort(labKey(a), labKey(b)) || S.kreisOrder.indexOf(kreisOf(a)) - S.kreisOrder.indexOf(kreisOf(b)) || a.name.localeCompare(b.name, 'de')
     : (a, b) => S.kreisOrder.indexOf(kreisOf(a)) - S.kreisOrder.indexOf(kreisOf(b)) || a.name.localeCompare(b.name, 'de'));
   const n = v => v == null ? '' : nf1.format(v);
   const lines = [head.map(q).join(';')].concat(rows.map(r => [kreisOf(r), S.catMap[kreisOf(r)], r.pnr, r.name, r.vorname, clusterOf(r), r.oe, r.labor, r.tarif, n(r.arb), n(r.vz), r.vart,
-    r.beginn == null ? '' : fmtD(r.beginn), r.ende == null ? 'unbefristet' : fmtD(r.ende), n(restJahre(r)), r.kw ? 'x' : '', contractStatus(r).txt].map(q).join(';')));
+    r.beginn == null ? '' : fmtD(r.beginn), r.ende == null ? 'unbefristet' : fmtD(r.ende), r.ruht == null ? '' : fmtD(r.ruht), n(restJahre(r)), r.kw ? 'x' : '', contractStatus(r).txt].map(q).join(';')));
   const lab = (selLab() ? '_' + labLabel(selLab(), false) : '') + (selOE() ? '_' + selOE() : '');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'}));
@@ -1335,6 +1361,7 @@ function showPerson(rowNo) {
         ['Tarifgruppe', esc(r.tarif)],
         ['Beginn', r.beginn == null ? '' : fmtD(r.beginn)],
         ['Vertragsende', r.ende == null ? 'unbefristet' : `${fmtD(r.ende)} <span class="note">(${endSem})</span>`],
+        ['Ruht bis', r.ruht == null ? '' : `${fmtD(r.ruht)}` + (isResting(r, T) ? ' <span class="note">– derzeit ruhend, nicht als Stelle gezählt</span>' : r.ruht < T ? ' <span class="note">(beendet)</span>' : '')],
         ['Restlaufzeit', rest == null ? '' : `${nf1.format(rest)} Jahre`],
         ['kw-Vermerk', r.kw ? '<span class="pill" style="border-color:var(--s2)">kw – Stelle entfällt nach Vertragsende</span>' : 'nein'],
       ])}</section>
