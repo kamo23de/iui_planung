@@ -166,6 +166,7 @@ tr.vt-child td:nth-child(2){padding-left:22px}
 .pill.vt{font-size:10px;padding:0 5px;border-color:var(--s4)}
 .pill.vt-p{font-size:10px;padding:0 5px;border-color:var(--s4);color:var(--text-secondary)}
 .eff{font-size:10.5px;color:var(--s4);white-space:nowrap}
+.pill.vt-end{border-color:var(--s8)}
 .flow{font-size:11px;font-weight:400;white-space:nowrap;margin-top:1px}
 .flow .fin{color:var(--good-text)}
 .flow .fout{color:var(--neg)}
@@ -180,7 +181,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
   <div class="ctl hidden" data-loaded><label for="today">Stichtag „heute“</label><input type="date" id="today"></div>
   <div class="ctl hidden" data-loaded><span>Maßeinheit</span>
     <div class="seg" id="measureSeg"><button data-v="koepfe" class="on">Köpfe</button><button data-v="vzae">VZÄ</button></div></div>
-  <div class="ctl hidden" data-loaded title="Annahme für Prognosen: Stellen ohne kw-Vermerk bleiben nach Vertragsende erhalten und werden nachbesetzt.">
+  <div class="ctl hidden" data-loaded title="Annahme für Prognosen: Stellen ohne kw-Vermerk bleiben nach Vertragsende erhalten und werden nachbesetzt. Ausgenommen sind Vertretungen.">
     <input type="checkbox" id="refill"><label for="refill">Nicht-kw-Stellen nach Vertragsende als offene Stellen weiterführen</label></div>
   <div class="ctl hidden" data-loaded style="margin-left:auto">
     <span id="demoBadge" class="demo-badge hidden">DEMO · fiktive Daten</span>
@@ -359,7 +360,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
     </div>
   </div>
   <div class="grid2">
-    <div class="card"><h2>Abgänge bis zum Zielzeitpunkt</h2><p class="sub">Vertragsende (Zeitverträge) oder Ruhestand (unbefristete Verträge) zwischen heute und Zielzeitpunkt.</p><div class="scroll" id="fcOut"></div></div>
+    <div class="card"><h2>Abgänge bis zum Zielzeitpunkt</h2><p class="sub">Vertragsende (Zeitverträge) oder Ruhestand (unbefristete Verträge) zwischen heute und Zielzeitpunkt. Auslaufende Vertretungen werden nicht nachbesetzt – die Stelle fällt an die vertretene Person zurück.</p><div class="scroll" id="fcOut"></div></div>
     <div class="card"><h2>Zugänge bis zum Zielzeitpunkt</h2><p class="sub">Vertragsbeginn nach heute bis zum Zielzeitpunkt sowie Rückkehr aus ruhenden Verträgen.</p><div class="scroll" id="fcIn"></div></div>
   </div>
 </section>
@@ -993,12 +994,13 @@ const effVz = (r, D) => r2((r.vz || 0) * activeShare(r, D));
 const effDep = (r, D) => r.deputat == null ? null : r2(r.deputat * activeShare(r, D));
 const restVz = (r, D) => inRestPeriod(r, D) ? r2((r.vz || 0) * restShare(r)) : 0;    // ruhende VZÄ am Tag D
 /* Zählwert am Tag D: Köpfe = 1 bei aktivem Vertrag, VZÄ = nur nicht ruhender Anteil */
+const isVertretung = r => !!r.vertretungFuer;   // Vertretungen werden nach Vertragsende nicht nachbesetzt
 const valAt = (r, D) => S.measure === 'vzae' ? effVz(r, D) : (isActive(r, D) ? 1 : 0);
 const returnsBetween = (r, T, D) => inRestPeriod(r, T) && !inRestPeriod(r, D) && inContract(r, D);   // Rückkehr nach Ruhen zwischen T und D
 /* 'b' = besetzt, 'v' = offene (nicht-kw) Stelle nach Vertragsende, nur im Szenario „weiterführen“ */
 function status(r, D) {
   if (isActive(r, D)) return 'b';
-  if (S.refill && D > S.today && !r.kw && r.ende != null && r.ende >= S.today && r.ende < D && !(r.beginn != null && r.beginn > r.ende)) return 'v';
+  if (S.refill && D > S.today && !r.kw && !isVertretung(r) && r.ende != null && r.ende >= S.today && r.ende < D && !(r.beginn != null && r.beginn > r.ende)) return 'v';
   return null;
 }
 function snapshot(D, clusterFilter) {
@@ -1006,7 +1008,8 @@ function snapshot(D, clusterFilter) {
   for (const r of used()) {
     if (clusterFilter && clusterOf(r) !== clusterFilter) continue;
     const st = status(r, D); if (!st) continue;
-    const w = valAt(r, D), k = kreisOf(r), c = clusterOf(r);
+    // besetzt: wirksamer Anteil am Tag D; offene Stelle (Szenario): voller Stellenumfang des ausgelaufenen Vertrags
+    const w = st === 'v' ? (S.measure === 'vzae' ? (r.vz || 0) : 1) : valAt(r, D), k = kreisOf(r), c = clusterOf(r);
     res.total = r2(res.total + w); res[st] = r2(res[st] + w);
     const o1 = res.byKreis[k] = res.byKreis[k] || {b: 0, v: 0}; o1[st] = r2(o1[st] + w);
     const o2 = res.byCluster[c] = res.byCluster[c] || {b: 0, v: 0}; o2[st] = r2(o2[st] + w);
@@ -1168,19 +1171,20 @@ function renderSemester() {
   const ds = ks.map(k => barDs(k, snaps.map(s => s.byKreis[k] ? s.byKreis[k].b : 0), kreisColor(k), {borderRadius: 0, borderWidth: {top: 1}, borderColor: css('--card'), maxBarThickness: 40}));
   if (S.refill) ds.push(barDs('Offene Stellen (ohne kw, nachzubesetzen)', snaps.map(s => s.v), css('--vacant'), {borderRadius: 0, borderWidth: {top: 1}, borderColor: css('--card'), maxBarThickness: 40}));
   $('#lgSem').innerHTML = legendHtml(ds.map(d => [d.backgroundColor, d.label]));
-  $('#semRefillNote').textContent = S.refill ? 'Szenario: Stellen ohne kw-Vermerk werden nach Vertragsende als offene Stellen weitergeführt (grau).' : 'Nur bestehende Verträge – auslaufende Stellen werden nicht ersetzt. (Szenario „weiterführen“ oben einschaltbar.)';
+  $('#semRefillNote').textContent = S.refill ? 'Szenario: Stellen ohne kw-Vermerk werden nach Vertragsende als offene Stellen weitergeführt (grau); auslaufende Vertretungen nicht.' : 'Nur bestehende Verträge – auslaufende Stellen werden nicht ersetzt. (Szenario „weiterführen“ oben einschaltbar.)';
   mkChart('cSem', {type: 'bar', data: {labels, datasets: ds},
     options: {scales: {x: axis({stacked: true, grid: {display: false}, ticks: {maxRotation: 60, autoSkip: false, font: c => ({weight: sems[c.index] === cur ? '700' : '400'})}}), y: axis({stacked: true, beginAtZero: true, title: {display: true, text: unit()}})},
       plugins: {tooltip: {mode: 'index', filter: x => x.raw > 0, callbacks: {title: it => semLabel(sems[it[0].dataIndex]) + ' (Stand ' + fmtD(semStart(sems[it[0].dataIndex])) + ')', label: c => ` ${c.dataset.label}: ${fmtV(c.raw)}`, footer: it => 'Summe: ' + fmtV(sumBy(it, x => x.raw))}}}}});
   // Zu-/Abgänge
   const rs = used().filter(r => !cf || clusterOf(r) === cf);
   const inSem = (d, i) => d != null && d >= semStart(i) && d <= semEnd(i);
-  const outKw = sems.map(i => -sumBy(rs.filter(r => r.kw && inSem(r.ende, i)), r => valAt(r, r.ende)));
-  const outRe = sems.map(i => -sumBy(rs.filter(r => !r.kw && r.endType !== 'Ruhestand' && inSem(r.ende, i)), r => valAt(r, r.ende)));
-  const outRs = sems.map(i => -sumBy(rs.filter(r => !r.kw && r.endType === 'Ruhestand' && inSem(r.ende, i)), r => valAt(r, r.ende)));
+  const outVt = sems.map(i => -sumBy(rs.filter(r => isVertretung(r) && inSem(r.ende, i)), r => valAt(r, r.ende)));
+  const outKw = sems.map(i => -sumBy(rs.filter(r => r.kw && !isVertretung(r) && inSem(r.ende, i)), r => valAt(r, r.ende)));
+  const outRe = sems.map(i => -sumBy(rs.filter(r => !r.kw && !isVertretung(r) && r.endType !== 'Ruhestand' && inSem(r.ende, i)), r => valAt(r, r.ende)));
+  const outRs = sems.map(i => -sumBy(rs.filter(r => !r.kw && !isVertretung(r) && r.endType === 'Ruhestand' && inSem(r.ende, i)), r => valAt(r, r.ende)));
   const inn = sems.map(i => sumBy(rs.filter(r => inSem(r.beginn, i)), r => valAt(r, r.beginn)));
   const ret = sems.map(i => sumBy(rs.filter(r => r.ruht != null && inSem(r.ruht + 1, i) && inContract(r, r.ruht + 1)), r => r2(valAt(r, r.ruht + 1) - valAt(r, r.ruht))));
-  const fds = [barDs('Zugänge', inn, css('--s3'), {stack: 's'}), barDs('Rückkehr nach Ruhen', ret, css('--s4'), {stack: 's'}), barDs('Abgänge – Ruhestand', outRs, css('--s7'), {stack: 's'}), barDs('Abgänge – Vertragsende, Stelle bleibt (ohne kw)', outRe, css('--s1'), {stack: 's'}), barDs('Abgänge – Stelle entfällt (kw)', outKw, css('--s2'), {stack: 's'})];
+  const fds = [barDs('Zugänge', inn, css('--s3'), {stack: 's'}), barDs('Rückkehr nach Ruhen', ret, css('--s4'), {stack: 's'}), barDs('Abgänge – Ruhestand', outRs, css('--s7'), {stack: 's'}), barDs('Abgänge – Vertragsende, Stelle bleibt (ohne kw)', outRe, css('--s1'), {stack: 's'}), barDs('Abgänge – Stelle entfällt (kw)', outKw, css('--s2'), {stack: 's'}), barDs('Abgänge – Vertretung endet (keine Nachbesetzung)', outVt, css('--s8'), {stack: 's'})];
   $('#lgFlow').innerHTML = legendHtml(fds.map(d => [d.backgroundColor, d.label]));
   mkChart('cFlow', {type: 'bar', data: {labels, datasets: fds},
     options: {onClick: (_e, el) => { if (el.length) { $('#semDetail').value = sems[el[0].index]; renderSemDetail(); } },
@@ -1191,14 +1195,16 @@ function renderSemester() {
   sd.value = sems.includes(+prev) ? prev : cur;
   renderSemDetail();
   $('#semTable').innerHTML = `<table><tr><th>Semester</th><th>Stichtag</th>${ks.map(k => `<th class="n"><span class="sw" style="background:${kreisColor(k)}"></span>${esc(k)}</th>`).join('')}${S.refill ? '<th class="n">offen</th>' : ''}<th class="n">Summe</th><th class="n">Zugänge</th><th class="n">Abgänge (davon kw)</th></tr>` +
-    sems.map((i, j) => `<tr${i === cur ? ' style="font-weight:600"' : ''}><td>${semLabel(i)}</td><td>${fmtD(semStart(i))}</td>${ks.map(k => `<td class="n">${fmtV(snaps[j].byKreis[k] ? snaps[j].byKreis[k].b : 0)}</td>`).join('')}${S.refill ? `<td class="n">${fmtV(snaps[j].v)}</td>` : ''}<td class="n"><b>${fmtV(snaps[j].total)}</b></td><td class="n">${fmtV(r2(inn[j] + ret[j]))}</td><td class="n">${fmtV(r2(-(outKw[j] + outRe[j] + outRs[j])))} (${fmtV(-outKw[j])})</td></tr>`).join('') + '</table>';
+    sems.map((i, j) => `<tr${i === cur ? ' style="font-weight:600"' : ''}><td>${semLabel(i)}</td><td>${fmtD(semStart(i))}</td>${ks.map(k => `<td class="n">${fmtV(snaps[j].byKreis[k] ? snaps[j].byKreis[k].b : 0)}</td>`).join('')}${S.refill ? `<td class="n">${fmtV(snaps[j].v)}</td>` : ''}<td class="n"><b>${fmtV(snaps[j].total)}</b></td><td class="n">${fmtV(r2(inn[j] + ret[j]))}</td><td class="n">${fmtV(r2(-(outKw[j] + outRe[j] + outRs[j] + outVt[j])))} (${fmtV(-outKw[j])})</td></tr>`).join('') + '</table>';
 }
 function personTable(list, extraCol) {
   if (!list.length) return '<p class="note">Keine.</p>';
   return `<table><tr><th>Name</th><th>Mitarbeiterkreis</th><th>Cluster</th><th class="n">VZÄ</th><th>${extraCol[0]}</th><th>Stelle</th></tr>` +
     list.map(r => `<tr><td>${esc([r.name, r.vorname].filter(Boolean).join(', '))}</td><td><span class="sw" style="background:${kreisColor(kreisOf(r))}"></span>${esc(kreisOf(r))}</td><td>${esc(clusterOf(r))}</td><td class="n">${nf2.format(r.vz || 0)}</td><td class="n">${fmtD(extraCol[1](r))}</td><td>${extraCol[2](r)}</td></tr>`).join('') + '</table>';
 }
-const stelleTxt = r => (r.endType === 'Ruhestand' ? '<span class="pill" style="border-color:var(--s7)">Ruhestand</span> ' : '') + (r.kw ? '<span class="pill" style="border-color:var(--s2)">entfällt (kw)</span>' : '<span class="pill">bleibt – Nachbesetzung</span>');
+const stelleTxt = r => isVertretung(r) ? `<span class="pill vt-end" title="Die Stelle fällt an die vertretene Person zurück">Vertretung endet – keine Nachbesetzung</span>` +
+  (r.vertretene ? ` <span class="note">Stelle von ${esc([r.vertretene.vorname, r.vertretene.name].filter(Boolean).join(' '))}${r.vertretene.ruht != null ? (r.vertretene.ruht < r.ende ? ` (zurück ab ${fmtD(r.vertretene.ruht + 1)})` : r.vertretene.ruht > r.ende ? ` (ruht noch bis ${fmtD(r.vertretene.ruht)})` : ' (kehrt zurück)') : ''}</span>` : '') :
+  (r.endType === 'Ruhestand' ? '<span class="pill" style="border-color:var(--s7)">Ruhestand</span> ' : '') + (r.kw ? '<span class="pill" style="border-color:var(--s2)">entfällt (kw)</span>' : '<span class="pill">bleibt – Nachbesetzung</span>');
 function renderSemDetail() {
   const i = +$('#semDetail').value, cf = $('#semCluster').value || null;
   const list = used().filter(r => (!cf || clusterOf(r) === cf) && r.ende != null && r.ende >= semStart(i) && r.ende <= semEnd(i)).sort((a, b) => a.ende - b.ende || a.name.localeCompare(b.name, 'de'));
@@ -1221,7 +1227,7 @@ function renderForecast() {
   const past = D <= T;
   $('#fcInfo').innerHTML = `Vergleich <b>heute (${fmtD(T)})</b> mit <b>${fmtD(D)}</b>${fcMode === 'sem' ? ' = Beginn ' + semLabel(+fs.value) : ' (' + semLabel(semIdx(D)) + ')'}${cf ? ' · Cluster ' + esc(cf) : ''}. ` +
     (past ? '<span class="sev-W">Zielzeitpunkt liegt nicht in der Zukunft.</span> ' : '') +
-    (S.refill ? 'Szenario: Stellen ohne kw werden nach Vertragsende als offene Stellen mitgezählt.' : 'Szenario: nur bestehende Verträge, keine Nachbesetzung.');
+    (S.refill ? 'Szenario: Stellen ohne kw werden nach Vertragsende als offene Stellen mitgezählt; auslaufende Vertretungen nicht, da die Stelle an die vertretene Person zurückfällt.' : 'Szenario: nur bestehende Verträge, keine Nachbesetzung.');
   const rs = used().filter(r => !cf || clusterOf(r) === cf);
   const outs = rs.filter(r => isActive(r, T) && !isActive(r, D) && r.ende != null && r.ende < D).sort((x, y) => x.ende - y.ende);
   const insNew = rs.filter(r => !isActive(r, T) && !inRestPeriod(r, T) && r.beginn != null && r.beginn > T && r.beginn <= D && isActive(r, D));
@@ -1237,13 +1243,15 @@ function renderForecast() {
     ['davon besetzt', fmtV(b.b), `heute ${fmtV(a.b)} · ${delta(a.b, b.b)}`],
   ];
   if (S.refill) kpis.push(['Offene Stellen (ohne kw)', fmtV(b.v), 'nach Vertragsende nachzubesetzen']);
-  kpis.push(['Abgänge', fmtV(s(outs)), `${outs.length} Verträge · ${outs.filter(r => r.endType === 'Ruhestand').length} Ruhestand · mit kw (Stelle entfällt): ${outs.filter(r => r.kw).length}`]);
+  const outVtL = outs.filter(isVertretung);
+  kpis.push(['Abgänge', fmtV(s(outs)), `${outs.length} Verträge · ${outs.filter(r => r.endType === 'Ruhestand' && !isVertretung(r)).length} Ruhestand · mit kw (Stelle entfällt): ${outs.filter(r => r.kw && !isVertretung(r)).length}` +
+    (outVtL.length ? ` · ${outVtL.length} ${outVtL.length === 1 ? 'Vertretung endet' : 'Vertretungen enden'} (keine Nachbesetzung)` : '')]);
   kpis.push(['Zugänge', fmtV(s(ins)), `${insNew.length} ${insNew.length === 1 ? 'neuer Vertrag' : 'neue Verträge'}` + (rets.length ? ` · ${rets.length} Rückkehr nach Ruhen` : '')]);
   $('#fcKpis').innerHTML = kpis.map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
   const ks = S.kreisOrder.filter(k => a.byKreis[k] || b.byKreis[k]);
   // Zu- und Abgänge getrennt erfassen, damit ein Zugang nicht durch einen gleichzeitigen Abgang „verschwindet“
   const flow = (list, c, k) => sumBy(list.filter(r => (!c || clusterOf(r) === c) && (!k || kreisOf(r) === k)), fv);
-  const inK = k => flow(insNew, null, k), retK = k => flow(rets, null, k), outK = k => flow(outs, null, k);
+  const inK = k => flow(insNew, null, k), retK = k => flow(rets, null, k), outK = k => flow(outs.filter(r => !isVertretung(r)), null, k), outVtK = k => flow(outs.filter(isVertretung), null, k);
   const bOf = o => o ? o.b : 0, vOf = o => o ? o.v : 0;
   const stayK = k => r2(bOf(b.byKreis[k]) - inK(k) - retK(k));
   const P = {maxBarThickness: 14, stack: 'p', borderRadius: 0, borderWidth: {right: 2}, borderColor: css('--card')};
@@ -1254,14 +1262,15 @@ function renderForecast() {
     barDs('Prognose: Rückkehr nach Ruhen', ks.map(retK), css('--s4'), P),
   ];
   if (S.refill) dsF.push(barDs('Prognose: offene Stellen (ohne kw)', ks.map(k => vOf(b.byKreis[k])), css('--vacant'), P));
-  dsF.push(barDs('Abgänge bis Zieldatum', ks.map(outK), css('--s2'), {maxBarThickness: 14, stack: 'o'}));
+  dsF.push(barDs('Abgänge bis Zieldatum', ks.map(outK), css('--s2'), {maxBarThickness: 14, stack: 'o', borderRadius: 0, borderWidth: {right: 2}, borderColor: css('--card')}));
+  dsF.push(barDs('Abgänge: Vertretung endet (keine Nachbesetzung)', ks.map(outVtK), css('--s8'), {maxBarThickness: 14, stack: 'o', borderRadius: 0}));
   $('#lgFc').innerHTML = legendHtml(dsF.map(d => [d.backgroundColor, d.label]));
   $('#cFc').parentElement.style.height = Math.max(240, ks.length * 66 + 40) + 'px';
   mkChart('cFc', {type: 'bar', data: {labels: ks, datasets: dsF},
     options: {indexAxis: 'y', scales: {x: axis({beginAtZero: true, stacked: true}), y: axis({stacked: true, grid: {display: false}})},
       plugins: {tooltip: {mode: 'index', filter: x => x.raw > 0, callbacks: {label: c => ` ${c.dataset.label}: ${fmtV(c.raw)}`,
         footer: it => { const k = ks[it[0].dataIndex]; const d = r2(tot(b.byKreis[k]) - tot(a.byKreis[k]));
-          return [`Prognose gesamt: ${fmtV(tot(b.byKreis[k]))}`, `Zugänge +${fmtV(r2(inK(k) + retK(k)))} · Abgänge −${fmtV(outK(k))}`, 'Saldo: ' + (d >= 0 ? '+' : '−') + fmtV(Math.abs(d))]; }}}}}});
+          return [`Prognose gesamt: ${fmtV(tot(b.byKreis[k]))}`, `Zugänge +${fmtV(r2(inK(k) + retK(k)))} · Abgänge −${fmtV(r2(outK(k) + outVtK(k)))}` + (outVtK(k) ? ` (davon Vertretungen −${fmtV(outVtK(k))})` : ''), 'Saldo: ' + (d >= 0 ? '+' : '−') + fmtV(Math.abs(d))]; }}}}}});
   // Veränderungs-Matrix: Saldo plus getrennte Zu- und Abgänge
   const cl = clusterList().filter(c => !cf || c === cf).filter(c => a.byCluster[c] || b.byCluster[c]);
   const netOf = (c, k) => r2((k ? tot(b.cell[c + '\u0000' + k]) : tot(b.byCluster[c])) - (k ? tot(a.cell[c + '\u0000' + k]) : tot(a.byCluster[c])));
@@ -1272,7 +1281,7 @@ function renderForecast() {
     return `<td class="n" style="background:${d ? `color-mix(in srgb, ${col} ${al}%, transparent)` : 'transparent'}">${d ? (d > 0 ? '+' : '−') + fmtV(Math.abs(d)) : (zin || zout ? '±0' : '·')}${fl}</td>`; };
   $('#fcDelta').innerHTML = `<table><tr><th>Cluster</th>${ks.map(k => `<th class="n">${esc(k)}</th>`).join('')}<th class="n">Summe</th></tr>` +
     cl.map(c => `<tr><td>${esc(c)}<div class="note">${fmtV(tot(a.byCluster[c]))} → ${fmtV(tot(b.byCluster[c]))}</div></td>${ks.map(k => cell(netOf(c, k), flow(ins, c, k), flow(outs, c, k))).join('')}${cell(netOf(c, null), flow(ins, c, null), flow(outs, c, null))}</tr>`).join('') +
-    `<tr class="tot"><td>Gesamt</td>${ks.map(k => cell(r2(tot(b.byKreis[k]) - tot(a.byKreis[k])), r2(inK(k) + retK(k)), outK(k))).join('')}${cell(r2(b.total - a.total), s(ins), s(outs))}</tr></table>`;
+    `<tr class="tot"><td>Gesamt</td>${ks.map(k => cell(r2(tot(b.byKreis[k]) - tot(a.byKreis[k])), r2(inK(k) + retK(k)), r2(outK(k) + outVtK(k)))).join('')}${cell(r2(b.total - a.total), s(ins), s(outs))}</tr></table>`;
   $('#fcOut').innerHTML = personTable(outs, ['Ausscheiden', r => r.ende, stelleTxt]);
   $('#fcIn').innerHTML = personTable(ins, ['Beginn / Rückkehr', zDate, r => [rets.includes(r) ? `<span class="pill" style="border-color:var(--s4)">Rückkehr nach Ruhen${isPartlyResting(r, T) ? ` (+${nf1.format(r2(effVz(r, D) - effVz(r, T)))} VZÄ)` : ''}</span>` : '', r.kw ? 'kw' : ''].filter(Boolean).join(' ')]);
 }
