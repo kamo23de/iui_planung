@@ -34,7 +34,7 @@ Zum Ausprobieren gibt es außerdem `testdaten/Testdaten_Personalplanung.xlsx`. D
 
 ## Erwarteter Aufbau der Excel-Datei
 
-**Blatt Personal:** Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich, optional „ruht bis“ (Vertrag ruht bis zu diesem Datum) und „Ruhestand“ (voraussichtliches Ausscheiden bei unbefristeten Verträgen)
+**Blatt Personal:** Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich, optional „ruht bis“ (Vertrag ruht bis zu diesem Datum) und „Ruhestand“ (voraussichtliches Ausscheiden bei unbefristeten Verträgen) sowie „Vertretung für“ (Personalnummer der vertretenen Person)
 
 **Blatt Studierende:** Studiengang, Cluster, Studierende
 
@@ -56,6 +56,7 @@ Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blatt
 - **Aktiv:** Beginn ≤ Stichtag ≤ Vertragsende. Ein leeres Vertragsende oder ein Enddatum ab 2100 zählt als unbefristet.
 - **Vertragsende und Ruhestand:** „Vertragsende“ ist das tatsächliche Ende eines Zeitvertrags, „Ruhestand“ das voraussichtliche Ausscheiden bei unbefristeten Verträgen. Maßgeblich ist das frühere der beiden Daten. Ein Datum im Vertragsende eines unbefristeten Vertrags (Altbestand) wird als Ruhestand gewertet. Abgänge werden nach Ruhestand und Vertragsende getrennt ausgewiesen; die Befristungsquote zählt nur Zeitverträge.
 - **Ruhende Verträge:** Ist „ruht bis“ gesetzt, ruht der Vertrag bis einschließlich dieses Datums. Er zählt bis dahin weder als Stelle noch mit Deputat und erscheint danach als „Rückkehr nach Ruhen“ (Semesterverlauf, Forecast). Da kein Beginn des Ruhens erfasst wird, gilt der Vertrag in allen Auswertungen vor diesem Datum als ruhend – auch für zurückliegende Semester.
+- **Vertretungen:** „Vertretung für“ verweist per Personalnummer auf die vertretene Person. Die Datenprüfung meldet unbekannte Nummern, vertretene Personen ohne ruhenden Vertrag (Stelle doppelt gezählt) und Vertretungen, deren Laufzeit nicht mit dem Ende der Ruhe übereinstimmt (Überschneidung oder Lücke). In der Detailliste stehen Vertretungen eingerückt unter der vertretenen Person. Gezählt wird immer nur der aktive Vertrag: die Vertretung, nicht der ruhende.
 - **Semester:** Wintersemester 01.09.–28./29.02., Sommersemester 01.03.–31.08. Bestand je Semester = Stand am ersten Tag.
 - **kw:** Stellen mit kw-Vermerk entfallen nach Vertragsende. Optional werden Stellen ohne kw als offene, nachzubesetzende Stellen weitergeführt (Schalter oben).
 - **Rundung:** Alle Berechnungen auf zwei Nachkommastellen. Kopfzahlen bleiben ganze Zahlen.
