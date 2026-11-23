@@ -276,7 +276,11 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
       <div class="chartbox" style="height:300px"><canvas id="cFlow"></canvas></div>
     </div>
     <div class="card">
-      <h2>Ausscheiden (Vertragsende/Ruhestand) in <select id="semDetail"></select></h2>
+      <h2><span id="semDetailLbl">Ausscheiden (Vertragsende/Ruhestand) in</span> <select id="semDetail"></select></h2>
+      <div class="row" style="margin-bottom:8px">
+        <label class="ctl" title="Alle Verträge, die vom aktuellen Semester bis einschließlich des gewählten Semesters ausscheiden"><input type="checkbox" id="semCum"> kumulativ</label>
+        <span class="note" id="semDetailSum"></span>
+      </div>
       <div class="scroll" id="semDetailTable" style="max-height:330px"></div>
     </div>
   </div>
@@ -1044,18 +1048,23 @@ function renderSemester() {
   $('#semTable').innerHTML = `<table><tr><th>Semester</th><th>Stichtag</th>${ks.map(k => `<th class="n"><span class="sw" style="background:${kreisColor(k)}"></span>${esc(k)}</th>`).join('')}${S.refill ? '<th class="n">offen</th>' : ''}<th class="n">Summe</th><th class="n">Zugänge</th><th class="n">Abgänge (davon kw)</th></tr>` +
     sems.map((i, j) => `<tr${i === cur ? ' style="font-weight:600"' : ''}><td>${semLabel(i)}</td><td>${fmtD(semStart(i))}</td>${ks.map(k => `<td class="n">${fmtV(snaps[j].byKreis[k] ? snaps[j].byKreis[k].b : 0)}</td>`).join('')}${S.refill ? `<td class="n">${fmtV(snaps[j].v)}</td>` : ''}<td class="n"><b>${fmtV(snaps[j].total)}</b></td><td class="n">${fmtV(r2(inn[j] + ret[j]))}</td><td class="n">${fmtV(r2(-(outKw[j] + outRe[j] + outRs[j] + outVt[j])))} (${fmtV(-outKw[j])})</td></tr>`).join('') + '</table>';
 }
-function personTable(list, extraCol) {
+function personTable(list, extraCol, sub) {
   if (!list.length) return '<p class="note">Keine.</p>';
   return `<table><tr><th>Name</th><th>Mitarbeiterkreis</th><th>Cluster</th><th class="n">VZÄ</th><th>${extraCol[0]}</th><th>Stelle</th></tr>` +
-    list.map(r => `<tr><td>${esc([r.name, r.vorname].filter(Boolean).join(', '))}</td><td><span class="sw" style="background:${kreisColor(kreisOf(r))}"></span>${esc(kreisOf(r))}</td><td>${esc(clusterOf(r))}</td><td class="n">${nf2.format(r.vz || 0)}</td><td class="n">${fmtD(extraCol[1](r))}</td><td>${extraCol[2](r)}</td></tr>`).join('') + '</table>';
+    list.map(r => `<tr><td>${esc([r.name, r.vorname].filter(Boolean).join(', '))}</td><td><span class="sw" style="background:${kreisColor(kreisOf(r))}"></span>${esc(kreisOf(r))}</td><td>${esc(clusterOf(r))}</td><td class="n">${nf2.format(r.vz || 0)}</td><td class="n">${fmtD(extraCol[1](r))}${sub ? `<div class="note">${sub(r)}</div>` : ''}</td><td>${extraCol[2](r)}</td></tr>`).join('') + '</table>';
 }
 const stelleTxt = r => isVertretung(r) ? `<span class="pill vt-end" title="Die Stelle fällt an die vertretene Person zurück">Vertretung endet – keine Nachbesetzung</span>` +
   (r.vertretene ? ` <span class="note">Stelle von ${esc([r.vertretene.vorname, r.vertretene.name].filter(Boolean).join(' '))}${r.vertretene.ruht != null ? (r.vertretene.ruht < r.ende ? ` (zurück ab ${fmtD(r.vertretene.ruht + 1)})` : r.vertretene.ruht > r.ende ? ` (ruht noch bis ${fmtD(r.vertretene.ruht)})` : ' (kehrt zurück)') : ''}</span>` : '') :
   (r.endType === 'Ruhestand' ? '<span class="pill" style="border-color:var(--s7)">Ruhestand</span> ' : '') + (r.kw ? '<span class="pill" style="border-color:var(--s2)">entfällt (kw)</span>' : '<span class="pill">bleibt – Nachbesetzung</span>');
 function renderSemDetail() {
-  const i = +$('#semDetail').value, cf = $('#semCluster').value || null;
-  const list = used().filter(r => (!cf || clusterOf(r) === cf) && r.ende != null && r.ende >= semStart(i) && r.ende <= semEnd(i)).sort((a, b) => a.ende - b.ende || a.name.localeCompare(b.name, 'de'));
-  $('#semDetailTable').innerHTML = personTable(list, ['Ausscheiden', r => r.ende, stelleTxt]);
+  const i = +$('#semDetail').value, cf = $('#semCluster').value || null, cum = $('#semCum').checked;
+  // kumulativ: vom Beginn des aktuellen Semesters (bzw. des gewählten, falls es zurückliegt) bis zum Ende des gewählten Semesters
+  const cur = semIdx(S.today), from = cum ? semStart(Math.min(cur, i)) : semStart(i), to = semEnd(i);
+  const list = used().filter(r => (!cf || clusterOf(r) === cf) && r.ende != null && r.ende >= from && r.ende <= to).sort((a, b) => a.ende - b.ende || a.name.localeCompare(b.name, 'de'));
+  $('#semDetailLbl').textContent = cum ? 'Ausscheiden (Vertragsende/Ruhestand) kumulativ bis' : 'Ausscheiden (Vertragsende/Ruhestand) in';
+  const nVt = list.filter(isVertretung).length, nKw = list.filter(r => r.kw && !isVertretung(r)).length, nRs = list.filter(r => r.endType === 'Ruhestand' && !isVertretung(r)).length;
+  $('#semDetailSum').textContent = list.length ? `${cum ? `${semLabel(Math.min(cur, i))} bis ${semLabel(i)} · ` : ''}${list.length} ${list.length === 1 ? 'Vertrag' : 'Verträge'} · ${nf1.format(sumBy(list, r => r.vz))} VZÄ · ${nRs} Ruhestand · ${nKw} mit kw · ${nVt} ${nVt === 1 ? 'Vertretung' : 'Vertretungen'}` : '';
+  $('#semDetailTable').innerHTML = personTable(list, [cum ? 'Ausscheiden (Semester)' : 'Ausscheiden', r => r.ende, stelleTxt], cum ? (r => semLabel(semIdx(r.ende))) : null);
 }
 
 /* ---------- Forecast ---------- */
@@ -1594,6 +1603,7 @@ function init() {
   };
   ['#semCluster', '#semPast', '#semAhead'].forEach(s => $(s).onchange = renderSemester);
   $('#semDetail').onchange = renderSemDetail;
+  $('#semCum').onchange = renderSemDetail;
   $$('#fcMode button').forEach(b => b.onclick = () => { fcMode = b.dataset.v; $$('#fcMode button').forEach(x => x.classList.toggle('on', x === b)); $('#fcSem').classList.toggle('hidden', fcMode !== 'sem'); $('#fcDate').classList.toggle('hidden', fcMode !== 'date'); renderForecast(); });
   ['#fcSem', '#fcDate', '#fcCluster'].forEach(s => $(s).onchange = renderForecast);
   $('#raWhen').onchange = renderRatio;
