@@ -141,7 +141,8 @@ vertretung(ruhend["Weber"], "Ida", "Hahn", d(2026, 10, 1), d(2027, 2, 28)); rows
 RUHEANTEIL = len(rows[0])
 for r in rows: r.append(None)
 belegt = {r[VERTRETUNG] for r in rows if r[VERTRETUNG]}
-profs = [r for r in rows[:-8] if r[3] == "Professor/in" and r[RUHT] is None and r[9] is None and r[RUHESTAND] is None
+FEHLERZEILEN = {2, 3, 5, 10, 12, 15, 20, 22, 30, 40, 50, 60, 61, 70, 80, 90, 95, 100}
+profs = [r for i, r in enumerate(rows[:-8]) if i not in FEHLERZEILEN and r[3] == "Professor/in" and r[RUHT] is None and r[9] is None and r[RUHESTAND] is None
          and r[8] and r[8] < TODAY and r[0] not in belegt and r[4] == 100]
 dekan, praesident = profs[2], profs[5]
 dekan[RUHT], dekan[RUHEANTEIL] = d(2028, 8, 31), 0.5                 # Dekanat: halbe Stelle ruht
