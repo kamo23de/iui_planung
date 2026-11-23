@@ -132,11 +132,30 @@ unbefr = [i for i, r in enumerate(rows[:-3]) if r[7] == "unbefristet" and r[9] i
 rows[unbefr[0]][9] = d(2031, 3, 31)                           # Altbestand: Ruhestand im Vertragsende eingetragen
 rows[unbefr[1]][RUHESTAND] = "irgendwann"                     # kein Datum
 
+# ---- „Vertretung für“: Personalnummer der Person, deren (ruhende) Stelle vertreten wird ----
+VERTRETUNG = len(rows[0])
+for r in rows: r.append(None)
+ruhend = {r[1]: r for r in rows if isinstance(r[RUHT], dt.date) and r[RUHT] > TODAY and (r[9] is None or r[9] > r[RUHT])}
+def vertretung(v, vorname, name, beginn, ende):
+    global pn
+    pn += 3
+    nr = [None] * len(rows[0])
+    nr[:14] = [pn, name, vorname, v[3], v[4], v[5], v[6], "befristet", beginn, ende, "", v[11], v[12], v[13]]
+    if "deputat" in globals(): nr[14] = deputat(nr)
+    nr[VERTRETUNG] = v[0]
+    rows.append(nr)
+vertretung(ruhend["Krause"], "Lea", "Vogt", d(2026, 3, 1), ruhend["Krause"][RUHT])          # passt genau
+vertretung(ruhend["Weber"], "Jan", "Brandt", d(2026, 9, 1), d(2027, 3, 31))                 # endet 1 Monat nach der Ruhe
+vertretung(ruhend["Wagner"], "Mia", "Seidel", d(2026, 9, 1), d(2027, 8, 31))                # Lücke bis zur Rückkehr
+aktiv = next(r for r in rows if r[3] == "Professor/in" and r[RUHT] is None and r[9] is None and r[8] and r[8] < TODAY)
+vertretung(aktiv, "Tom", "Ernst", d(2026, 10, 1), d(2027, 9, 30))                             # Fehler: vertretene Person ruht nicht
+vertretung(ruhend["Weber"], "Ida", "Hahn", d(2026, 10, 1), d(2027, 2, 28)); rows[-1][VERTRETUNG] = 999999   # Fehler: unbekannte Nummer
+
 wb = Workbook()
 ws = wb.active; ws.title = "Personal"
 hdr = ["Personalnummer", "Name", "Vorname", "Mitarbeiterkreis", "ArbAnteil", "VZÄ", "TrfGr", "Vertragsart",
        "Beginn", "Vertragsende", "kw", "Cluster", "Organisationseinheit", "Laborbereich", "Deputat"]
-hdr.append("ruht bis"); hdr.append("Ruhestand")
+hdr.append("ruht bis"); hdr.append("Ruhestand"); hdr.append("Vertretung für")
 ws.append(hdr)
 for r in rows: ws.append(r)
 for c in ws[1]: c.font = Font(bold=True)
