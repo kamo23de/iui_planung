@@ -151,11 +151,29 @@ aktiv = next(r for r in rows if r[3] == "Professor/in" and r[RUHT] is None and r
 vertretung(aktiv, "Tom", "Ernst", d(2026, 10, 1), d(2027, 9, 30))                             # Fehler: vertretene Person ruht nicht
 vertretung(ruhend["Weber"], "Ida", "Hahn", d(2026, 10, 1), d(2027, 2, 28)); rows[-1][VERTRETUNG] = 999999   # Fehler: unbekannte Nummer
 
+# ---- „Ruheanteil“: ruhender Stellenumfang (VZÄ) bei teilweise ruhenden Verträgen, z. B. Dekanat ----
+RUHEANTEIL = len(rows[0])
+for r in rows: r.append(None)
+belegt = {r[VERTRETUNG] for r in rows if r[VERTRETUNG]}
+FEHLERZEILEN = {2, 3, 5, 10, 12, 15, 20, 22, 30, 40, 50, 60, 61, 70, 80, 90, 95, 100}
+profs = [r for i, r in enumerate(rows[:-8]) if i not in FEHLERZEILEN and r[3] == "Professor/in" and r[RUHT] is None and r[9] is None and r[RUHESTAND] is None
+         and r[8] and r[8] < TODAY and r[0] not in belegt and r[4] == 100]
+dekan, praesident = profs[2], profs[5]
+dekan[RUHT], dekan[RUHEANTEIL] = d(2028, 8, 31), 0.5                 # Dekanat: halbe Stelle ruht
+vertretung(dekan, "Nora", "Busch", d(2026, 9, 1), d(2028, 8, 31))    # halbe Vertretung, passt zur Ruhe
+rows[-1][4], rows[-1][5] = 50, 0.5
+if "deputat" in globals(): rows[-1][14] = deputat(rows[-1])
+praesident[RUHT], praesident[RUHEANTEIL] = d(2030, 3, 31), "75 %"    # Präsidentschaft: 75 % einer Vollzeitstelle ruhen
+fehler = [r for r in rows[:-8] if r[RUHT] is None and r[RUHEANTEIL] is None and r[8] and r[8] < TODAY and (r[9] is None or r[9] > d(2028, 1, 1))]
+fehler[3][RUHEANTEIL] = 0.25                                         # Fehler: Ruheanteil ohne „ruht bis“
+halbe = next(r for r in fehler[10:] if r[5] == 0.5)
+halbe[RUHT], halbe[RUHEANTEIL] = d(2027, 9, 30), 0.8                 # Fehler: Ruheanteil größer als Stelle
+
 wb = Workbook()
 ws = wb.active; ws.title = "Personal"
 hdr = ["Personalnummer", "Name", "Vorname", "Mitarbeiterkreis", "ArbAnteil", "VZÄ", "TrfGr", "Vertragsart",
        "Beginn", "Vertragsende", "kw", "Cluster", "Organisationseinheit", "Laborbereich", "Deputat"]
-hdr.append("ruht bis"); hdr.append("Ruhestand"); hdr.append("Vertretung für")
+hdr.append("ruht bis"); hdr.append("Ruhestand"); hdr.append("Vertretung für"); hdr.append("Ruheanteil")
 ws.append(hdr)
 for r in rows: ws.append(r)
 for c in ws[1]: c.font = Font(bold=True)
