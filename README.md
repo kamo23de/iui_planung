@@ -51,6 +51,14 @@ Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blatt
 | Betreuung & WiMi | Studierende je Professor/in (inkl. LfbA) und je WiMi; WiMi je Professur (ohne LfbA) je Cluster und Organisationseinheit |
 | Detailansicht | Auswahl nach Cluster, Laborbereich und Organisationseinheit (die Liste der Organisationseinheiten richtet sich nach Cluster und Laborbereich). Genaues Verhältnis Professur (inkl. LfbA) : WiMi : sonstige Mitarbeitende : Studierende (Köpfe und VZÄ; Studierende nur ohne Labor-/OE-Auswahl, da diesen nicht zugeordnet). Professuren und Mitarbeitende je Laborbereich mit Diagramm und Tabelle. Vollständige Personalliste, gegliedert nach Mitarbeiterkreis oder Laborbereich, mit Vertragsdaten, Restlaufzeit, kw und Status; sortierbar, durchsuchbar, als CSV speicherbar |
 
+### Personensuche
+
+Das Suchfeld oben in der Kopfzeile steht auf allen Seiten zur Verfügung (Tastenkürzel **/** oder **Strg/⌘ + K**).
+Gesucht wird am Anfang von Nachname, Vorname oder Personalnummer, ohne Rücksicht auf Groß-/Kleinschreibung und Akzente („mul“ findet „Müller“).
+Die Treffer erscheinen als Auswahlliste mit Personalnummer, Mitarbeiterkreis, Cluster und Status.
+**Tab** vervollständigt wie in der Unix-Shell bis zum längsten gemeinsamen Anfang aller Treffer (grau angezeigt); ist nichts mehr zu ergänzen, springt Tab durch die Liste.
+**↑/↓** wählen, **Enter** öffnet das Personenfenster, **Esc** schließt. Im Personenfenster führt „In Detailliste zeigen“ zur Person in der Detailansicht.
+
 ## Festgelegte Regeln
 
 - **Aktiv:** Beginn ≤ Stichtag ≤ Vertragsende. Ein leeres Vertragsende oder ein Enddatum ab 2100 zählt als unbefristet.
