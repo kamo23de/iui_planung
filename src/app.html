@@ -167,6 +167,22 @@ tr.vt-child td:nth-child(2){padding-left:22px}
 .pill.vt-p{font-size:10px;padding:0 5px;border-color:var(--s4);color:var(--text-secondary)}
 .eff{font-size:10.5px;color:var(--s4);white-space:nowrap}
 .pill.vt-end{border-color:var(--s8)}
+.gs{position:relative}
+.gs-box{position:relative;background:var(--card);border-radius:6px;width:270px;max-width:46vw}
+.gs-box input{position:relative;z-index:1;width:100%;background:transparent;font:inherit;font-size:13px;padding:5px 9px;border:1px solid var(--border);border-radius:6px;color:var(--text-primary)}
+.gs-box input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.gs-ghost{position:absolute;inset:0;padding:6px 10px;font-size:13px;white-space:pre;overflow:hidden;color:var(--muted);pointer-events:none}
+.gs-ghost .gs-t{visibility:hidden}
+.gs-list{position:absolute;top:calc(100% + 4px);left:0;z-index:60;width:min(480px,92vw);max-height:min(420px,70vh);overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:4px}
+.gs-item{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:6px 8px;border-radius:6px;cursor:pointer}
+.gs-item.on,.gs-item:hover{background:var(--neutral-mid)}
+.gs-item .gs-n{font-size:13.5px}
+.gs-item .gs-n b{color:var(--accent)}
+.gs-item .gs-m{grid-column:1/-1;font-size:11.5px;color:var(--text-secondary)}
+.gs-item .gs-s{align-self:start}
+.gs-foot{font-size:11.5px;color:var(--text-secondary);padding:6px 8px 4px;border-top:1px solid var(--grid);margin-top:2px}
+tr.flash td{animation:flash 2.2s ease-out}
+@keyframes flash{0%,40%{background:color-mix(in srgb, var(--accent) 22%, transparent)}100%{background:transparent}}
 .flow{font-size:11px;font-weight:400;white-space:nowrap;margin-top:1px}
 .flow .fin{color:var(--good-text)}
 .flow .fout{color:var(--neg)}
@@ -178,6 +194,14 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
 <header id="hdr">
   <h1>Personalplanung Fakultät IuI</h1>
   <span class="file" id="fileInfo"></span>
+  <div class="ctl hidden gs" data-loaded id="gsWrap">
+    <div class="gs-box">
+      <div class="gs-ghost" aria-hidden="true"><span class="gs-t"></span><span class="gs-c"></span></div>
+      <input id="gsInput" type="text" placeholder="Person suchen …  ( / )" autocomplete="off" autocapitalize="off" spellcheck="false"
+        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="gsList" title="Name, Vorname oder Personalnummer · Tab vervollständigt · ↑/↓ wählen · Enter öffnet">
+    </div>
+    <div id="gsList" class="gs-list hidden" role="listbox"></div>
+  </div>
   <div class="ctl hidden" data-loaded><label for="today">Stichtag „heute“</label><input type="date" id="today"></div>
   <div class="ctl hidden" data-loaded><span>Maßeinheit</span>
     <div class="seg" id="measureSeg"><button data-v="koepfe" class="on">Köpfe</button><button data-v="vzae">VZÄ</button></div></div>
@@ -501,7 +525,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
 </main>
 <div id="pdOverlay" class="pd-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pdTitle">
   <div class="pd-box">
-    <div class="pd-head"><h2 id="pdTitle"></h2><button id="pdClose" aria-label="Schließen">✕ Schließen</button></div>
+    <div class="pd-head"><h2 id="pdTitle"></h2><span style="display:flex;gap:8px"><button id="pdToList" title="Person in der Detailansicht hervorheben">In Detailliste zeigen</button><button id="pdClose" aria-label="Schließen">✕ Schließen</button></span></div>
     <div id="pdBody"></div>
   </div>
 </div>
@@ -1734,6 +1758,7 @@ function renderCapacity() {
 /* ---------- Personen-Detailfenster ---------- */
 function showPerson(rowNo) {
   const r = S.recs.find(x => x.row === rowNo); if (!r) return;
+  $('#pdOverlay').dataset.row = r.row;
   const T = S.today, st = contractStatus(r), rest = restJahre(r);
   const iss = S.issues.filter(i => i.sheet === 'Personal' && i.row === r.row);
   const others = r.pnr ? used().filter(x => x.pnr === r.pnr && x.row !== r.row) : [];
@@ -1789,6 +1814,79 @@ function showPerson(rowNo) {
 }
 function closePerson() { $('#pdOverlay').classList.add('hidden'); document.body.style.overflow = ''; $('#pdBody').innerHTML = ''; }
 
+/* ---------- Globale Personensuche ---------- */
+/* Treffer: Anfang von Nachname, Vorname, „Vorname Name“, „Name, Vorname“ oder Personalnummer – ohne Rücksicht auf
+   Groß-/Kleinschreibung und Akzente („muller“ findet „Müller“). Tab vervollständigt wie in der Unix-Shell bis zum
+   längsten gemeinsamen Anfang aller Treffer; ist nichts mehr zu ergänzen, springt Tab durch die Liste. */
+const GS = {items: [], sel: -1, completion: ''};
+const gsNorm = t => [...String(t ?? '')].map(c => c.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()[0] || c.toLowerCase()).join('');
+function gsKeys(r) {
+  const nv = [r.name, r.vorname].filter(Boolean).join(', '), vn = [r.vorname, r.name].filter(Boolean).join(' ');
+  return [nv, vn, [r.name, r.vorname].filter(Boolean).join(' '), r.pnr].filter(Boolean);
+}
+function gsMatches(q) {
+  const nq = gsNorm(q.trim()); if (!nq) return [];
+  const out = [];
+  for (const r of used()) {
+    const key = gsKeys(r).find(k => gsNorm(k).startsWith(nq));
+    if (key) out.push({r, key, rank: gsNorm(r.name).startsWith(nq) ? 0 : gsNorm(r.vorname).startsWith(nq) ? 1 : 2});
+  }
+  return out.sort((a, b) => a.rank - b.rank || a.r.name.localeCompare(b.r.name, 'de') || a.r.vorname.localeCompare(b.r.vorname, 'de') || (isActive(b.r, S.today) - isActive(a.r, S.today)));
+}
+/* Längster gemeinsamer Anfang (ohne Rücksicht auf Groß-/Kleinschreibung und Akzente), in der Schreibweise des ersten Treffers */
+function gsCommonPrefix(keys) {
+  if (!keys.length) return '';
+  let p = keys[0];
+  for (const k of keys.slice(1)) { let i = 0; const a = gsNorm(p), b = gsNorm(k); while (i < a.length && i < b.length && a[i] === b[i]) i++; p = p.slice(0, i); }
+  return p;
+}
+function gsRender() {
+  const q = $('#gsInput').value, list = $('#gsList');
+  const m = gsMatches(q);
+  GS.items = m.slice(0, 12);
+  if (GS.sel >= GS.items.length) GS.sel = GS.items.length - 1;
+  // Vervollständigung (Ghost-Text): gemeinsamer Anfang der Schlüssel, die mit der Eingabe beginnen
+  const lcp = gsCommonPrefix([...new Set(m.map(x => x.key))]);
+  GS.completion = lcp.length > q.length && gsNorm(lcp).startsWith(gsNorm(q)) ? lcp : '';
+  $('.gs-t').textContent = q; $('.gs-c').textContent = GS.completion ? GS.completion.slice(q.length) : '';
+  if (!q.trim()) { list.classList.add('hidden'); $('#gsInput').setAttribute('aria-expanded', 'false'); return; }
+  const hl = (txt) => { const nt = gsNorm(txt), nq = gsNorm(q.trim()); return nt.startsWith(nq) ? `<b>${esc(txt.slice(0, nq.length))}</b>${esc(txt.slice(nq.length))}` : esc(txt); };
+  list.innerHTML = (GS.items.length ? GS.items.map((x, i) => { const r = x.r, st = contractStatus(r);
+      return `<div class="gs-item${i === GS.sel ? ' on' : ''}" role="option" data-row="${r.row}" aria-selected="${i === GS.sel}">
+        <span class="gs-n">${hl([r.name, r.vorname].filter(Boolean).join(', ') || '(ohne Namen)')}</span><span class="gs-s">${st.t}</span>
+        <span class="gs-m">${esc(r.pnr || '–')} · ${esc(kreisOf(r))} · ${esc(clusterOf(r))}${r.oe ? ' · ' + esc(r.oe) : ''}${r.vertretungFuer ? ' · Vertretung' : ''}</span></div>`; }).join('')
+    : '<div class="gs-foot" style="border:0">Keine Person gefunden.</div>') +
+    (m.length > GS.items.length ? `<div class="gs-foot">… und ${m.length - GS.items.length} weitere – weiter tippen oder Tab drücken</div>` : m.length ? `<div class="gs-foot">${m.length} ${m.length === 1 ? 'Treffer' : 'Treffer'} · ↑/↓ wählen · Enter öffnet · Esc schließt</div>` : '');
+  list.classList.remove('hidden'); $('#gsInput').setAttribute('aria-expanded', 'true');
+  $$('#gsList .gs-item').forEach(el => el.onmousedown = e => { e.preventDefault(); gsOpen(+el.dataset.row); });
+}
+function gsOpen(row) { gsClose(); $('#gsInput').blur(); showPerson(row); }
+function gsClose() { $('#gsList').classList.add('hidden'); $('#gsInput').setAttribute('aria-expanded', 'false'); GS.sel = -1; $('.gs-c').textContent = ''; }
+function gsKey(e) {
+  const n = GS.items.length;
+  if (e.key === 'Tab' && !e.shiftKey && $('#gsInput').value.trim()) {
+    e.preventDefault();
+    if (GS.completion) { $('#gsInput').value = GS.completion; GS.sel = -1; gsRender(); }
+    else if (n) { GS.sel = (GS.sel + 1) % n; gsRender(); }            // nichts mehr zu ergänzen: durch die Treffer gehen
+  } else if (e.key === 'ArrowDown' && n) { e.preventDefault(); GS.sel = (GS.sel + 1) % n; gsRender(); }
+  else if (e.key === 'ArrowUp' && n) { e.preventDefault(); GS.sel = (GS.sel - 1 + n) % n; gsRender(); }
+  else if (e.key === 'ArrowRight' && GS.completion && e.target.selectionStart === e.target.value.length) { e.preventDefault(); $('#gsInput').value = GS.completion; gsRender(); }
+  else if (e.key === 'Enter') { e.preventDefault(); const it = GS.items[GS.sel >= 0 ? GS.sel : 0]; if (it && (GS.sel >= 0 || n === 1 || gsNorm(it.key) === gsNorm($('#gsInput').value.trim()))) gsOpen(it.r.row); else if (n) { GS.sel = 0; gsRender(); } }
+  else if (e.key === 'Escape') { e.preventDefault(); if (!$('#gsList').classList.contains('hidden')) gsClose(); else { $('#gsInput').value = ''; gsRender(); $('#gsInput').blur(); } }
+}
+/* Aus dem Personenfenster: Person in der Detailliste zeigen und kurz hervorheben */
+function showInDetail(rowNo) {
+  const r = S.recs.find(x => x.row === rowNo); if (!r) return;
+  closePerson(); showTab('detail');
+  fillClusterSelect($('#dtCluster')); $('#dtCluster').value = clusterOf(r);
+  $('#dtLab').value = ''; $('#dtOE').value = ''; $('#dtSoon').checked = false;
+  if (!inContract(r, S.today)) $('#dtAll').checked = true;
+  $('#dtSearch').value = '';
+  renderDetail();
+  const tr = $(`#dtLists tr.prow[data-row="${r.row}"]`);
+  if (tr) { const d = tr.closest('details'); if (d) d.open = true; tr.scrollIntoView({block: 'center'}); tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash'); }
+}
+
 /* ============================== Bedienung ============================== */
 function showTab(t) {
   S.tab = t;
@@ -1816,6 +1914,7 @@ function unloadData() {
   Object.assign(S, {raw: null, recs: [], students: [], issues: [], colMap: {}, missingCols: [], catMap: {}, kreisOrder: [], kreisCounts: {}, checkFilter: null, isDemo: false});
   ['#issueTable', '#issueSummary', '#dtLists', '#fcOut', '#fcIn', '#semDetailTable', '#ovTable', '#semTable', '#raTable', '#wmTable', '#stTable', '#dtRatioTable', '#dtLabTable', '#fcDelta', '#multiples'].forEach(x => { const el = $(x); if (el) el.innerHTML = ''; });
   $('#dtSearch').value = '';
+  $('#gsInput').value = ''; gsClose();
   $('#file').value = '';
   $('#app').classList.add('hidden'); $('#tabs').classList.add('hidden'); $('#start').classList.remove('hidden');
   $$('[data-loaded]').forEach(e => e.classList.add('hidden'));
@@ -1880,6 +1979,17 @@ function init() {
   $('#dtCsv').onclick = detailCsv;
   $('#dtExpand').onclick = () => { DT.expanded = !DT.expanded; renderDetailList(); };
   $('#pdClose').onclick = closePerson;
+  $('#pdToList').onclick = () => showInDetail(+$('#pdOverlay').dataset.row);
+  $('#gsInput').oninput = () => { GS.sel = -1; gsRender(); };
+  $('#gsInput').onfocus = () => { if ($('#gsInput').value.trim()) gsRender(); };
+  $('#gsInput').onblur = () => setTimeout(() => { if (document.activeElement !== $('#gsInput')) gsClose(); }, 120);
+  $('#gsInput').onkeydown = gsKey;
+  // Tastenkürzel: „/“ oder Strg/⌘+K setzt den Cursor in die Suche
+  document.addEventListener('keydown', e => {
+    if (!S.raw || !$('#pdOverlay').classList.contains('hidden')) return;
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+    if ((e.key === '/' && !typing) || (e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); $('#gsInput').focus(); $('#gsInput').select(); }
+  });
   $('#pdOverlay').onclick = e => { if (e.target.id === 'pdOverlay') closePerson(); };
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#pdOverlay').classList.contains('hidden')) closePerson(); });
   $('#dtOpen').onclick = () => { const d = $$('#dtLists details'); const open = !d.every(x => x.open); d.forEach(x => x.open = open); };
