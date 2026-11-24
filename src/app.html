@@ -172,7 +172,7 @@ body.plan-on header{border-bottom:3px solid var(--s7)}
 .btnlike{font-size:13px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;background:var(--card)}
 input.num{width:70px;font:inherit;font-size:13px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary)}
 .tl-card{padding:0;overflow:auto;max-height:72vh}
-.tl{min-width:900px;font-size:12.5px}
+.tl{min-width:1150px;font-size:12.5px}
 .tl-head,.tl-row,.tl-grp{display:flex}
 .tl-head{position:sticky;top:0;z-index:3;background:var(--card);border-bottom:1px solid var(--axis)}
 .tl-lbl{flex:0 0 250px;padding:3px 8px;position:sticky;left:0;z-index:2;background:var(--card);border-right:1px solid var(--grid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -216,6 +216,15 @@ td.g-warn{background:color-mix(in srgb, var(--warning) 35%, transparent)}
 td.g-bad{background:color-mix(in srgb, var(--critical) 28%, transparent)}
 td.g-na{color:var(--muted)}
 .gm .ic{font-weight:800;margin-right:2px}
+.wip-banner{display:flex;align-items:center;gap:16px;margin-bottom:16px;padding:14px 18px;border-radius:10px;border:2px solid #0b0b0b;
+  background:repeating-linear-gradient(-45deg,#fab219 0 18px,#0b0b0b 18px 36px);position:relative}
+.wip-banner .wip-logo{flex:none;background:#fff;border-radius:50%;width:70px;height:70px;display:flex;align-items:center;justify-content:center;border:2px solid #0b0b0b}
+.wip-banner .wip-text{background:#fff;color:#0b0b0b;border:2px solid #0b0b0b;border-radius:8px;padding:8px 14px;flex:1}
+.wip-banner .wip-title{font-size:24px;font-weight:800;letter-spacing:.12em;line-height:1.1}
+.wip-banner .wip-sub{font-size:13px;margin-top:4px;color:#3b3a37}
+.wip-tab{display:inline-block;margin-left:6px;padding:0 5px;font-size:10px;font-weight:800;letter-spacing:.05em;border-radius:4px;background:#fab219;color:#0b0b0b;vertical-align:1px}
+@media (max-width:600px){.wip-banner{flex-direction:column;align-items:stretch}.wip-banner .wip-logo{align-self:center}}
+@media print{.wip-banner{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 .flow{font-size:11px;font-weight:400;white-space:nowrap;margin-top:1px}
 .flow .fin{color:var(--good-text)}
 .flow .fout{color:var(--neg)}
@@ -253,7 +262,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
   <button data-t="forecast">Forecast</button>
   <button data-t="ratio">Betreuung &amp; WiMi</button>
   <button data-t="detail">Detailansicht</button>
-  <button data-t="plan">Planung<span class="plan-tab" id="planTabBadge"></span></button>
+  <button data-t="plan">Planung<span class="wip-tab" title="Work in Progress">WIP</span><span class="plan-tab" id="planTabBadge"></span></button>
 </nav>
 
 <div id="start">
@@ -431,6 +440,16 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
 </section>
 <!-- ================= Planung ================= -->
 <section class="view" id="v-plan">
+  <div class="wip-banner" role="note" aria-label="Work in Progress">
+    <div class="wip-logo" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="54" height="54"><path d="M32 5 L60 55 H4 Z" fill="#fab219" stroke="#0b0b0b" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="29" y="22" width="6" height="18" rx="2" fill="#0b0b0b"/><circle cx="32" cy="47" r="3.6" fill="#0b0b0b"/></svg>
+    </div>
+    <div class="wip-text">
+      <div class="wip-title">WORK IN PROGRESS</div>
+      <div class="wip-sub">Diese Ansicht ist ein Entwurf und befindet sich noch im Aufbau. Planmaßnahmen werden nur im Arbeitsspeicher gehalten; das Speichern von Szenarien ist noch nicht verlässlich. Ergebnisse sind vorläufig und nicht für Entscheidungen bestimmt.</div>
+    </div>
+  </div>
   <div class="card plan-head">
     <div class="row" style="margin-bottom:6px">
       <div class="seg" id="plSub"><button data-v="tl" class="on">Stellenplan (Zeitstrahl)</button><button data-v="goal">Zielwerte (Ampel)</button></div>
