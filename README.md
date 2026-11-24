@@ -51,6 +51,15 @@ Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blatt
 | Betreuung & WiMi | Studierende je Professor/in (inkl. LfbA) und je WiMi; WiMi je Professur (ohne LfbA) je Cluster und Organisationseinheit |
 | Detailansicht | Auswahl nach Cluster, Laborbereich und Organisationseinheit (die Liste der Organisationseinheiten richtet sich nach Cluster und Laborbereich). Genaues Verhältnis Professur (inkl. LfbA) : WiMi : sonstige Mitarbeitende : Studierende (Köpfe und VZÄ; Studierende nur ohne Labor-/OE-Auswahl, da diesen nicht zugeordnet). Professuren und Mitarbeitende je Laborbereich mit Diagramm und Tabelle. Vollständige Personalliste, gegliedert nach Mitarbeiterkreis oder Laborbereich, mit Vertragsdaten, Restlaufzeit, kw und Status; sortierbar, durchsuchbar, als CSV speicherbar |
 
+### Planung (Branch `Planung`, Entwurf)
+
+Der Reiter **Planung** legt ein **Szenario** aus Planmaßnahmen über die Ist-Daten; die Excel-Datei bleibt unverändert.
+Planmaßnahmen: **Nachbesetzung** einer ausscheidenden Stelle, **neue Stelle**, **Vertragsende ändern** (Verlängerung, Verkürzung, Entfristung).
+Szenarien werden als JSON-Datei gespeichert und wieder geladen (lokal, ohne Upload). Auf Wunsch wird das Szenario in **allen** Ansichten eingerechnet; die Kopfzeile zeigt dann „PLAN“.
+
+- **Stellenplan (Zeitstrahl):** je Vertrag ein Balken über bis zu 20 Semester, gegliedert nach Organisationseinheit, Laborbereich oder Mitarbeiterkreis. Ruhephasen schraffiert, Vertretungen und Nachbesetzungen eingerückt darunter, kw- und Ruhestands-Marken, rot gestrichelt die Zeit, in der eine Stelle nach Vertragsende unbesetzt ist. Klick auf Balken oder offene Stelle: nachbesetzen, Vertragsende ändern, Person anzeigen. Darunter die Wirkung Ist gegenüber Plan und die Liste der Planmaßnahmen.
+- **Zielwerte (Ampel):** Zielwerte für Studierende je Professur (inkl. LfbA) und WiMi je Professur (ohne LfbA) mit Toleranz. Ampel je Cluster und Semester (✓ / ! / ✕), erstes Semester mit Zielverfehlung, Fehlbedarf in VZÄ je Feld; der Fehlbedarf lässt sich als neue Stelle in das Szenario übernehmen.
+
 ### Personensuche
 
 Das Suchfeld oben in der Kopfzeile steht auf allen Seiten zur Verfügung (Tastenkürzel **/** oder **Strg/⌘ + K**).
