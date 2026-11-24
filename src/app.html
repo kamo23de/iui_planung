@@ -1520,7 +1520,10 @@ function showPerson(rowNo) {
   document.body.style.overflow = 'hidden';
   $('#pdClose').focus();
 }
-function closePerson() { $('#pdOverlay').classList.add('hidden'); document.body.style.overflow = ''; $('#pdBody').innerHTML = ''; }
+function closePerson() {
+  $('#pdOverlay').classList.add('hidden'); document.body.style.overflow = ''; $('#pdBody').innerHTML = '';
+  if (GS.fromSearch) { GS.fromSearch = false; gsClear(); }   // aus der Suche geöffnet: Suchfeld beim Schließen leeren
+}
 
 /* ---------- Globale Personensuche ---------- */
 /* Treffer: Anfang von Nachname, Vorname, „Vorname Name“, „Name, Vorname“ oder Personalnummer – ohne Rücksicht auf
@@ -1568,7 +1571,8 @@ function gsRender() {
   list.classList.remove('hidden'); $('#gsInput').setAttribute('aria-expanded', 'true');
   $$('#gsList .gs-item').forEach(el => el.onmousedown = e => { e.preventDefault(); gsOpen(+el.dataset.row); });
 }
-function gsOpen(row) { gsClose(); $('#gsInput').blur(); showPerson(row); }
+function gsOpen(row) { gsClose(); $('#gsInput').blur(); showPerson(row); GS.fromSearch = true; }
+function gsClear() { $('#gsInput').value = ''; $('.gs-t').textContent = ''; $('.gs-c').textContent = ''; GS.items = []; GS.completion = ''; gsClose(); }
 function gsClose() { $('#gsList').classList.add('hidden'); $('#gsInput').setAttribute('aria-expanded', 'false'); GS.sel = -1; $('.gs-c').textContent = ''; }
 function gsKey(e) {
   const n = GS.items.length;
