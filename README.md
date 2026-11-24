@@ -51,6 +51,10 @@ Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blatt
 | Betreuung & WiMi | Studierende je Professor/in (inkl. LfbA) und je WiMi; WiMi je Professur (ohne LfbA) je Cluster und Organisationseinheit |
 | Detailansicht | Auswahl nach Cluster, Laborbereich und Organisationseinheit (die Liste der Organisationseinheiten richtet sich nach Cluster und Laborbereich). Genaues Verhältnis Professur (inkl. LfbA) : WiMi : sonstige Mitarbeitende : Studierende (Köpfe und VZÄ; Studierende nur ohne Labor-/OE-Auswahl, da diesen nicht zugeordnet). Professuren und Mitarbeitende je Laborbereich mit Diagramm und Tabelle. Vollständige Personalliste, gegliedert nach Mitarbeiterkreis oder Laborbereich, mit Vertragsdaten, Restlaufzeit, kw und Status; sortierbar, durchsuchbar, als CSV speicherbar |
 
+### Diagramme exportieren
+
+Jedes Diagramm hat oben rechts den Button **⤓ PNG**. Er speichert das Diagramm als Bild in hoher Auflösung, mit Titel, Legende und einer Quellenzeile (Stichtag, Maßeinheit, gewählte Filter, ggf. DEMO/PLAN, Erstellungsdatum). Ganze Seiten lassen sich über den Druckdialog des Browsers als PDF speichern.
+
 ### Personensuche
 
 Das Suchfeld oben in der Kopfzeile steht auf allen Seiten zur Verfügung (Tastenkürzel **/** oder **Strg/⌘ + K**).
