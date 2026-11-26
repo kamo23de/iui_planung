@@ -5,6 +5,7 @@ import {lvvoFassung} from '../lvvo.js';
 import {catColor, clusterOf} from '../parse.js';
 import {clusterList, inContract, used} from '../model.js';
 import {lehreStats, lvvo, lvvoStats, zeitkonto} from '../teaching.js';
+import {DOKU_CSS, dokuDatei, dokuDaten, dokuHtml, sjLabel, sjStart, studienjahre} from '../doku.js';
 import {axis, barDs, legendHtml, mkChart} from '../charts.js';
 import {showPerson} from './person.js';
 import {fillClusterSelect} from './semester.js';
@@ -83,6 +84,7 @@ export function renderLvvo() {
   $$('#lvPersons a[data-row]').forEach(a => a.onclick = e => { e.preventDefault(); showPerson(+a.dataset.row); });
 
   renderLehre(cf);
+  renderDokuAuswahl();
 
   // ---- Regelwerk ----
   const gr = Object.values(F.gruppen).filter(g => g.art !== 'keine');
@@ -151,4 +153,36 @@ export function zeitkontoCsv() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'}));
   a.download = 'Zeitkonto_LVVO.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------- Dokumentation nach § 18 ---------- */
+let DK = null;   // zuletzt erzeugte Dokumentation: {daten, opts}
+function renderDokuAuswahl() {
+  const sel = $('#dkJahr'), prev = sel.value, jahre = studienjahre();
+  sel.innerHTML = jahre.map(w => `<option value="${w}">${sjLabel(w)}${w === sjStart(semIdx(S.today)) ? ' (laufend)' : ''}</option>`).join('');
+  // vorgeschlagen: das letzte abgeschlossene Studienjahr mit erfasster Lehre, sonst das laufende
+  const lauf = sjStart(semIdx(S.today)), fertig = jahre.find(w => w < lauf);
+  sel.value = jahre.includes(+prev) ? prev : String(fertig ?? lauf);
+  fillClusterSelect($('#dkCluster'));
+  const w = +sel.value;
+  $('#dkInfo').textContent = !S.raw.lehre ? 'Hinweis: Es gibt kein Blatt „Lehre“ – der Bericht enthält dann nur Soll und Ermäßigungen, keine gehaltene Lehre.'
+    : w >= lauf ? `Das Studienjahr ${sjLabel(w)} ist noch nicht abgeschlossen; die Dokumentation ist vorläufig.` : '';
+}
+export function showDoku() {
+  const w = +$('#dkJahr').value, cluster = $('#dkCluster').value || null;
+  const now = new Date(), erstellt = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
+  DK = {daten: dokuDaten(w, {cluster}), opts: {seiteJePerson: $('#dkSeite').checked, erstellt: erstellt + (S.isDemo ? ' · DEMO, fiktive Daten' : '')}};
+  $('#dkBody').innerHTML = `<style>${DOKU_CSS}</style>` + dokuHtml(DK.daten, DK.opts);
+  $('#dkOverlay').classList.remove('hidden'); document.body.classList.add('dk-open'); document.body.style.overflow = 'hidden';
+}
+export function closeDoku() {
+  $('#dkOverlay').classList.add('hidden'); document.body.classList.remove('dk-open'); document.body.style.overflow = ''; $('#dkBody').innerHTML = ''; DK = null;
+}
+export function printDoku() { window.print(); }
+export function saveDoku() {
+  if (!DK) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([dokuDatei(DK.daten, DK.opts)], {type: 'text/html;charset=utf-8'}));
+  a.download = `Dokumentation_LVVO_18_Studienjahr_${sjLabel(DK.daten.w).replace('/', '-')}${DK.daten.cluster ? '_' + DK.daten.cluster.replace(/[^\wäöüÄÖÜß-]+/g, '_') : ''}.html`;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
