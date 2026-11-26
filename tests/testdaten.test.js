@@ -46,7 +46,7 @@ test('Referenzwerte Bestand heute und zum SS 2029', () => {
 });
 
 test('Referenzwerte Lehrangebot heute', () => {
-  const {get} = load();
-  const c = get('capStats')(get('used')());
+  const {get, S} = load();
+  const c = get('capStats')(get('used')(), S.today);
   assert.deepEqual({sws: c.sws, P: c.P, L: c.L, W: c.W, teach: c.teach, support: c.support}, {sws: 1285.5, P: 994.5, L: 215, W: 76, teach: 89, support: 66});
 });

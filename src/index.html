@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Datenschutz: Diese Richtlinie verbietet dem Browser jede Datenverbindung (connect-src 'none'). Alle Daten bleiben lokal.
+     Erlaubt ist nur das Laden der App-Symbole und des Manifests vom eigenen Speicherort. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; manifest-src 'self'; font-src data:; connect-src 'none'; form-action 'none'">
+<!-- Web-App auf dem Home-Bildschirm (iPad/iPhone, Android, Desktop) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/apple-touch-icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/apple-touch-icon-167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Personal IuI">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#174f96">
+<title>Personalplanung Fakultät IuI</title>
+<style>/*CSS*/</style>
+</head>
+<body>
+<header id="hdr">
+  <h1>Personalplanung Fakultät IuI</h1>
+  <span class="file" id="fileInfo"></span>
+  <div class="ctl hidden gs" data-loaded id="gsWrap">
+    <div class="gs-box">
+      <div class="gs-ghost" aria-hidden="true"><span class="gs-t"></span><span class="gs-c"></span></div>
+      <input id="gsInput" type="text" placeholder="Person suchen …  ( / )" autocomplete="off" autocapitalize="off" spellcheck="false"
+        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="gsList" title="Name, Vorname oder Personalnummer · Tab vervollständigt · ↑/↓ wählen · Enter öffnet">
+    </div>
+    <div id="gsList" class="gs-list hidden" role="listbox"></div>
+  </div>
+  <div class="ctl hidden" data-loaded><label for="today">Stichtag „heute“</label><input type="date" id="today"></div>
+  <div class="ctl hidden" data-loaded><span>Maßeinheit</span>
+    <div class="seg" id="measureSeg"><button data-v="koepfe" class="on">Köpfe</button><button data-v="vzae">VZÄ</button></div></div>
+  <div class="ctl hidden" data-loaded title="Annahme für Prognosen: Stellen ohne kw-Vermerk bleiben nach Vertragsende erhalten und werden nachbesetzt. Ausgenommen sind Vertretungen.">
+    <input type="checkbox" id="refill"><label for="refill">Nicht-kw-Stellen nach Vertragsende als offene Stellen weiterführen</label></div>
+  <div class="ctl hidden" data-loaded style="margin-left:auto">
+    <span id="planBadge" class="plan-badge hidden" title="Das Szenario ist in allen Ansichten eingerechnet">PLAN</span>
+    <span id="demoBadge" class="demo-badge hidden">DEMO · fiktive Daten</span>
+    <button id="demoUnload" class="demo hidden">Demodaten entladen</button>
+    <button id="reload">Andere Datei laden</button></div>
+</header>
+<nav class="tabs hidden" id="tabs">
+  <button data-t="check" class="on">Datenprüfung<span class="badge" id="errBadge"></span></button>
+  <button data-t="overview">Mitarbeiterkreise</button>
+  <button data-t="semester">Semesterverlauf</button>
+  <button data-t="forecast">Forecast</button>
+  <button data-t="ratio">Betreuung &amp; WiMi</button>
+  <button data-t="detail">Detailansicht</button>
+  <button data-t="cap">Kapazität<span class="wip-tab" title="Work in Progress">WIP</span></button>
+  <button data-t="plan">Planung<span class="wip-tab" title="Work in Progress">WIP</span><span class="plan-tab" id="planTabBadge"></span></button>
+</nav>
+
+<div id="start">
+  <div class="drop" id="drop">
+    <h2 style="margin-top:0">Excel-Datei einlesen</h2>
+    <p>Datei hierher ziehen oder auswählen (.xlsx / .xls)</p>
+    <input type="file" id="file" accept=".xlsx,.xlsm,.xls">
+    <div class="demo-start">
+      <span class="note">oder</span>
+      <button id="demoBtn" class="demo">▶ Demo mit fiktiven Daten starten</button>
+      <div class="note">Lädt eine eingebaute Beispieltabelle mit erfundenen Personen (inkl. absichtlich eingebauter Datenfehler), um alle Funktionen vorzuführen.</div>
+    </div>
+    <p class="note" style="margin-top:22px">🔒 Die Datei wird ausschließlich lokal in diesem Browserfenster verarbeitet.
+    Die Anwendung enthält alle Bibliotheken selbst und darf per Sicherheitsrichtlinie keine Netzwerkverbindung aufbauen.
+    Nach dem Schließen des Fensters sind die Daten nicht mehr im Speicher.</p>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h2>Erwarteter Aufbau der Excel-Datei</h2>
+    <p class="note" style="margin-top:0">Blätter und Spalten werden anhand der Überschriften erkannt; Reihenfolge und Blattnamen sind egal. Fehlt eine Spalte, meldet die Datenprüfung das.</p>
+    <div class="layout-grid">
+      <div>
+        <h3 class="layout-h">Blatt 1 – Personal <span class="note">(eine Zeile je Person bzw. Vertrag)</span></h3>
+        <table class="layout">
+          <tr><td>Personalnummer</td><td></td></tr>
+          <tr><td>Name, Vorname</td><td></td></tr>
+          <tr><td>Mitarbeiterkreis</td><td>z. B. Professor/in, LfbA, Wiss. Mitarbeiter/in</td></tr>
+          <tr><td>ArbAnteil</td><td>Arbeitsanteil in %</td></tr>
+          <tr><td>VZÄ</td><td>Vollzeitäquivalente</td></tr>
+          <tr><td>TrfGr</td><td>Tarifgruppe</td></tr>
+          <tr><td>Vertragsart</td><td>befristet / unbefristet</td></tr>
+          <tr><td>Beginn, Vertragsende</td><td>Vertragsende = tatsächliches Ende bei Zeitverträgen</td></tr>
+          <tr><td>Ruheanteil</td><td>ruhender Stellenumfang in VZÄ, z. B. 0,5 bei einem Dekanat; leer = ganze Stelle ruht <span class="pill">optional</span></td></tr>
+          <tr><td>Vertretung für</td><td>Personalnummer der Person, deren (ruhende) Stelle vertreten wird <span class="pill">optional</span></td></tr>
+          <tr><td>Ruhestand</td><td>voraussichtlicher Ruhestand bei unbefristeten Verträgen <span class="pill">optional</span></td></tr>
+          <tr><td>kw</td><td>„kann wegfallen“ – Stelle entfällt nach Vertragsende</td></tr>
+          <tr><td>Cluster</td><td></td></tr>
+          <tr><td>Organisationseinheit</td><td></td></tr>
+          <tr><td>Laborbereich</td><td></td></tr>
+          <tr><td>ruht bis</td><td>Vertrag ruht bis zu diesem Datum – Stelle und Deputat werden bis dahin nicht gezählt <span class="pill">optional</span></td></tr>
+          <tr><td>Deputat</td><td>Lehrdeputat in SWS je Semester; 0 = nur unterstützend in der Lehre <span class="pill">für Kapazität</span></td></tr>
+        </table>
+      </div>
+      <div>
+        <h3 class="layout-h">Blatt 2 – Studierende <span class="note">(eine Zeile je Studiengang)</span></h3>
+        <table class="layout">
+          <tr><td>Studiengang</td><td>Name des Studiengangs</td></tr>
+          <tr><td>Cluster</td><td>Cluster, in dem der Studiengang angesiedelt ist</td></tr>
+          <tr><td>Art</td><td>Bachelor oder Master <span class="pill">für Kapazität</span></td></tr>
+          <tr><td>CNW</td><td>Curricularnormwert <span class="pill">für Kapazität</span></td></tr>
+          <tr><td>Studienplätze</td><td>Plätze einer neuen Studierendengruppe <span class="pill">für Kapazität</span></td></tr>
+          <tr><td>Studierende</td><td>aktuell eingeschriebene Studierende</td></tr>
+        </table>
+        <p class="note">Spalten mit dem Vermerk <span class="pill">für Kapazität</span> werden nur für die Ansicht „Kapazität“ benötigt. Ältere Dateien ohne diese Spalten funktionieren in allen anderen Ansichten weiter.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main id="app" class="hidden">
+
+<!-- ================= Datenprüfung ================= -->
+<section class="view on" id="v-check">
+  <div class="kpis" id="checkKpis"></div>
+  <div class="card">
+    <h2>Plausibilitätsprüfung</h2>
+    <p class="sub">Klick auf eine Prüfung filtert die Einzelbefunde unten. <b>Fehler</b> verfälschen Auswertungen wahrscheinlich, <b>Warnungen</b> sollten geprüft werden, <b>Hinweise</b> sind informativ.</p>
+    <div class="row">
+      <label class="ctl"><input type="checkbox" id="exclDup" checked> Exakt doppelte Zeilen nur einmal zählen</label>
+      <button id="csvIssues">Prüfbericht als CSV speichern</button>
+    </div>
+    <div id="colInfo" class="note mb"></div>
+    <table id="issueSummary"></table>
+  </div>
+  <div class="card">
+    <h2>Einzelbefunde <span id="issueFilterLbl" class="note"></span></h2>
+    <div class="row">
+      <div class="seg" id="sevSeg"><button data-v="all" class="on">Alle</button><button data-v="E">Fehler</button><button data-v="W">Warnungen</button><button data-v="I">Hinweise</button></div>
+      <button id="clearIssueFilter" class="hidden">Filter zurücksetzen</button>
+    </div>
+    <div class="scroll"><table id="issueTable"></table></div>
+  </div>
+</section>
+
+<!-- ================= Übersicht ================= -->
+<section class="view" id="v-overview">
+  <div class="kpis" id="ovKpis"></div>
+  <div class="grid2 mb">
+    <div class="card">
+      <h2>Mitarbeiterkreise – Fakultät gesamt</h2>
+      <p class="sub" id="ovSub1"></p>
+      <div class="chartbox" style="height:260px"><canvas id="cKreisTotal"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Mitarbeiterkreise je Cluster</h2>
+      <p class="sub">Gestapelt nach Mitarbeiterkreis, nur aktive Verträge.</p>
+      <div class="legend" id="lgCluster"></div>
+      <div class="chartbox" style="height:260px"><canvas id="cKreisCluster"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Je Cluster einzeln</h2>
+    <p class="sub">Gleiche Skala in allen Feldern, damit die Cluster direkt vergleichbar sind.</p>
+    <div class="multiples" id="multiples"></div>
+  </div>
+  <div class="card">
+    <h2>Tabelle: Cluster × Mitarbeiterkreis</h2>
+    <div class="scroll" id="ovTable"></div>
+  </div>
+</section>
+
+<!-- ================= Semester ================= -->
+<section class="view" id="v-semester">
+  <div class="card">
+    <div class="row">
+      <label class="ctl">Cluster <select id="semCluster"></select></label>
+      <label class="ctl">Zeitraum
+        <select id="semPast"><option value="4">4 Semester zurück</option><option value="2">2 Semester zurück</option><option value="0">ab aktuellem Semester</option></select>
+        bis <select id="semAhead"><option value="10">10 Semester voraus</option><option value="20" selected>20 Semester voraus</option></select></label>
+    </div>
+    <h2>Personalbestand je Semester</h2>
+    <p class="sub">Stand jeweils zu Semesterbeginn (WS: 01.09., SS: 01.03.). <span id="semRefillNote"></span></p>
+    <div class="legend" id="lgSem"></div>
+    <div class="chartbox" style="height:340px"><canvas id="cSem"></canvas></div>
+  </div>
+  <div class="grid2 mb">
+    <div class="card">
+      <h2>Zu- und Abgänge je Semester</h2>
+      <p class="sub">Abgänge = Vertragsende oder Ruhestand im Semester (nach unten), Zugänge = Vertragsbeginn im Semester (nach oben). Klick auf ein Semester zeigt die Personen.</p>
+      <div class="legend" id="lgFlow"></div>
+      <div class="chartbox" style="height:300px"><canvas id="cFlow"></canvas></div>
+    </div>
+    <div class="card">
+      <h2><span id="semDetailLbl">Ausscheiden (Vertragsende/Ruhestand) in</span> <select id="semDetail"></select></h2>
+      <div class="row" style="margin-bottom:8px">
+        <label class="ctl" title="Alle Verträge, die vom aktuellen Semester bis einschließlich des gewählten Semesters ausscheiden"><input type="checkbox" id="semCum"> kumulativ</label>
+        <span class="note" id="semDetailSum"></span>
+      </div>
+      <div class="scroll" id="semDetailTable" style="max-height:330px"></div>
+    </div>
+  </div>
+  <div class="card"><h2>Tabelle: Semester × Mitarbeiterkreis</h2><div class="scroll" id="semTable"></div></div>
+</section>
+
+<!-- ================= Forecast ================= -->
+<section class="view" id="v-forecast">
+  <div class="card">
+    <div class="row">
+      <div class="seg" id="fcMode"><button data-v="sem" class="on">Semester wählen</button><button data-v="date">Datum eingeben</button></div>
+      <select id="fcSem"></select>
+      <input type="date" id="fcDate" class="hidden">
+      <label class="ctl">Cluster <select id="fcCluster"></select></label>
+    </div>
+    <p class="sub" id="fcInfo" style="margin:0"></p>
+  </div>
+  <div class="kpis" id="fcKpis"></div>
+  <div class="grid2 mb">
+    <div class="card">
+      <h2>Heute vs. Prognose je Mitarbeiterkreis</h2>
+      <div class="legend" id="lgFc"></div>
+      <div class="chartbox" style="height:300px"><canvas id="cFc"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Veränderung je Cluster und Mitarbeiterkreis</h2>
+      <p class="sub">Saldo Prognose − heute (Blau = mehr, Rot = weniger). Darunter getrennt: Zugänge inkl. Rückkehr nach Ruhen (+ zu) und Abgänge (− ab) bis zum Zielzeitpunkt – ein Zugang bleibt so auch sichtbar, wenn ihm ein Abgang gegenübersteht.</p>
+      <div class="scroll" id="fcDelta"></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h2>Abgänge bis zum Zielzeitpunkt</h2><p class="sub">Vertragsende (Zeitverträge) oder Ruhestand (unbefristete Verträge) zwischen heute und Zielzeitpunkt. Auslaufende Vertretungen werden nicht nachbesetzt – die Stelle fällt an die vertretene Person zurück.</p><div class="scroll" id="fcOut"></div></div>
+    <div class="card"><h2>Zugänge bis zum Zielzeitpunkt</h2><p class="sub">Vertragsbeginn nach heute bis zum Zielzeitpunkt sowie Rückkehr aus ruhenden Verträgen.</p><div class="scroll" id="fcIn"></div></div>
+  </div>
+</section>
+
+<!-- ================= Betreuung ================= -->
+<section class="view" id="v-ratio">
+  <div class="card">
+    <div class="row">
+      <label class="ctl">Stichtag <select id="raWhen"></select></label>
+      <span class="note" id="raNote"></span>
+    </div>
+    <h2>Studierende je Professor/in (inkl. LfbA) und je WiMi</h2>
+    <p class="sub" id="raSub"></p>
+    <div class="legend" id="lgRa"></div>
+    <div class="chartbox" id="raBox" style="height:360px"><canvas id="cRa"></canvas></div>
+  </div>
+  <div class="card"><h2>Betreuungsrelationen – Tabelle</h2><div class="scroll" id="raTable"></div></div>
+  <div class="grid2 mb">
+    <div class="card">
+      <h2>WiMi je Professur</h2>
+      <p class="sub" id="wmSub"></p>
+      <div class="chartbox" id="wmBox" style="height:300px"><canvas id="cWm"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Verteilung der WiMi im Vergleich zu den Professuren</h2>
+      <p class="sub">Welcher Anteil aller Professuren und aller WiMi der Fakultät entfällt auf den Cluster? Ist der WiMi-Anteil größer als der Professuren-Anteil, ist der Cluster überdurchschnittlich mit WiMi ausgestattet.</p>
+      <div class="legend" id="lgWmShare"></div>
+      <div class="chartbox" id="wmShareBox" style="height:300px"><canvas id="cWmShare"></canvas></div>
+    </div>
+  </div>
+  <div class="card"><h2>WiMi-Ausstattung je Cluster und Organisationseinheit</h2><p class="sub">Ohne LfbA. Blau = über, Rot = unter dem Fakultätsdurchschnitt.</p><div class="scroll" id="wmTable" style="max-height:620px"></div></div>
+  <div class="grid2">
+    <div class="card">
+      <h2>Zuordnung der Mitarbeiterkreise</h2>
+      <p class="sub">Automatisch erkannt – bitte prüfen und bei Bedarf anpassen. LfbA zählen im Betreuungsverhältnis als Professor/innen, in der WiMi-Übersicht gar nicht.</p>
+      <div id="catMapBox"></div>
+    </div>
+    <div class="card"><h2>Studierende je Studiengang</h2><div class="scroll" id="stTable"></div></div>
+  </div>
+</section>
+<!-- ================= Planung ================= -->
+<section class="view" id="v-plan">
+  <div class="wip-banner" role="note" aria-label="Work in Progress">
+    <div class="wip-logo" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="54" height="54"><path d="M32 5 L60 55 H4 Z" fill="#fab219" stroke="#0b0b0b" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="29" y="22" width="6" height="18" rx="2" fill="#0b0b0b"/><circle cx="32" cy="47" r="3.6" fill="#0b0b0b"/></svg>
+    </div>
+    <div class="wip-text">
+      <div class="wip-title">WORK IN PROGRESS</div>
+      <div class="wip-sub">Diese Ansicht ist ein Entwurf und befindet sich noch im Aufbau. Planmaßnahmen werden nur im Arbeitsspeicher gehalten; das Speichern von Szenarien ist noch nicht verlässlich. Ergebnisse sind vorläufig und nicht für Entscheidungen bestimmt.</div>
+    </div>
+  </div>
+  <div class="card plan-head">
+    <div class="row" style="margin-bottom:6px">
+      <div class="seg" id="plSub"><button data-v="tl" class="on">Stellenplan (Zeitstrahl)</button><button data-v="goal">Zielwerte (Ampel)</button></div>
+      <label class="ctl">Szenario <input id="plName" type="text" value="Szenario 1" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);width:180px"></label>
+      <span class="note" id="plCount"></span>
+      <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+        <button id="plNew">+ Neue Stelle</button>
+        <button id="plSave" title="Szenario als Datei speichern (bleibt lokal)">Szenario speichern</button>
+        <label class="btnlike" title="Gespeichertes Szenario laden">Szenario laden<input type="file" id="plLoad" accept=".json,application/json" hidden></label>
+        <button id="plClear">Szenario leeren</button>
+      </span>
+    </div>
+    <label class="ctl"><input type="checkbox" id="plApply"> Szenario in <b>allen</b> Ansichten einrechnen (Mitarbeiterkreise, Semesterverlauf, Forecast, Betreuung, Detailansicht)</label>
+  </div>
+
+  <!-- ---------- Variante B: Zeitstrahl ---------- -->
+  <div id="plTl">
+    <div class="card">
+      <div class="row">
+        <label class="ctl">Cluster <select id="tlCluster"></select></label>
+        <label class="ctl">Gliedern nach <select id="tlGroup"><option value="oe">Organisationseinheit</option><option value="labor">Laborbereich</option><option value="kreis">Mitarbeiterkreis</option></select></label>
+        <label class="ctl">Mitarbeiterkreis <select id="tlKreis"></select></label>
+        <label class="ctl">Zeitraum bis <select id="tlRange"><option value="10">10 Semester</option><option value="20" selected>20 Semester</option></select></label>
+        <label class="ctl" title="Nur Stellen, die im Zeitraum enden und noch keine Nachfolge haben, sowie Planmaßnahmen"><input type="checkbox" id="tlNeed"> nur Handlungsbedarf</label>
+      </div>
+      <div class="legend" id="tlLegend"></div>
+      <p class="sub" style="margin:0">Klick auf einen Balken: Nachbesetzen, Vertragsende ändern oder Person anzeigen. Rot gestrichelt = Stelle nach Vertragsende unbesetzt (ohne kw). Gestrichelte Balken = Planmaßnahmen.</p>
+    </div>
+    <div class="card tl-card"><div id="tlBox"></div></div>
+    <div class="grid2 mb">
+      <div class="card">
+        <h2>Wirkung: Ist und Plan</h2>
+        <p class="sub" id="tlEffSub"></p>
+        <div class="legend" id="tlEffLg"></div>
+        <div class="chartbox" style="height:260px"><canvas id="cPlanEff"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Planmaßnahmen</h2>
+        <div class="scroll" id="plList" style="max-height:330px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- Variante C: Zielwerte ---------- -->
+  <div id="plGoal" class="hidden">
+    <div class="card">
+      <h2>Zielwerte</h2>
+      <div class="row">
+        <label class="ctl">höchstens <input type="number" id="gStud" min="1" step="1" value="40" class="num"> Studierende je Professur (inkl. LfbA)</label>
+        <label class="ctl">mindestens <input type="number" id="gWimi" min="0" step="0.05" value="0.75" class="num"> WiMi je Professur (ohne LfbA)</label>
+        <label class="ctl">Toleranz (gelb) <input type="number" id="gTol" min="0" max="50" step="1" value="10" class="num"> %</label>
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <label class="ctl">Kennzahl <select id="gKpi"><option value="both">beide (schlechterer Wert)</option><option value="stud">Studierende je Professur</option><option value="wimi">WiMi je Professur</option></select></label>
+        <label class="ctl"><input type="checkbox" id="gWithPlan" checked> mit Planmaßnahmen</label>
+        <span class="note">Basis: VZÄ mit aktivem, nicht ruhendem Anteil zu Semesterbeginn; Studierendenzahlen unverändert.</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Ampel je Cluster und Semester</h2>
+      <p class="sub">✓ Ziel erreicht · ! knapp (innerhalb der Toleranz) · ✕ verfehlt. Klick auf ein Feld zeigt den Fehlbedarf.</p>
+      <div class="scroll" id="gMatrix" style="max-height:none"></div>
+    </div>
+    <div class="card" id="gDetailCard"><h2 id="gDetailTitle">Fehlbedarf</h2><div id="gDetail" class="note">Bitte ein Feld in der Ampel wählen.</div></div>
+  </div>
+</section>
+
+<!-- Formular für Planmaßnahmen -->
+<div id="plOverlay" class="pd-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="plFormTitle">
+  <div class="pd-box" style="max-width:620px">
+    <div class="pd-head"><h2 id="plFormTitle"></h2><button id="plFormClose" aria-label="Schließen">✕</button></div>
+    <div id="plFormBody"></div>
+    <div class="row" style="justify-content:flex-end;margin:14px 0 0"><button id="plFormCancel">Abbrechen</button><button id="plFormOk" class="primary">Übernehmen</button></div>
+  </div>
+</div>
+<div id="tlMenu" class="tl-menu hidden"></div>
+
+<!-- ================= Detailansicht ================= -->
+<section class="view" id="v-detail">
+  <div class="card">
+    <div class="row"><label class="ctl">Cluster <select id="dtCluster"></select></label><label class="ctl">Laborbereich <select id="dtLab"></select></label><label class="ctl">Organisationseinheit <select id="dtOE"></select></label></div>
+    <h2 id="dtRatioTitle">Betreuungsverhältnis</h2>
+    <p class="sub" id="dtRatioSub"></p>
+    <div class="ratio-row" id="dtRatio"></div>
+    <div class="scroll" id="dtRatioTable"></div>
+  </div>
+  <div class="card">
+    <h2 id="dtLabTitle">Professuren und Mitarbeitende je Laborbereich</h2>
+    <p class="sub" id="dtLabSub"></p>
+    <div class="legend" id="lgLab"></div>
+    <div class="chartbox" id="dtLabBox" style="height:260px"><canvas id="cLab"></canvas></div>
+    <div class="scroll" id="dtLabTable" style="margin-top:14px"></div>
+  </div>
+  <div class="card">
+    <h2>Personalliste <span class="note" id="dtCount"></span></h2>
+    <p class="sub"><b>Erweitern</b> blendet TrfGr, ArbAnteil, Deputat, Vertragsart, Beginn und „ruht bis“ ein (auf schmalen Bildschirmen auch Organisationseinheit und Laborbereich). Vertretungen stehen eingerückt unter der vertretenen Person. Klick auf eine Zeile zeigt alle Daten zur Person, Klick auf eine Spaltenüberschrift sortiert. ⛔/⚠ markiert Zeilen mit Befunden aus der Datenprüfung (Maus darüber bzw. antippen zeigt Details).</p>
+    <div class="row">
+      <input type="search" id="dtSearch" placeholder="Suche: Name, Pers.-Nr., OE, Tarif …" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);min-width:260px">
+      <label class="ctl"><input type="checkbox" id="dtAll"> auch ausgelaufene und künftige Verträge</label>
+      <label class="ctl"><input type="checkbox" id="dtSoon"> nur Ausscheiden (Vertragsende/Ruhestand) in den nächsten 12 Monaten</label>
+      <span class="ctl">Gliedern nach <span class="seg" id="dtGroup"><button data-v="kreis" class="on">Mitarbeiterkreis</button><button data-v="lab">Laborbereich</button></span></span>
+      <button id="dtCsv">Liste als CSV speichern</button>
+      <button id="dtExpand">Erweitern ▸</button>
+      <button id="dtOpen">Alle auf-/zuklappen</button>
+    </div>
+    <div id="dtLists"></div>
+  </div>
+</section>
+<!-- ================= Kapazität ================= -->
+<section class="view" id="v-cap">
+  <div class="wip-banner" role="note" aria-label="Work in Progress">
+    <div class="wip-logo" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="54" height="54"><path d="M32 5 L60 55 H4 Z" fill="#fab219" stroke="#0b0b0b" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="29" y="22" width="6" height="18" rx="2" fill="#0b0b0b"/><circle cx="32" cy="47" r="3.6" fill="#0b0b0b"/></svg>
+    </div>
+    <div class="wip-text">
+      <div class="wip-title">WORK IN PROGRESS</div>
+      <div class="wip-sub">Diese Ansicht befindet sich noch im Aufbau. Die Verknüpfung der Studiengänge mit Clustern und Organisationseinheiten fehlt noch; Ergebnisse sind vorläufig und nicht für Entscheidungen bestimmt.</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="row">
+      <label class="ctl">Stichtag <select id="capWhen"></select></label>
+      <label class="ctl" title="Wie oft im Jahr nimmt ein Studiengang eine neue Studierendengruppe auf?">Aufnahmen je Jahr <select id="capIntakes"><option value="1">1 (jährlich)</option><option value="2">2 (jedes Semester)</option></select></label>
+    </div>
+    <p class="sub" id="capSub" style="margin:0"></p>
+    <p class="note sev-W hidden" id="capMissing" style="margin:8px 0 0"></p>
+    <p class="note sev-W hidden" id="capDouble" style="margin:8px 0 0"></p>
+  </div>
+  <div class="kpis" id="capKpis"></div>
+  <div class="grid2 mb">
+    <div class="card">
+      <h2>Verfügbare Kapazität je Cluster</h2>
+      <p class="sub">Summe des Lehrdeputats in SWS je Semester, nach Personalgruppe.</p>
+      <div class="legend" id="lgCapCl"></div>
+      <div class="chartbox" id="capClBox" style="height:260px"><canvas id="cCapCl"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Verfügbar und erforderlich je Cluster <span class="pill sev-I">vorläufig</span></h2>
+      <p class="sub">Lehrangebot je Jahr (2 × SWS) gegenüber der erforderlichen Kapazität der Studiengänge, die im Studierendenblatt diesem Cluster zugeordnet sind. Lehrexport und -import zwischen Clustern sind noch nicht berücksichtigt.</p>
+      <div class="legend" id="lgCapBal"></div>
+      <div class="chartbox" id="capBalBox" style="height:260px"><canvas id="cCapBal"></canvas></div>
+    </div>
+  </div>
+  <div class="card"><h2>Kapazität je Cluster – Tabelle</h2><div class="scroll" id="capClTable"></div></div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">Verfügbare Kapazität je Organisationseinheit</h2><label class="ctl">Cluster <select id="capCluster"></select></label></div>
+    <p class="sub">Lehrdeputat in SWS je Semester. Organisationseinheiten ohne Lehrende und ohne unterstützende Personen sind im Diagramm ausgeblendet.</p>
+    <div class="legend" id="lgCapOe"></div>
+    <div class="chartbox" id="capOeBox" style="height:300px"><canvas id="cCapOe"></canvas></div>
+    <div class="scroll" id="capOeTable" style="margin-top:14px;max-height:620px"></div>
+  </div>
+  <div class="card">
+    <h2>Erforderliche Kapazität je Studiengang</h2>
+    <p class="sub">Erforderliche Kapazität = CNW × Studienplätze (Deputatstunden je Jahr bei der gewählten Zahl an Aufnahmen). Rechts die aktuell eingeschriebenen Studierenden, in derselben Reihenfolge.</p>
+    <div class="legend" id="lgCapSg"></div>
+    <div class="cap-pair">
+      <div class="chartbox" id="capSgBox" style="height:300px"><canvas id="cCapSg"></canvas></div>
+      <div class="chartbox" id="capStBox" style="height:300px"><canvas id="cCapSt"></canvas></div>
+    </div>
+    <div class="scroll" id="capSgTable" style="margin-top:14px"></div>
+  </div>
+  <div class="card">
+    <h2>Berechnungsgrundlage</h2>
+    <p class="note" style="margin:0">Lehrangebot je Semester = Summe des Deputats (SWS) aller Personen mit aktivem Vertrag am Stichtag. Personen mit Deputat 0 sind nur unterstützend tätig und tragen nicht zum Lehrangebot bei.
+    Wie in der Kapazitätsverordnung wird das Jahreslehrangebot als 2 × Lehrangebot je Semester angesetzt und der Summe aus CNW × Studienplätze gegenübergestellt.
+    Es zählen nur aktive Verträge und nur nicht ruhende Stellenanteile: Ruhende Verträge (Spalte „ruht bis“) zählen bis zum Ende des Ruhens nicht mit, bei teilweise ruhenden Verträgen (Spalte „Ruheanteil“) nur der nicht ruhende Anteil des Deputats, ihre Vertretungen (Spalte „Vertretung für“) dagegen schon, solange deren Vertrag läuft.
+    Nicht berücksichtigt sind Deputatsermäßigungen, Lehraufträge, Dienstleistungen für andere Lehreinheiten, Schwundfaktoren und offene Stellen.</p>
+  </div>
+</section>
+</main>
+<div id="pdOverlay" class="pd-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pdTitle">
+  <div class="pd-box">
+    <div class="pd-head"><h2 id="pdTitle"></h2><span style="display:flex;gap:8px"><button id="pdToList" title="Person in der Detailansicht hervorheben">In Detailliste zeigen</button><button id="pdClose" aria-label="Schließen">✕ Schließen</button></span></div>
+    <div id="pdBody"></div>
+  </div>
+</div>
+
+<script>/*XLSX*/</script>
+<script>/*CHARTJS*/</script>
+<script>/*APP*/</script>
+</body>
+</html>

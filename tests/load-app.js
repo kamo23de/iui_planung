@@ -1,20 +1,19 @@
-// Lädt den Anwendungscode aus src/app.html in einen eigenen Node-Kontext (ohne Browser),
-// damit die Rechenkerne direkt getestet werden können. Der Aufruf init() am Ende wird
-// weggelassen; DOM-Zugriffe gibt es dann nur noch in Rendering-Funktionen, die hier nicht laufen.
+// Lädt den Anwendungscode – genau so, wie er in die HTML-Datei eingebaut wird – in einen eigenen
+// Node-Kontext (ohne Browser), damit die Rechenkerne direkt getestet werden können. Jeder Aufruf
+// von loadApp() liefert einen frischen Zustand. Der Startaufruf init() wird weggelassen; DOM-Zugriffe
+// gibt es dann nur noch in Rendering-Funktionen, die hier nicht laufen.
 'use strict';
-const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
 const root = path.join(__dirname, '..');
-const html = fs.readFileSync(path.join(root, 'src/app.html'), 'utf8');
+const {appScript} = require('../scripts/build');
 
+/** Das gebaute Anwendungsskript (alle Module aus src/js/ in Build-Reihenfolge), ohne den Startaufruf init(). */
 function appSource() {
-  const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-  const app = blocks.find(b => b.includes('function buildRecords('));
-  if (!app) throw new Error('Anwendungsskript in src/app.html nicht gefunden');
+  const app = appScript();
   const stripped = app.replace(/\ninit\(\);\s*$/, '\n');
-  if (stripped === app) throw new Error('Aufruf init() am Skriptende nicht gefunden');
+  if (stripped === app) throw new Error('Aufruf init() am Ende von src/js/main.js nicht gefunden');
   return stripped;
 }
 
@@ -37,7 +36,7 @@ function loadApp() {
   };
   ctx.globalThis = ctx;
   vm.createContext(ctx);
-  vm.runInContext(appSource(), ctx, {filename: 'src/app.html'});
+  vm.runInContext(appSource(), ctx, {filename: 'app.js'});
   return expr => vm.runInContext(expr, ctx);
 }
 

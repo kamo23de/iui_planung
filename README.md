@@ -94,11 +94,41 @@ Die Treffer erscheinen als Auswahlliste mit Personalnummer, Mitarbeiterkreis, Cl
 
 ## Entwicklung
 
-Der Quelltext liegt in `src/app.html`. Die fertige Einzeldatei wird so gebaut:
+Die fertige Einzeldatei wird so gebaut:
 
 ```bash
 npm install
 npm run build        # erzeugt Personalplanung_IuI.html
+```
+
+### Aufbau des Quelltexts
+
+| Pfad | Inhalt |
+|---|---|
+| `src/index.html` | HTML-Gerüst aller Ansichten, mit Platzhaltern für CSS, Bibliotheken und Anwendungsskript |
+| `src/styles.css` | Gestaltung |
+| `src/js/util.js` | Hilfsfunktionen: DOM-Kurzformen, Datum, Zahlenformate, Rundung, Semester |
+| `src/js/state.js` | gemeinsamer Anwendungszustand `S` |
+| `src/js/parse.js` | Einlesen der Excel-Datei, Spaltenerkennung, Aufbau der Datensätze |
+| `src/js/checks.js` | Datenprüfung |
+| `src/js/model.js` | Rechenkern: aktive Verträge, Ruhen, Teilruhen, Vertretungen, Personalgruppen, Stichtagsbestand |
+| `src/js/teaching.js` | Lehre: Deputat und Lehrangebot (hier setzt die LVVO-Rechnung an) |
+| `src/js/charts.js` | Diagramme und PNG-Export |
+| `src/js/render.js` | Neuzeichnen der aktiven Ansicht |
+| `src/js/views/*.js` | je Reiter eine Ansicht, dazu das Personenfenster |
+| `src/js/plan/*.js` | Planung: Szenario, Formular, Zeitstrahl, Zielwerte |
+| `src/js/search.js` | globale Personensuche |
+| `src/js/main.js` | Laden der Datei, Reiterwechsel, Ereignisse, Start |
+
+Die Dateien unter `src/js/` sind ES-Module mit `import`/`export`. Für die Auslieferung fügt `scripts/build.js` sie in der festen Reihenfolge aus `scripts/modules.js` zu einem Skript zusammen; es werden keine zusätzlichen Werkzeuge benötigt. Dabei gilt:
+
+- Jeder Name auf oberster Ebene ist nur in einem Modul deklariert.
+- Was ein Modul aus einem anderen braucht, importiert es ausdrücklich. Importierte Variablen sind nur lesbar; zum Ändern bietet das besitzende Modul einen Setter (z. B. `setFcMode`).
+- Ein neues Modul wird in `MODULES` in `scripts/modules.js` eingetragen.
+
+```bash
+npm run check        # prüft Importe und Exporte aller Module
+npm run fix-imports  # schreibt die import-Zeilen aus der tatsächlichen Verwendung neu
 ```
 
 ### Tests
@@ -107,7 +137,7 @@ npm run build        # erzeugt Personalplanung_IuI.html
 npm test
 ```
 
-Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:test`). `tests/load-app.js` lädt das Anwendungsskript direkt aus `src/app.html`, sodass die Rechenfunktionen ohne Umbau getestet werden:
+Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:test`). `tests/load-app.js` lädt das gebaute Anwendungsskript in einen frischen Node-Kontext, sodass die Rechenfunktionen genau in der ausgelieferten Form getestet werden:
 
 | Datei | Inhalt |
 |---|---|
@@ -119,6 +149,7 @@ Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:tes
 | `planung.test.js` | Szenarien (Nachbesetzung, neue Stelle, Vertragsende) und Zielwerte |
 | `testdaten.test.js` | Gesamtlauf mit der Testdatei und festgehaltenen Referenzwerten (Stichtag 26.11.2026) |
 | `build.test.js` | `Personalplanung_IuI.html` ist aktuell; Content-Security-Policy ohne Netzwerkzugriff |
+| `module.test.js` | Importe und Exporte vollständig; die Module lassen sich als echte ES-Module laden |
 
 Neue Fälle lassen sich mit `setup([...])` aus `tests/helpers.js` knapp formulieren: Jede Person ist ein Objekt, das nur die abweichenden Felder angibt.
 Ändert sich durch eine gewollte Regeländerung ein Referenzwert in `testdaten.test.js`, wird er dort bewusst angepasst.

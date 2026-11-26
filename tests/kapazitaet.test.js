@@ -16,7 +16,7 @@ test('Lehrangebot: Summe des wirksamen Deputats je Personalgruppe, Jahr = 2 × S
     {pnr: 6, deputat: 0},                                                  // nur unterstützend
     {pnr: 7, kreis: 'Verwaltung', tarif: 'E9'},                            // keine Angabe
   ]);
-  const c = get('capStats')(S.recs);
+  const c = get('capStats')(S.recs, S.today);
   assert.equal(c.P, 27);
   assert.equal(c.L, 16);
   assert.equal(c.W, 4);
@@ -30,13 +30,13 @@ test('Lehrangebot: Summe des wirksamen Deputats je Personalgruppe, Jahr = 2 × S
 
 test('Lehrangebot nach Ende des Ruhens wieder voll', () => {
   const {get, S} = setup([{pnr: 1, ...PROF, deputat: 18, ruht: '31.03.2027', ruheanteil: 0.5}]);
-  get('(d => { CAP_D = d; })')(get('parseDate')('01.04.2027').v);
-  assert.equal(get('capStats')(S.recs).sws, 18);
+  assert.equal(get('capStats')(S.recs, S.today).sws, 9);
+  assert.equal(get('capStats')(S.recs, get('parseDate')('01.04.2027').v).sws, 18);
 });
 
 test('Unlesbares Deputat zählt nicht zum Lehrangebot', () => {
   const {get, S} = setup([{pnr: 1, ...PROF, deputat: 'n.n.'}]);
-  const c = get('capStats')(S.recs);
+  const c = get('capStats')(S.recs, S.today);
   assert.equal(c.sws, 0);
   assert.equal(c.none, 1);
 });
