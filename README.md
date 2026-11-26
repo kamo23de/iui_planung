@@ -76,13 +76,18 @@ Szenarien werden als JSON-Datei gespeichert und wieder geladen (lokal, ohne Uplo
 
 Jedes Diagramm hat oben rechts den Button **⤓ PNG**. Er speichert das Diagramm als Bild in hoher Auflösung, mit Titel, Legende und einer Quellenzeile (Stichtag, Maßeinheit, gewählte Filter, ggf. DEMO/PLAN, Erstellungsdatum). Ganze Seiten lassen sich über den Druckdialog des Browsers als PDF speichern.
 
-### Personensuche
+### Suche
 
-Das Suchfeld oben in der Kopfzeile steht auf allen Seiten zur Verfügung (Tastenkürzel **/** oder **Strg/⌘ + K**).
-Gesucht wird am Anfang von Nachname, Vorname oder Personalnummer, ohne Rücksicht auf Groß-/Kleinschreibung und Akzente („mul“ findet „Müller“).
-Die Treffer erscheinen als Auswahlliste mit Personalnummer, Mitarbeiterkreis, Cluster und Status.
-**Tab** vervollständigt wie in der Unix-Shell bis zum längsten gemeinsamen Anfang aller Treffer (grau angezeigt); ist nichts mehr zu ergänzen, springt Tab durch die Liste.
-**↑/↓** wählen, **Enter** öffnet das Personenfenster, **Esc** schließt. Im Personenfenster führt „In Detailliste zeigen“ zur Person in der Detailansicht.
+Das Suchfeld oben in der Kopfzeile steht auf allen Seiten zur Verfügung (Tastenkürzel **/** oder **Strg/⌘ + K**). Es findet Personen, Laborbereiche und Organisationseinheiten, ohne Rücksicht auf Groß-/Kleinschreibung und Akzente („mul“ findet „Müller“).
+
+- **Personen:** Anfang von Nachname, Vorname oder Personalnummer. Die Liste zeigt Personalnummer, Mitarbeiterkreis, Cluster und Status; **Enter** öffnet das Personenfenster. Dort führt „In Detailliste zeigen“ zur Person in der Detailansicht.
+- **Laborbereiche und Organisationseinheiten:** Anfang des Namens oder eines Wortes darin („fert“ findet „Labor Fertigungstechnik“). Gleiche Namen in verschiedenen Clustern erscheinen getrennt. **Enter** öffnet die Detailansicht mit passendem Cluster und Filter.
+- Die Auswahlliste ist in dieser Reihenfolge gruppiert: **Personen**, **Laborbereiche**, **Organisationseinheiten** (höchstens 8, 5 und 5 Einträge; weiter tippen grenzt ein).
+- **Tab** vervollständigt wie in der Unix-Shell bis zum längsten gemeinsamen Anfang aller Treffer (grau angezeigt), über alle drei Gruppen hinweg; ist nichts mehr zu ergänzen, springt Tab durch die Liste. **↑/↓** wählen, **Esc** schließt. Bei mehreren Treffern markiert das erste **Enter** den obersten, das zweite öffnet ihn.
+
+### Bereiche in Arbeit (WIP)
+
+Die Reiter **Kapazität**, **Lehrverpflichtung** und **Planung** sowie die LVVO-Angaben im Personenfenster sind noch in Arbeit. Der Schalter **WIP-Bereiche** in der Kopfzeile blendet sie ein oder aus; standardmäßig sind sie ausgeblendet. Die Wahl merkt sich der Browser (nur diese Einstellung, keine Daten). Beim Ausblenden wird ein eingerechnetes Planungsszenario abgeschaltet. Die Datenprüfung meldet LVVO-Befunde unabhängig vom Schalter.
 
 ## Festgelegte Regeln
 
@@ -129,7 +134,7 @@ npm run build        # erzeugt Personalplanung_IuI.html
 | `src/js/render.js` | Neuzeichnen der aktiven Ansicht |
 | `src/js/views/*.js` | je Reiter eine Ansicht, dazu das Personenfenster |
 | `src/js/plan/*.js` | Planung: Szenario, Formular, Zeitstrahl, Zielwerte |
-| `src/js/search.js` | globale Personensuche |
+| `src/js/search.js` | globale Suche nach Personen, Laborbereichen und Organisationseinheiten |
 | `src/js/main.js` | Laden der Datei, Reiterwechsel, Ereignisse, `init()` |
 | `src/js/app.js` | Einstiegspunkt: startet die Anwendung |
 
@@ -161,6 +166,7 @@ Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:tes
 | `kapazitaet.test.js` | Lehrangebot aus Deputat |
 | `lvvo.test.js` | LVVO: Regelwerte, Zuordnung zur Gruppe, Lehrverpflichtung mit Teilzeit, Ruhen und Ermäßigungen, Quote nach § 9, Prüfregeln |
 | `lehre.test.js` | Blatt „Lehre“: Semesterangaben, Gewichtung nach § 14, Betreuung nach § 15, Zeitkonto mit Kappung, Fehlbetrag, Übertrag und Lücken, Prüfregeln |
+| `suche.test.js` | Suche: Reihenfolge Personen – Laborbereiche – Organisationseinheiten, Treffer am Wortanfang, Akzente, Vervollständigung |
 | `planung.test.js` | Szenarien (Nachbesetzung, neue Stelle, Vertragsende) und Zielwerte |
 | `testdaten.test.js` | Gesamtlauf mit der Testdatei und festgehaltenen Referenzwerten (Stichtag 26.11.2026) |
 | `build.test.js` | `Personalplanung_IuI.html` ist aktuell; Content-Security-Policy ohne Netzwerkzugriff |

@@ -53,7 +53,7 @@ export function showPerson(rowNo) {
         ['VZÄ', r.vz == null ? '' : nf1.format(r.vz) + (r.vzDerived ? ' <span class="note">(aus ArbAnteil abgeleitet)</span>' : '')],
         ['Wirksame VZÄ heute', inRestPeriod(r, T) ? `<b>${nf1.format(effVz(r, T))}</b> <span class="note">(${nf1.format(restVz(r, T))} VZÄ ruhen)</span>` : ''],
         ['Lehrdeputat', r.deputat == null ? '' : `${nf1.format(r.deputat)} SWS je Semester` + (inRestPeriod(r, T) && r.deputat > 0 ? ` <span class="note">– wirksam heute ${nf1.format(effDep(r, T))} SWS</span>` : '') + (r.deputat === 0 ? ' <span class="note">(nur unterstützend in der Lehre)</span>' : '')],
-        ['Lehrverpflichtung (LVVO)', (() => { const x = lvvo(r, T); if (x.gruppe.art === 'keine') return x.quelle === 'Spalte' ? 'keine (Spalte „LVVO-Gruppe“)' : '';
+        S.showWip && ['Lehrverpflichtung (LVVO)', (() => { const x = lvvo(r, T); if (x.gruppe.art === 'keine') return x.quelle === 'Spalte' ? 'keine (Spalte „LVVO-Gruppe“)' : '';
           const er = x.erm.map(e => `${esc((x.F.gruende.find(g => g.key === e.grund) || {kurz: e.e.grundRaw || 'Grund unbekannt'}).kurz)} ${nf1.format(e.lvs)}`).join(', ');
           return `${esc(x.gruppe.label)}: ${x.gruppe.art === 'regel' ? `<b>${nf1.format(x.soll)} LVS</b> je Semester (${x.gruppe.lvs} LVS × ${nf1.format(x.anteil)} VZÄ` + (x.ermSum ? ` − Ermäßigungen ${nf1.format(x.ermSum)}: ${er}` : '') + ')'
             : `höchstens ${nf1.format(x.basis)} LVS (${x.gruppe.lvs} LVS × ${nf1.format(x.anteil)} VZÄ)`} <span class="note">${x.gruppe.ref}${x.quelle === 'Spalte' ? ', Gruppe aus Spalte „LVVO-Gruppe“' : ''}${x.annahme ? ' – ' + esc(x.annahme) : ''}</span>`; })()],
@@ -64,7 +64,7 @@ export function showPerson(rowNo) {
         ...extra.map(([h, i]) => [esc(h), esc(r.rawRow[i])]),
       ])}</section>
     </div>` +
-    kontoHtml(r) +
+    (S.showWip ? kontoHtml(r) : '') +
     (iss.length ? `<section><h3>Befunde der Datenprüfung</h3><table>${iss.map(i => `<tr><td><span class="pill sev-${i.sev}">${sevLbl[i.sev]}</span></td><td>${esc(i.field)}</td><td>${esc(i.msg)}</td></tr>`).join('')}</table></section>` : '') +
     (others.length ? `<section><h3>Weitere Verträge mit derselben Personalnummer</h3><table><tr><th>Zeile</th><th>Name</th><th>Mitarbeiterkreis</th><th>Cluster</th><th class="n">VZÄ</th><th>Beginn</th><th>Ausscheiden</th><th>Status</th></tr>${others.map(o => `<tr class="click" data-row="${o.row}"><td>${o.row}</td><td>${esc([o.name, o.vorname].filter(Boolean).join(', '))}</td><td>${esc(kreisOf(o))}</td><td>${esc(clusterOf(o))}</td><td class="n">${o.vz == null ? '–' : nf1.format(o.vz)}</td><td>${fmtD(o.beginn)}</td><td>${o.ende == null ? 'unbefristet' : fmtD(o.ende)}</td><td>${contractStatus(o).t}</td></tr>`).join('')}</table></section>` : '');
   $$('#pdBody [data-row]').forEach(el => el.onclick = e => { e.preventDefault(); showPerson(+el.dataset.row); });

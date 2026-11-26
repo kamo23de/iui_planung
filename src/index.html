@@ -29,11 +29,13 @@
   <div class="ctl hidden gs" data-loaded id="gsWrap">
     <div class="gs-box">
       <div class="gs-ghost" aria-hidden="true"><span class="gs-t"></span><span class="gs-c"></span></div>
-      <input id="gsInput" type="text" placeholder="Person suchen …  ( / )" autocomplete="off" autocapitalize="off" spellcheck="false"
-        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="gsList" title="Name, Vorname oder Personalnummer · Tab vervollständigt · ↑/↓ wählen · Enter öffnet">
+      <input id="gsInput" type="text" placeholder="Person, Labor oder OE suchen …  ( / )" autocomplete="off" autocapitalize="off" spellcheck="false"
+        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="gsList" title="Person (Name, Vorname, Personalnummer), Laborbereich oder Organisationseinheit · Tab vervollständigt · ↑/↓ wählen · Enter öffnet">
     </div>
     <div id="gsList" class="gs-list hidden" role="listbox"></div>
   </div>
+  <div class="ctl hidden" data-loaded title="Bereiche, die noch in Arbeit sind (Kapazität, Lehrverpflichtung, Planung), ein- oder ausblenden. Die Wahl merkt sich der Browser.">
+    <input type="checkbox" id="wipToggle"><label for="wipToggle">WIP-Bereiche</label></div>
   <div class="ctl hidden" data-loaded><label for="today">Stichtag „heute“</label><input type="date" id="today"></div>
   <div class="ctl hidden" data-loaded><span>Maßeinheit</span>
     <div class="seg" id="measureSeg"><button data-v="koepfe" class="on">Köpfe</button><button data-v="vzae">VZÄ</button></div></div>
@@ -52,9 +54,9 @@
   <button data-t="forecast">Forecast</button>
   <button data-t="ratio">Betreuung &amp; WiMi</button>
   <button data-t="detail">Detailansicht</button>
-  <button data-t="cap">Kapazität<span class="wip-tab" title="Work in Progress">WIP</span></button>
-  <button data-t="lvvo">Lehrverpflichtung<span class="wip-tab" title="Work in Progress">WIP</span></button>
-  <button data-t="plan">Planung<span class="wip-tab" title="Work in Progress">WIP</span><span class="plan-tab" id="planTabBadge"></span></button>
+  <button data-t="cap" data-wip>Kapazität<span class="wip-tab" title="Work in Progress">WIP</span></button>
+  <button data-t="lvvo" data-wip>Lehrverpflichtung<span class="wip-tab" title="Work in Progress">WIP</span></button>
+  <button data-t="plan" data-wip>Planung<span class="wip-tab" title="Work in Progress">WIP</span><span class="plan-tab" id="planTabBadge"></span></button>
 </nav>
 
 <div id="start">
