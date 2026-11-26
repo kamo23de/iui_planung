@@ -5,8 +5,8 @@ import {catColor, clusterOf} from '../parse.js';
 import {clusterList, effDep, inRestPeriod, isActive, isPartlyResting, tot, used} from '../model.js';
 import {capStats} from '../teaching.js';
 import {axis, barDs, charts, endLabels, legendHtml, mkChart} from '../charts.js';
-import {fillClusterSelect} from './semester.js';
 import {labSort, oeOf} from './detail.js';
+import {fillClusterSelect} from './semester.js';
 
 /* Lehrangebot: Summe Deputat (SWS je Semester) der Personen mit aktivem Vertrag; Jahreslehrangebot = 2 × SWS je Semester
    (KapVO: jährliche Aufnahmekapazität = 2 × Lehrangebot je Semester / Curricularanteil).

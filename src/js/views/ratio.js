@@ -2,7 +2,7 @@
 import {$, $$, css, esc, fmtD, nf0, nf1, pct, r2, semIdx, semLabel, semStart, sumBy} from '../util.js';
 import {CATS, S} from '../state.js';
 import {catColor, clusterOf, kreisColor, kreisOf, orderKreise} from '../parse.js';
-import {fmtV, isActive, tot, used, valAt} from '../model.js';
+import {clusterList, fmtV, isActive, tot, used, valAt} from '../model.js';
 import {axis, barDs, endLabels, legendHtml, mkChart} from '../charts.js';
 import {renderAll} from '../render.js';
 

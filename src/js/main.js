@@ -4,18 +4,18 @@ import {S} from './state.js';
 import {readWorkbook} from './parse.js';
 import {chartDefaults, charts} from './charts.js';
 import {renderAll} from './render.js';
-import {renderCheck} from './views/check.js';
-import {renderSemDetail, renderSemester} from './views/semester.js';
-import {fcMode, renderForecast, setFcMode} from './views/forecast.js';
-import {renderRatio} from './views/ratio.js';
-import {detailCsv, DT, isNarrow, renderDetail, renderDetailList} from './views/detail.js';
 import {renderCapacity} from './views/capacity.js';
+import {renderCheck} from './views/check.js';
+import {detailCsv, DT, isNarrow, renderDetail, renderDetailList} from './views/detail.js';
+import {fcMode, renderForecast, setFcMode} from './views/forecast.js';
 import {closePerson} from './views/person.js';
-import {PLAN, planTouch, renderPlanBadge} from './plan/scenario.js';
+import {renderRatio} from './views/ratio.js';
+import {renderSemDetail, renderSemester} from './views/semester.js';
 import {closePlanForm, openPlanForm, submitPlanForm} from './plan/form.js';
-import {renderPlan, setPlSub} from './plan/view.js';
-import {renderTimeline, tlMenu} from './plan/timeline.js';
 import {loadPlan, renderGoals, savePlan, setGSel} from './plan/goals.js';
+import {PLAN, planTouch, renderPlanBadge} from './plan/scenario.js';
+import {renderTimeline, tlMenu} from './plan/timeline.js';
+import {renderPlan, setPlSub} from './plan/view.js';
 import {GS, gsClose, gsKey, gsRender, showInDetail} from './search.js';
 
 export function showTab(t) {
@@ -25,6 +25,7 @@ export function showTab(t) {
   renderAll();
 }
 /* Demodaten: fiktive Testtabelle, beim Bauen als Base64 eingebettet (scripts/build.js) */
+// Platzhalter; scripts/build.js setzt hier die Testdatei (Base64) als Demodaten ein.
 const DEMO_XLSX_B64 = '/*DEMO_XLSX_B64*/';
 const hasDemo = () => !DEMO_XLSX_B64.startsWith('/*');
 async function loadFile(f) {
@@ -67,7 +68,7 @@ function loadBuffer(buf, name, isDemo) {
     document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px');
     showTab('check');
 }
-function init() {
+export function init() {
   chartDefaults();
   const n = new Date(); S.today = toDay(n.getFullYear(), n.getMonth() + 1, n.getDate());
   $('#today').value = isoD(S.today);
@@ -146,4 +147,3 @@ function init() {
     clearTimeout(rsT); rsT = setTimeout(() => { if (S.raw && S.tab === 'detail' && DT.lastNarrow !== isNarrow()) renderDetailList(); }, 150);
   });
 }
-init();

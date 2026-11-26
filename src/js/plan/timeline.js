@@ -5,8 +5,8 @@ import {clusterOf, kreisColor, kreisOf} from '../parse.js';
 import {clusterList, fmtV, isVertretung, restShare, restVz, snapshot, unit, used, usedBase, withPlan} from '../model.js';
 import {axis, legendHtml, mkChart} from '../charts.js';
 import {showPerson} from '../views/person.js';
-import {modFor, nachFor, PLAN, planDesc, planFind} from './scenario.js';
 import {deletePlanItem, editPlanItem, openPlanForm} from './form.js';
+import {modFor, nachFor, PLAN, planDesc, planFind} from './scenario.js';
 
 export function renderTimeline() {
   const sel = $('#tlCluster'), cur0 = sel.value;

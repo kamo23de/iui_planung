@@ -3,9 +3,9 @@ import {$, $$, esc} from './util.js';
 import {S} from './state.js';
 import {clusterOf, kreisOf} from './parse.js';
 import {inContract, isActive, used} from './model.js';
-import {fillClusterSelect} from './views/semester.js';
 import {contractStatus, renderDetail} from './views/detail.js';
 import {closePerson, showPerson} from './views/person.js';
+import {fillClusterSelect} from './views/semester.js';
 import {showTab} from './main.js';
 
 /* Treffer: Anfang von Nachname, Vorname, „Vorname Name“, „Name, Vorname“ oder Personalnummer – ohne Rücksicht auf

@@ -118,13 +118,14 @@ npm run build        # erzeugt Personalplanung_IuI.html
 | `src/js/views/*.js` | je Reiter eine Ansicht, dazu das Personenfenster |
 | `src/js/plan/*.js` | Planung: Szenario, Formular, Zeitstrahl, Zielwerte |
 | `src/js/search.js` | globale Personensuche |
-| `src/js/main.js` | Laden der Datei, Reiterwechsel, Ereignisse, Start |
+| `src/js/main.js` | Laden der Datei, Reiterwechsel, Ereignisse, `init()` |
+| `src/js/app.js` | Einstiegspunkt: startet die Anwendung |
 
-Die Dateien unter `src/js/` sind ES-Module mit `import`/`export`. Für die Auslieferung fügt `scripts/build.js` sie in der festen Reihenfolge aus `scripts/modules.js` zu einem Skript zusammen; es werden keine zusätzlichen Werkzeuge benötigt. Dabei gilt:
+Die Dateien unter `src/js/` sind ES-Module mit `import`/`export`. `scripts/build.js` bündelt sie mit [esbuild](https://esbuild.github.io/) ab dem Einstiegspunkt `src/js/app.js` zu einem Skript und setzt dieses zusammen mit CSS, SheetJS, Chart.js und den Demodaten in die HTML-Datei ein. Dabei gilt:
 
-- Jeder Name auf oberster Ebene ist nur in einem Modul deklariert.
 - Was ein Modul aus einem anderen braucht, importiert es ausdrücklich. Importierte Variablen sind nur lesbar; zum Ändern bietet das besitzende Modul einen Setter (z. B. `setFcMode`).
-- Ein neues Modul wird in `MODULES` in `scripts/modules.js` eingetragen.
+- Jeder Name auf oberster Ebene ist nur in einem Modul deklariert. Das braucht die Importprüfung in `scripts/modules.js`.
+- esbuild meldet Importe von Namen, die nicht exportiert werden. Einen vergessenen Import meldet es nicht. Diese Lücke schließen `npm run check` und der Test `ansichten.test.js`.
 
 ```bash
 npm run check        # prüft Importe und Exporte aller Module
@@ -137,7 +138,7 @@ npm run fix-imports  # schreibt die import-Zeilen aus der tatsächlichen Verwend
 npm test
 ```
 
-Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:test`). `tests/load-app.js` lädt das gebaute Anwendungsskript in einen frischen Node-Kontext, sodass die Rechenfunktionen genau in der ausgelieferten Form getestet werden:
+Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:test`). `tests/load-app.js` bündelt alle Module außer `app.js` mit esbuild (gleiche Einstellungen wie der Build) und lädt sie für jeden Test in einen frischen Node-Kontext:
 
 | Datei | Inhalt |
 |---|---|
@@ -150,6 +151,7 @@ Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:tes
 | `testdaten.test.js` | Gesamtlauf mit der Testdatei und festgehaltenen Referenzwerten (Stichtag 26.11.2026) |
 | `build.test.js` | `Personalplanung_IuI.html` ist aktuell; Content-Security-Policy ohne Netzwerkzugriff |
 | `module.test.js` | Importe und Exporte vollständig; die Module lassen sich als echte ES-Module laden |
+| `ansichten.test.js` | Alle Ansichten werden mit den echten ES-Modulen und einem Platzhalter-DOM gezeichnet; fängt vergessene Importe ab |
 
 Neue Fälle lassen sich mit `setup([...])` aus `tests/helpers.js` knapp formulieren: Jede Person ist ein Objekt, das nur die abweichenden Felder angibt.
 Ändert sich durch eine gewollte Regeländerung ein Referenzwert in `testdaten.test.js`, wird er dort bewusst angepasst.

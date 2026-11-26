@@ -1,9 +1,10 @@
-// Module unter src/js/: Reihenfolge, Prüfung der Importe und Zusammenfügen zu einem Skript.
+// Prüfung der Module unter src/js/: Sind alle Importe vorhanden, verwendet und exportiert?
 //
-// Die Quellen sind ES-Module mit import/export. Für die Auslieferung als eine einzige, offline
-// lauffähige HTML-Datei werden sie in der festen Reihenfolge MODULES aneinandergehängt
-// (import-Zeilen entfernt, „export “ gestrichen). Das klappt, weil jeder Name auf oberster Ebene
-// nur in einem Modul deklariert ist (wird geprüft).
+// Die Quellen sind ES-Module mit import/export; gebündelt werden sie von esbuild (scripts/build.js).
+// esbuild meldet Importe nicht exportierter Namen, aber keine vergessenen Importe – ein vergessener
+// Import fiele erst beim Klicken im Browser auf. Diese Prüfung schließt die Lücke ohne weitere Werkzeuge.
+// Sie erkennt Namen per Textmuster und setzt deshalb voraus, dass jeder Name auf oberster Ebene nur in
+// einem Modul deklariert ist (wird ebenfalls geprüft).
 //
 // Aufruf:  node scripts/modules.js          → prüft Importe, Exit-Code 1 bei Problemen
 //          node scripts/modules.js --fix    → schreibt die import-Zeilen aller Module neu
@@ -13,15 +14,21 @@ const path = require('path');
 
 const SRC = path.join(__dirname, '..', 'src', 'js');
 
-// Reihenfolge im gebauten Skript. Neue Module hier eintragen. Module, deren oberste Ebene
-// Werte anderer Module beim Laden braucht, müssen nach diesen stehen.
-const MODULES = [
-  'util.js', 'state.js', 'parse.js', 'checks.js', 'model.js', 'teaching.js', 'charts.js', 'render.js',
-  'views/check.js', 'views/overview.js', 'views/semester.js', 'views/forecast.js', 'views/ratio.js',
-  'views/detail.js', 'views/capacity.js', 'views/person.js',
-  'plan/scenario.js', 'plan/form.js', 'plan/view.js', 'plan/timeline.js', 'plan/goals.js',
-  'search.js', 'main.js',
-];
+// Schichtenfolge – bestimmt nur die Reihenfolge der import-Zeilen; neue Module ohne Eintrag stehen am Ende.
+const LAYERS = ['util.js', 'state.js', 'parse.js', 'checks.js', 'model.js', 'teaching.js', 'charts.js', 'render.js', 'views/', 'plan/', 'search.js', 'main.js', 'app.js'];
+const rank = f => { const i = LAYERS.findIndex(l => l.endsWith('/') ? f.startsWith(l) : f === l); return i < 0 ? LAYERS.length : i; };
+
+/** Alle Module unter src/js/ (ohne package.json), in Schichtenfolge. */
+function listModules() {
+  const out = [];
+  (function walk(dir) {
+    for (const e of fs.readdirSync(dir, {withFileTypes: true})) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walk(p); else if (e.name.endsWith('.js')) out.push(path.relative(SRC, p).split(path.sep).join('/'));
+    }
+  })(SRC);
+  return out.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+}
 
 const DECL = /^(?:export\s+)?(?:async\s+)?(?:function\*?\s+([A-Za-z_$][\w$]*)|(?:const|let)\s+([A-Za-z_$][\w$]*))/;
 const IMPORT = /^import \{([^}]*)\} from '([^']+)';\s*$/;
@@ -29,19 +36,12 @@ const IMPORT = /^import \{([^}]*)\} from '([^']+)';\s*$/;
 /** Kommentare entfernen (Strings bleiben: Template-Ausdrücke enthalten Code). */
 const stripComments = src => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:\\'"`])\/\/[^\n]*/g, '$1');
 const re = s => s.replace(/[$]/g, '\\$');
+// Davor weder ein Namenszeichen noch ein einzelner Punkt (obj.name ist eine Eigenschaft); „...name“ (Spread) ist eine Verwendung.
+const NOT_PROP = '(?<![\\w$])(?<!(?:^|[^.])\\.)';
 
 function readModules() {
-  const onDisk = [];
-  (function walk(dir) {
-    for (const e of fs.readdirSync(dir, {withFileTypes: true})) {
-      const p = path.join(dir, e.name);
-      if (e.isDirectory()) walk(p); else if (e.name.endsWith('.js')) onDisk.push(path.relative(SRC, p).split(path.sep).join('/'));
-    }
-  })(SRC);
   const problems = [];
-  for (const f of onDisk) if (!MODULES.includes(f)) problems.push(`${f}: Modul fehlt in MODULES (scripts/modules.js)`);
-  for (const f of MODULES) if (!onDisk.includes(f)) problems.push(`${f}: in MODULES eingetragen, Datei fehlt`);
-  const mods = MODULES.filter(f => onDisk.includes(f)).map(f => {
+  const mods = listModules().map(f => {
     const src = fs.readFileSync(path.join(SRC, f), 'utf8');
     const lines = src.split('\n');
     const imports = [];
@@ -74,7 +74,7 @@ function declaredTargets(list) {
 
 /** Lokal (in Funktionen) deklarierte Namen, die einen Namen eines anderen Moduls überdecken. */
 function locallyDeclared(code, name) {
-  const n = re(name), word = new RegExp(`(?<![\\w$.])${n}(?![\\w$])`);
+  const n = re(name), word = new RegExp(`${NOT_PROP}${n}(?![\\w$])`);
   // const/let/var-Deklaration (auch mehrere Namen oder Destrukturierung in einer Anweisung)
   for (const m of code.matchAll(/(?:const|let|var)\s+([^;\n]*)/g)) {
     if (declaredTargets(m[1]).some(s => word.test(s))) return true;
@@ -98,9 +98,9 @@ function analyze() {
   const wanted = new Map();
   for (const m of mods) {
     const code = stripComments(m.body).replace(/\$\{/g, ' {');   // „${“ in Template-Strings ist keine Verwendung von $
-    const used = new Set(code.match(/(?<![.\w$])[A-Za-z_$][\w$]*/g));
+    const used = new Set(code.match(new RegExp(`${NOT_PROP}[A-Za-z_$][\\w$]*`, 'g')));
     // $ und $$ (DOM-Kurzformen) nur als Aufruf zählen – ein „$“ in Regex-Literalen (/…$/) ist ein Anker
-    for (const n of ['$', '$$']) if (!new RegExp(`(?<![\\w$.])${re(n)}\\s*\\(`).test(code)) used.delete(n);
+    for (const n of ['$', '$$']) if (!new RegExp(`${NOT_PROP}${re(n)}\\s*\\(`).test(code)) used.delete(n);
     const need = new Map();
     for (const n of used) {
       const o = owner.get(n);
@@ -128,7 +128,7 @@ function analyze() {
     for (const [n, t] of have) if (!(need.get(t) || []).includes(n)) problems.push(`${m.file}: Import „${n}“ aus ${t} wird nicht verwendet`);
     // Importierte Bindungen sind nur lesbar
     for (const n of have.keys()) {
-      if (new RegExp(`(?<![\\w$.])${re(n)}\\s*(?:=(?![=>])|\\+\\+|--|[-+*/]=)`).test(code) && !locallyDeclared(code, n))
+      if (new RegExp(`${NOT_PROP}${re(n)}\\s*(?:=(?![=>])|\\+\\+|--|[-+*/]=)`).test(code) && !locallyDeclared(code, n))
         problems.push(`${m.file}: importierte Variable „${n}“ wird neu zugewiesen – Setter im Modul ${have.get(n)} verwenden`);
     }
   }
@@ -140,7 +140,7 @@ function fixImports() {
   const {mods, wanted} = analyze();
   for (const m of mods) {
     const need = wanted.get(m.file);
-    const block = [...need.keys()].sort((a, b) => MODULES.indexOf(a) - MODULES.indexOf(b))
+    const block = [...need.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
       .map(o => `import {${need.get(o).sort((a, b) => a.localeCompare(b, 'en')).join(', ')}} from '${relPath(m.file, o)}';`);
     const lines = m.lines.filter(l => !IMPORT.test(l));
     // Importblock nach der ersten Kommentarzeile (Modulbeschreibung) einsetzen
@@ -151,23 +151,11 @@ function fixImports() {
   }
 }
 
-/** Alle Module zu einem klassischen Skript zusammenfügen (für die HTML-Datei und die Tests). */
-function bundle() {
-  const {mods, problems} = readModules();
-  if (problems.length) throw new Error(problems.join('\n'));
-  const parts = ['"use strict";'];
-  for (const m of mods) {
-    parts.push(`/* ===== src/js/${m.file} ===== */`);
-    parts.push(m.lines.filter(l => !IMPORT.test(l)).map(l => DECL.test(l) ? l.replace(/^export /, '') : l).join('\n').replace(/\n+$/, ''));
-  }
-  return parts.join('\n') + '\n';
-}
-
-module.exports = {MODULES, analyze, bundle, fixImports};
+module.exports = {listModules, analyze, fixImports};
 
 if (require.main === module) {
   if (process.argv.includes('--fix')) fixImports();
   const {problems} = analyze();
   if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
-  console.log(`Module in Ordnung (${MODULES.length} Dateien).`);
+  console.log(`Module in Ordnung (${listModules().length} Dateien).`);
 }

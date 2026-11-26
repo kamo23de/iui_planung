@@ -4,8 +4,8 @@ import {S} from '../state.js';
 import {catColor, clusterOf, kreisColor, kreisOf} from '../parse.js';
 import {effDep, effVz, grpOf, inContract, inRestPeriod, isActive, isPartlyResting, isResting, restShare, restVz, status, used} from '../model.js';
 import {axis, barDs, legendHtml, mkChart} from '../charts.js';
-import {fillClusterSelect} from './semester.js';
 import {showPerson} from './person.js';
+import {fillClusterSelect} from './semester.js';
 
 export const DT = {sort: 'name', dir: 1, group: 'kreis', expanded: false};
 export const DT_EXT = new Set(['ruht', 'tarif', 'arb', 'deputat', 'vart', 'beginn']);

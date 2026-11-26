@@ -4,8 +4,8 @@ import {S} from '../state.js';
 import {clusterOf} from '../parse.js';
 import {clusterList, effVz, grpOf, isActive, used, usedBase, withPlan} from '../model.js';
 import {renderAll} from '../render.js';
-import {GOALS, PLAN, planTouch} from './scenario.js';
 import {openPlanForm} from './form.js';
+import {GOALS, PLAN, planTouch} from './scenario.js';
 
 export let G_SEL = null;
 export const setGSel = v => { G_SEL = v; };

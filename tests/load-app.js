@@ -1,24 +1,26 @@
-// Lädt den Anwendungscode – genau so, wie er in die HTML-Datei eingebaut wird – in einen eigenen
-// Node-Kontext (ohne Browser), damit die Rechenkerne direkt getestet werden können. Jeder Aufruf
-// von loadApp() liefert einen frischen Zustand. Der Startaufruf init() wird weggelassen; DOM-Zugriffe
-// gibt es dann nur noch in Rendering-Funktionen, die hier nicht laufen.
+// Lädt den Anwendungscode in einen eigenen Node-Kontext (ohne Browser), damit die Rechenkerne direkt
+// getestet werden können. esbuild bündelt dafür alle Module unter src/js/ außer dem Startpunkt app.js
+// (init() läuft also nicht) mit denselben Einstellungen wie der Build. Jeder Aufruf von loadApp()
+// liefert einen frischen Zustand.
 'use strict';
 const path = require('path');
 const vm = require('vm');
 
 const root = path.join(__dirname, '..');
-const {appScript} = require('../scripts/build');
+const {bundle} = require('../scripts/build');
+const {listModules} = require('../scripts/modules');
 
-/** Das gebaute Anwendungsskript (alle Module aus src/js/ in Build-Reihenfolge), ohne den Startaufruf init(). */
-function appSource() {
-  const app = appScript();
-  const stripped = app.replace(/\ninit\(\);\s*$/, '\n');
-  if (stripped === app) throw new Error('Aufruf init() am Ende von src/js/main.js nicht gefunden');
-  return stripped;
+let script = null;
+/** Gebündelter Code aller Module (ohne app.js); alle Exporte liegen im Namensraum __app. Einmal je Testlauf übersetzt. */
+function appScript() {
+  if (script) return script;
+  const entry = listModules().filter(f => f !== 'app.js').map(f => `export * from './${f}';`).join('\n');
+  const code = bundle({stdin: {contents: entry, resolveDir: path.join(root, 'src/js'), sourcefile: 'test-entry.js'}, globalName: '__app'});
+  return (script = new vm.Script(code, {filename: 'app.js'}));
 }
 
 /** Erzeugt einen frischen Kontext mit geladenem Anwendungscode.
- *  Rückgabe: Funktion get(ausdruck) wertet einen Ausdruck im Kontext aus, z. B. get('toDay')(2026, 9, 1). */
+ *  Rückgabe: Funktion get(ausdruck) wertet einen Ausdruck mit allen exportierten Namen aus, z. B. get('toDay')(2026, 9, 1). */
 function loadApp() {
   const el = () => ({classList: {add() {}, remove() {}, toggle() {}}, style: {}, setAttribute() {}, addEventListener() {}, value: '', textContent: '', innerHTML: ''});
   const document = {
@@ -36,8 +38,8 @@ function loadApp() {
   };
   ctx.globalThis = ctx;
   vm.createContext(ctx);
-  vm.runInContext(appSource(), ctx, {filename: 'app.js'});
-  return expr => vm.runInContext(expr, ctx);
+  appScript().runInContext(ctx);
+  return expr => vm.runInContext(`with (__app) { ${expr} }`, ctx);
 }
 
 /** Objekte aus dem App-Kontext haben andere Prototypen; für deepEqual in normale Objekte umwandeln. */

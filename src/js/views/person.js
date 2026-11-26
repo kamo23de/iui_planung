@@ -4,8 +4,8 @@ import {S} from '../state.js';
 import {clusterOf, kreisColor, kreisOf} from '../parse.js';
 import {effDep, effVz, inRestPeriod, isPartlyResting, isResting, restShare, restVz, used} from '../model.js';
 import {contractStatus, restJahre} from './detail.js';
-import {planFind} from '../plan/scenario.js';
 import {editPlanItem} from '../plan/form.js';
+import {planFind} from '../plan/scenario.js';
 import {GS, gsClear} from '../search.js';
 import {showTab} from '../main.js';
 

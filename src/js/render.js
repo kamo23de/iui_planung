@@ -1,13 +1,13 @@
 // Neuzeichnen der aktiven Ansicht
 import {S} from './state.js';
 import {runChecks} from './checks.js';
-import {renderCheck} from './views/check.js';
-import {renderOverview} from './views/overview.js';
-import {renderSemester} from './views/semester.js';
-import {renderForecast} from './views/forecast.js';
-import {renderRatio} from './views/ratio.js';
-import {renderDetail} from './views/detail.js';
 import {renderCapacity} from './views/capacity.js';
+import {renderCheck} from './views/check.js';
+import {renderDetail} from './views/detail.js';
+import {renderForecast} from './views/forecast.js';
+import {renderOverview} from './views/overview.js';
+import {renderRatio} from './views/ratio.js';
+import {renderSemester} from './views/semester.js';
 import {renderPlan} from './plan/view.js';
 
 export function renderAll() {

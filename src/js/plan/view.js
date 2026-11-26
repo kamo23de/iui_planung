@@ -1,8 +1,8 @@
 // Planung: Reiter
 import {$} from '../util.js';
+import {renderGoals} from './goals.js';
 import {PLAN} from './scenario.js';
 import {renderTimeline} from './timeline.js';
-import {renderGoals} from './goals.js';
 
 export let PL_SUB = 'tl';   // Unteransicht: tl = Zeitstrahl, goal = Zielwerte
 export const setPlSub = v => { PL_SUB = v; };
