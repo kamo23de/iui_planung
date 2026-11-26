@@ -39,11 +39,11 @@ Zum Ausprobieren gibt es außerdem `testdaten/Testdaten_Personalplanung.xlsx`. D
 
 **Blatt Studierende:** Studiengang, Cluster, Art (Bachelor/Master), CNW (Curricularnormwert), Studienplätze (je neuer Studierendengruppe), Studierende (eingeschrieben)
 
-**Blatt Ermäßigungen (optional, für die LVVO):** Personalnummer, Grund, LVS oder Prozent, von, bis – eine Zeile je Ermäßigung der Lehrverpflichtung. Der Grund wird aus dem Text erkannt (z. B. Forschung, Laborleitung, Studienfachberatung, Schwerbehinderung, Vizepräsidentschaft). Prozent: „12 %“, 12 und 0,12 bedeuten dasselbe.
+**Blatt Ermäßigungen (optional, für die LVVO):** Personalnummer, Grund, LVS oder Prozent, von, bis – eine Zeile je Ermäßigung der Lehrverpflichtung. Die Spalten werden am Inhalt der Überschrift erkannt: Grund z. B. „Grund“, „Begründung“, „Anlass“, „Art der Ermäßigung“, „Ermäßigungstatbestand“; Umfang z. B. „LVS“, „SWS“, „Stunden“, „Umfang“, „Ermäßigung in LVS“; Zeitraum „von/bis“, „ab/bis“, „Beginn/Ende“, „gültig von/bis“. Eine Spalte „Ermäßigung“ ohne weiteren Zusatz gilt je nach Inhalt als Grund (Text) oder Umfang (Zahl). Die Kopfzeile darf unter einer Titelzeile stehen oder zweizeilig sein. Ein Blatt, dessen Name auf Ermäßigungen deutet, wird schon mit einer Spalte „Personalnummer“ erkannt; sonst sind Personalnummer und Grund nötig. Der Grund wird aus dem Text erkannt (z. B. Forschung, Laborleitung, Studienfachberatung, Schwerbehinderung, Vizepräsidentschaft). Prozent: „12 %“, 12 und 0,12 bedeuten dasselbe.
 
 **Blatt Lehre (optional, für das Zeitkonto):** Personalnummer, Semester („WS 2026/27“, „SS 2027“, auch „WiSe 26/27“, „SoSe 27“), Veranstaltung, Art, SWS, optional Anteil (Lehrbeteiligung), Anzahl (Durchführungen im Semester) und LVS (bereits angerechnet; ersetzt die Rechnung aus SWS) – eine Zeile je Lehrveranstaltung und Semester. Art „Betreuung“ für Abschlussarbeiten, „Übertrag“ für den Kontostand vor der ersten erfassten Zeile.
 
-Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blattnamen sind egal.
+Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blattnamen sind egal; der Blattname dient nur als Hinweis. Als Personalblatt gilt nur ein Blatt mit Vertragsspalten (VZÄ, ArbAnteil, Beginn, Vertragsende oder Vertragsart). Personalnummern werden blattübergreifend ohne Leerzeichen und ohne führende Nullen verglichen („00123“ = 123). Die Datenprüfung zeigt, welches Blatt mit welchen Spalten erkannt wurde, und meldet Blätter, die nicht zugeordnet werden konnten, mit den gelesenen Überschriften.
 
 ## Funktionen
 
@@ -170,6 +170,7 @@ Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:tes
 | `lehre.test.js` | Blatt „Lehre“: Semesterangaben, Gewichtung nach § 14, Betreuung nach § 15, Zeitkonto mit Kappung, Fehlbetrag, Übertrag und Lücken, Prüfregeln |
 | `suche.test.js` | Suche: Reihenfolge Personen – Laborbereiche – Organisationseinheiten, Treffer am Wortanfang, Akzente, Vervollständigung |
 | `doku.test.js` | Dokumentation nach § 18: Studienjahr, Referenzwerte, Hinweise, Vertragsende, Befreiung, mehrere Verträge, sicherer HTML-Bericht |
+| `ermaessigungen-blatt.test.js` | Erkennung des Blatts „Ermäßigungen“ in 12 realistischen Varianten (Überschriften, Titelzeile, zweizeiliger Kopf, Blattreihenfolge, führende Nullen), Meldungen zu nicht erkannten Blättern |
 | `planung.test.js` | Szenarien (Nachbesetzung, neue Stelle, Vertragsende) und Zielwerte |
 | `testdaten.test.js` | Gesamtlauf mit der Testdatei und festgehaltenen Referenzwerten (Stichtag 26.11.2026) |
 | `build.test.js` | `Personalplanung_IuI.html` ist aktuell; Content-Security-Policy ohne Netzwerkzugriff |
