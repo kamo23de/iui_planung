@@ -25,3 +25,11 @@ test('Keine externen Skripte, Stylesheets oder Bilder', () => {
   const ext = [...committed.matchAll(/<(script|link|img)\b[^>]*\b(src|href)="(https?:)?\/\/[^"]*"/gi)].map(m => m[0]);
   assert.deepEqual(ext, []);
 });
+
+test('Eingebettetes SheetJS ist mindestens 0.20.2 (ältere Versionen: Prototype Pollution, ReDoS)', () => {
+  const m = /make_xlsx_lib\(e\)\{e\.version="(\d+)\.(\d+)\.(\d+)"/.exec(committed);
+  assert.ok(m, 'Versionskennung von SheetJS nicht gefunden');
+  const v = m.slice(1).map(Number), min = [0, 20, 2];
+  const cmp = v.findIndex((x, i) => x !== min[i]);
+  assert.ok(cmp < 0 || v[cmp] > min[cmp], `SheetJS ${v.join('.')} ist älter als ${min.join('.')}`);
+});

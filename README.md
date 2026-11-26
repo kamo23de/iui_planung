@@ -28,6 +28,7 @@ Zum Ausprobieren gibt es außerdem `testdaten/Testdaten_Personalplanung.xlsx`. D
 ## Datenschutz
 
 - Alle Bibliotheken (SheetJS, Chart.js) sind in der HTML-Datei eingebettet. Es wird nichts nachgeladen.
+- SheetJS stammt von https://cdn.sheetjs.com/ (Version 0.20.3), nicht aus dem npm-Register: Dort gibt es nur die veraltete 0.18.5 mit bekannten Schwachstellen (Prototype Pollution, ReDoS). Ein Test stellt sicher, dass mindestens 0.20.2 eingebettet ist.
 - Eine Content-Security-Policy in der Datei verbietet dem Browser jede Netzwerkverbindung.
 - Die Daten liegen nur im Arbeitsspeicher des Browserfensters und sind nach dem Schließen weg.
 - **Echte Excel-Dateien gehören nicht in dieses Repository** – es ist öffentlich. Die `.gitignore` schließt Excel- und CSV-Dateien aus, ausgenommen die Testdatei.
@@ -94,7 +95,7 @@ Die Treffer erscheinen als Auswahlliste mit Personalnummer, Mitarbeiterkreis, Cl
 
 ## Entwicklung
 
-Die fertige Einzeldatei wird so gebaut:
+Die fertige Einzeldatei wird so gebaut. `npm install` lädt SheetJS vom SheetJS-CDN (`cdn.sheetjs.com`), alles andere aus dem npm-Register:
 
 ```bash
 npm install
