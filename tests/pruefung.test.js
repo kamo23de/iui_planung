@@ -91,7 +91,7 @@ test('Ruheanteil: ohne „ruht bis“, größer als die Stelle', () => {
   assert.ok(has(issues(2), 'Ruheanteil größer als Stelle', 'W'));
 });
 
-test('Deputat: unlesbar, negativ, unplausibel hoch, Professur ohne Deputat', () => {
+test('Deputat: unlesbar, negativ, unplausibel hoch, Professur mit Deputat 0', () => {
   const {issues} = setup([
     {pnr: 1, deputat: 'n.n.'},
     {pnr: 2, deputat: -4},
@@ -102,8 +102,27 @@ test('Deputat: unlesbar, negativ, unplausibel hoch, Professur ohne Deputat', () 
   assert.ok(issues(1).some(i => i.field === 'Deputat' && i.check === 'Zahl nicht lesbar'));
   assert.ok(issues(2).some(i => i.field === 'Deputat' && i.check === 'Wert außerhalb des Bereichs'));
   assert.ok(has(issues(3), 'Deputat unplausibel', 'W'));
-  assert.ok(has(issues(4), 'Lehrperson ohne Deputat', 'W'));
+  assert.ok(has(issues(4), 'Deputat weicht von LVVO ab', 'W'));   // 0 statt 18 LVS
   assert.ok(has(issues(5), 'Deputat bei sonstigem Personal', 'I'));
+});
+
+test('Deputat optional: leer bei Professur und LfbA ohne Befund, bei WiMi Warnung, fehlende Spalte nur Hinweis', () => {
+  const PROF = {kreis: 'Professor/in', tarif: 'W2', vart: 'unbefristet', ende: null};
+  const {issues, S} = setup([
+    {pnr: 1, ...PROF, deputat: null},
+    {pnr: 2, kreis: 'Lehrkraft für besondere Aufgaben', tarif: 'E13', vart: 'unbefristet', ende: null, deputat: null},
+    {pnr: 3, deputat: null},          // WiMi ohne Deputat
+    {pnr: 4, deputat: 0},             // WiMi nur unterstützend
+    {pnr: 5, kreis: 'Verwaltung', tarif: 'E9', deputat: null},
+  ]);
+  for (const p of [1, 2, 4, 5]) assert.ok(!issues(p).some(i => i.field === 'Deputat'), 'Pnr ' + p);
+  assert.ok(has(issues(3), 'WiMi ohne Deputat', 'W'));
+  assert.ok(!S.issues.some(i => i.check === 'Spalte fehlt'));
+  const ohne = setup([{pnr: 1, ...PROF}, {pnr: 2}], {header: HEADER.filter(h => h !== 'Deputat')});
+  assert.ok(!ohne.S.issues.some(i => i.check === 'Spalte fehlt'));
+  assert.ok(has(ohne.S.issues, 'Spalte Deputat fehlt', 'I'));
+  assert.ok(!has(ohne.S.issues, 'WiMi ohne Deputat'));   // ohne Spalte keine Einzelmeldungen
+  assert.equal(ohne.get('capStats')(ohne.S.recs, ohne.S.today).sws, 18);   // Professur nach LVVO, WiMi mit 0
 });
 
 test('Studierendenblatt: CNW und Studienplätze werden geprüft', () => {

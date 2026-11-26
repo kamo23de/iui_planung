@@ -25,7 +25,7 @@ export const FIELDS = [
   ['deputat', 'Deputat', ['deputat', 'lehrdeputat', 'lehrverpflichtung', 'lvs', 'sws']],
   ['lvvo', 'LVVO-Gruppe', ['lvvogruppe', 'lehrverpflichtungsgruppe', 'lvvo']],
 ];
-export const OPTIONAL_COLS = ['ruht bis', 'Ruheanteil', 'Ruhestand', 'Vertretung für', 'LVVO-Gruppe'];
+export const OPTIONAL_COLS = ['ruht bis', 'Ruheanteil', 'Ruhestand', 'Vertretung für', 'LVVO-Gruppe', 'Deputat'];
 /** Optionales Blatt „Ermäßigungen“ (LVVO): eine Zeile je Ermäßigung der Lehrverpflichtung. */
 export const ERM_FIELDS = [
   ['pnr', 'Personalnummer', ['personalnummer', 'persnr', 'personalnr', 'pnr']],
