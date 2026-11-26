@@ -26,7 +26,7 @@ test('Testdatei wird vollständig eingelesen', () => {
 test('Absichtlich eingebaute Fehler werden gefunden', () => {
   const {S} = load();
   const count = {E: 0, W: 0, I: 0}; S.issues.forEach(i => count[i.sev]++);
-  assert.deepEqual(count, {E: 21, W: 44, I: 89});
+  assert.deepEqual(count, {E: 21, W: 45, I: 89});
   const checks = new Set(S.issues.filter(i => i.sev === 'E').map(i => i.check));
   for (const c of ['Personalnummer mehrfach vergeben', 'Datum nicht lesbar', 'Beginn nach Vertragsende', 'Wert außerhalb des Bereichs',
     'Zahl nicht lesbar', 'Pflichtfeld leer', 'Befristet ohne Vertragsende', 'Doppelte Zeile', 'Vertretung: vertretene Person nicht gefunden',

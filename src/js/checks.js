@@ -19,7 +19,8 @@ export function runChecks() {
   const I = [], T = S.today;
   const add = (sev, check, r, field, msg) => I.push({sev, check, row: r ? r.row : null, pnr: r ? r.pnr : '', pk: r ? (r.pk ?? pnrKey(r.pnr)) : '', person: r ? [r.name, r.vorname].filter(Boolean).join(', ') : '', field, msg, sheet: r && r.sheet ? r.sheet : r && r.sg != null ? 'Studierende' : 'Personal'});
 
-  S.missingCols.filter(c => !OPTIONAL_COLS.includes(c)).forEach(c => add(c === 'Laborbereich' || c === 'Organisationseinheit' || c === 'Deputat' ? 'W' : 'E', 'Spalte fehlt', null, c, `Spalte „${c}“ wurde im Personalblatt nicht gefunden.` + (c === 'Deputat' ? ' Die Ansicht Kapazität kann kein Lehrangebot berechnen.' : '')));
+  S.missingCols.filter(c => !OPTIONAL_COLS.includes(c)).forEach(c => add(c === 'Laborbereich' || c === 'Organisationseinheit' ? 'W' : 'E', 'Spalte fehlt', null, c, `Spalte „${c}“ wurde im Personalblatt nicht gefunden.`));
+  if (!('deputat' in S.colMap)) add('I', 'Spalte Deputat fehlt', null, 'Deputat', 'Ohne Spalte „Deputat“ zählt die Lehre der WiMi und des sonstigen Personals mit 0 LVS. Professuren und LfbA werden nach der LVVO gerechnet; für sie wird das Deputat nicht gebraucht.');
   if (S.raw.stud) STUD_FIELDS.filter(f => !(f[0] in S.raw.stud.map)).forEach(f => add(['cnw', 'pl'].includes(f[0]) ? 'W' : f[0] === 'art' ? 'I' : 'E', 'Spalte fehlt', null, f[1], `Spalte „${f[1]}“ wurde im Studierendenblatt nicht gefunden.` + (['cnw', 'pl'].includes(f[0]) ? ' Die erforderliche Kapazität ist nicht berechenbar.' : '')));
   if (!S.raw.stud) add('E', 'Studierendenblatt fehlt', null, '', 'Kein Tabellenblatt mit Studiengang/Cluster/Studierende gefunden – Betreuungsverhältnis nicht berechenbar.');
 
@@ -111,7 +112,6 @@ export function runChecks() {
       if (r.deputatErr) add('E', 'Zahl nicht lesbar', r, 'Deputat', `Deputat „${str(r.rawRow[S.colMap.deputat])}“ ist keine Zahl – als 0 gewertet.`);
       else if (r.deputat != null && r.deputat < 0) add('E', 'Wert außerhalb des Bereichs', r, 'Deputat', `Deputat ${nf2.format(r.deputat)} SWS ist negativ.`);
       else if (r.deputat != null && r.deputat > 30) add('W', 'Deputat unplausibel', r, 'Deputat', `Deputat ${nf2.format(r.deputat)} SWS je Semester ist ungewöhnlich hoch.`);
-      if ((cat === 'Professor/in' || cat === 'LfbA') && !r.deputatErr && !r.deputat) add('W', 'Lehrperson ohne Deputat', r, 'Deputat', `${cat} ${r.deputat === 0 ? 'mit Deputat 0 (nur unterstützend)' : 'ohne Deputatsangabe'} – trägt nicht zur Lehrkapazität bei.`);
       if (r.deputat > 0 && cat === 'Sonstige') add('I', 'Deputat bei sonstigem Personal', r, 'Deputat', `${r.kreis || 'Person'} mit ${nf2.format(r.deputat)} SWS Deputat – wird zur Lehrkapazität gezählt.`);
     }
     if (r.endeOpenSentinel) add('I', 'Platzhalter-Enddatum', r, 'Vertragsende', 'Enddatum ab Jahr 2100 als „unbefristet“ gewertet.');
@@ -201,8 +201,10 @@ export function runChecks() {
       else if (gr.annahme) add('I', 'LVVO-Gruppe angenommen', r, 'TrfGr', `${gr.annahme} (${g.ref}). Abweichungen in der Spalte „LVVO-Gruppe“ eintragen.`);
       if (g.art === 'keine') continue;
       const x = lvvo(r, T, {nominal: true});
+      if ('deputat' in S.colMap && g.art === 'hoechst' && r.deputat == null && !r.deputatErr && isActive(r, T)) add('W', 'WiMi ohne Deputat', r, 'Deputat',
+        `Deputat fehlt – die Lehre zählt mit 0 LVS. Für WiMi nennt die LVVO nur die Höchstlehrverpflichtung (${g.label}: ${g.lvs} LVS × ${nf(r2(r.vz || 0))} VZÄ); bitte die festgelegte Lehre eintragen, 0 = nur unterstützend.`);
       if ('deputat' in S.colMap && x.deputat != null) {
-        if (g.art === 'regel' && x.deputat > 0 && Math.abs(x.deputat - x.soll) > 0.005) add('W', 'Deputat weicht von LVVO ab', r, 'Deputat',
+        if (g.art === 'regel' && x.deputat >= 0 && Math.abs(x.deputat - x.soll) > 0.005) add('W', 'Deputat weicht von LVVO ab', r, 'Deputat',
           `Deputat ${nf(x.deputat)} LVS, nach LVVO ${nf(x.soll)} LVS: ${g.label} ${g.lvs} LVS × ${nf(x.anteil)} VZÄ` + (x.ermSum ? ` − Ermäßigungen ${nf(x.ermSum)} LVS` : '') + ` (${g.ref}).`);
         if (g.art === 'hoechst' && x.deputat > x.basis + 0.005) add('W', 'Deputat über der Höchstlehrverpflichtung', r, 'Deputat',
           `Deputat ${nf(x.deputat)} LVS, Höchstlehrverpflichtung ${g.label} ${g.lvs} LVS × ${nf(x.anteil)} VZÄ = ${nf(x.basis)} LVS (${g.ref}).`);

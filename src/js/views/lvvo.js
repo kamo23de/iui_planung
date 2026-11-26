@@ -20,7 +20,7 @@ export function renderLvvo() {
   const F = lvvoFassung(D), nf = v => nf1.format(v), lvs = v => nf(v) + ' LVS';
 
   const hasDep = 'deputat' in S.colMap, hasErm = !!S.raw.erm;
-  $('#lvMissing').innerHTML = [!hasDep ? '⚠ Im Personalblatt fehlt die Spalte <b>Deputat</b> – die Lehre der WiMi kann nicht berücksichtigt und das Deputat nicht mit der LVVO verglichen werden.' : '',
+  $('#lvMissing').innerHTML = [!hasDep ? 'ℹ Ohne Spalte <b>Deputat</b> zählt die Lehre der WiMi mit 0 LVS. Professuren und LfbA werden nach der LVVO gerechnet.' : '',
     !hasErm ? 'ℹ Kein Blatt <b>Ermäßigungen</b> gefunden – es werden keine Ermäßigungen berücksichtigt.' : ''].filter(Boolean).join('<br>');
   $('#lvMissing').classList.toggle('hidden', hasDep && hasErm);
 
@@ -65,23 +65,9 @@ export function renderLvvo() {
     `<tr class="tot"><td>Ermäßigungen gesamt</td><td class="n">${nf(st.erm)}</td><td class="n">${pctOfRegel(st.erm)}</td></tr></table>` +
     `<p class="note">${F.p9.ref}: Ermäßigungen nach § 9 hochschulweit höchstens ${F.p9.quote} % der Regellehrverpflichtungen, bis ${F.p9.quoteErweitert} % in dem Maß, in dem WiMi Lehre nach § 5 Abs. 2 erbringen (Auslegung: ${F.p9.quote} % + Lehre der WiMi in % der Regellehrverpflichtungen).</p>`;
 
-  // ---- je Person ----
-  const people = act.map(r => ({r, x: lvvo(r, D)})).filter(o => o.x.gruppe.art !== 'keine' && o.x.anteil > 0);
-  const ord = Object.keys(F.gruppen);
-  people.sort((a, b) => clusterOf(a.r).localeCompare(clusterOf(b.r), 'de') || ord.indexOf(a.x.key) - ord.indexOf(b.x.key) || a.r.name.localeCompare(b.r.name, 'de'));
-  const diffTxt = o => {
-    if (o.x.deputat == null || o.x.gruppe.art !== 'regel') return o.x.gruppe.art === 'hoechst' && o.x.deputat > o.x.basis + 0.005 ? '<span class="pill sev-W">über Höchstwert</span>' : '';
-    const d = r2(o.x.deputat - o.x.soll);
-    return Math.abs(d) < 0.005 ? '<span class="note">✓</span>' : `<span class="pill sev-W">${d > 0 ? '+' : '−'}${nf(Math.abs(d))}</span>`;
-  };
-  $('#lvPersons').innerHTML = !people.length ? '<p class="note">Keine Personen mit Lehrverpflichtung am Stichtag.</p>' :
-    `<table><tr><th>Name</th><th>Cluster</th><th>LVVO-Gruppe</th><th class="n">VZÄ</th><th class="n">Regel / Höchst</th><th>Ermäßigungen</th><th class="n">Soll</th><th class="n">Deputat</th><th>Abweichung</th></tr>` +
-    people.map(({r, x}) => `<tr><td><a href="#" data-row="${r.row}">${esc([r.name, r.vorname].filter(Boolean).join(', '))}</a></td><td>${esc(clusterOf(r))}</td>` +
-      `<td>${esc(x.gruppe.label)}${x.quelle === 'Spalte' ? ' <span class="pill" title="aus Spalte „LVVO-Gruppe“">Tabelle</span>' : ''}${x.annahme ? ` <span class="pill sev-I" title="${esc(x.annahme)}">angenommen</span>` : ''}</td>` +
-      `<td class="n">${nf2.format(x.anteil)}</td><td class="n">${nf(x.basis)}${x.gruppe.art === 'hoechst' ? ' <span class="note">max.</span>' : ''}</td>` +
-      `<td>${x.erm.map(e => `${esc((F.gruende.find(g => g.key === e.grund) || {kurz: e.e.grundRaw || 'unbekannt'}).kurz)}: ${nf(e.lvs)}`).join('<br>')}</td>` +
-      `<td class="n">${x.soll == null ? '–' : nf(x.soll)}</td><td class="n">${x.deputat == null ? '–' : nf(x.deputat)}</td><td>${diffTxt({x})}</td></tr>`).join('') + '</table>';
-  $$('#lvPersons a[data-row]').forEach(a => a.onclick = e => { e.preventDefault(); showPerson(+a.dataset.row); });
+  // ---- je Person (sortierbar) ----
+  LV_LIST = {people: act.map(r => ({r, x: lvvo(r, D)})).filter(o => o.x.gruppe.art !== 'keine' && o.x.anteil > 0), F};
+  drawLvPersons();
 
   renderLehre(cf);
   renderDokuAuswahl();
@@ -185,4 +171,56 @@ export function saveDoku() {
   a.href = URL.createObjectURL(new Blob([dokuDatei(DK.daten, DK.opts)], {type: 'text/html;charset=utf-8'}));
   a.download = `Dokumentation_LVVO_18_Studienjahr_${sjLabel(DK.daten.w).replace('/', '-')}${DK.daten.cluster ? '_' + DK.daten.cluster.replace(/[^\wäöüÄÖÜß-]+/g, '_') : ''}.html`;
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------- Lehrverpflichtung je Person: sortierbare Tabelle ---------- */
+// Spalten: Schlüssel, Überschrift, Sortierwert (null = leer, steht immer am Ende), Zahl?
+// Abweichung wie angezeigt: Professuren/LfbA Deputat − Soll; WiMi nur über der Höchstlehrverpflichtung
+const lvDiff = x => x.deputat == null ? null : x.gruppe.art === 'regel' ? r2(x.deputat - x.soll) : x.gruppe.art === 'hoechst' && x.deputat > x.basis + 0.005 ? r2(x.deputat - x.basis) : null;
+const LV_COLS = [
+  ['name', 'Name', o => [o.r.name, o.r.vorname].filter(Boolean).join(', ')],
+  ['cluster', 'Cluster', o => clusterOf(o.r)],
+  ['gruppe', 'LVVO-Gruppe', o => o.x.gruppe.label],
+  ['vz', 'VZÄ', o => o.x.anteil, true],
+  ['basis', 'Regel / Höchst', o => o.x.basis, true],
+  ['erm', 'Ermäßigungen', o => o.x.ermSum || null, true],
+  ['soll', 'Soll', o => o.x.soll, true],
+  ['deputat', 'Deputat', o => o.x.deputat, true],
+  ['abw', 'Abweichung', o => lvDiff(o.x), true],
+];
+let LV_LIST = {people: [], F: null};
+export const LV_SORT = {key: null, dir: 1};   // key null: Grundordnung (Cluster, Gruppe, Name)
+export function setLvSort(k) { if (LV_SORT.key === k) LV_SORT.dir = -LV_SORT.dir; else { LV_SORT.key = k; LV_SORT.dir = 1; } }
+/** Sortierte Kopie: gewählte Spalte auf- oder absteigend, leere Werte am Ende, sonst Grundordnung. */
+export function sortLvPeople(people, F, key = LV_SORT.key, dir = LV_SORT.dir) {
+  const ord = Object.keys(F.gruppen);
+  const base = (a, b) => clusterOf(a.r).localeCompare(clusterOf(b.r), 'de') || ord.indexOf(a.x.key) - ord.indexOf(b.x.key) || a.r.name.localeCompare(b.r.name, 'de') || a.r.vorname.localeCompare(b.r.vorname, 'de');
+  const col = LV_COLS.find(c => c[0] === key);
+  if (!col) return [...people].sort(base);
+  const v = col[2];
+  return [...people].sort((a, b) => {
+    const x = v(a), y = v(b);
+    if (x == null || y == null) return (x == null) - (y == null) || base(a, b);
+    const c = col[3] ? x - y : String(x).localeCompare(String(y), 'de');
+    return dir * c || base(a, b);
+  });
+}
+function drawLvPersons() {
+  const {people, F} = LV_LIST, nf = v => nf1.format(v);
+  if (!people.length) { $('#lvPersons').innerHTML = '<p class="note">Keine Personen mit Lehrverpflichtung am Stichtag.</p>'; return; }
+  const diffTxt = x => {
+    if (x.deputat == null) return x.gruppe.art === 'hoechst' ? '<span class="note">kein Deputat</span>' : '';
+    if (x.gruppe.art === 'hoechst') return x.deputat > x.basis + 0.005 ? '<span class="pill sev-W">über Höchstwert</span>' : '';
+    const d = r2(x.deputat - x.soll);
+    return Math.abs(d) < 0.005 ? '<span class="note">✓</span>' : `<span class="pill sev-W">${d > 0 ? '+' : '−'}${nf(Math.abs(d))}</span>`;
+  };
+  const arrow = k => LV_SORT.key === k ? (LV_SORT.dir > 0 ? ' ▲' : ' ▼') : '';
+  $('#lvPersons').innerHTML = `<table><tr>${LV_COLS.map(([k, l, , num]) => `<th class="sortable${num ? ' n' : ''}" data-k="${k}" title="Sortieren – erneuter Klick kehrt die Richtung um">${l}${arrow(k)}</th>`).join('')}</tr>` +
+    sortLvPeople(people, F).map(({r, x}) => `<tr><td><a href="#" data-row="${r.row}">${esc([r.name, r.vorname].filter(Boolean).join(', '))}</a></td><td>${esc(clusterOf(r))}</td>` +
+      `<td>${esc(x.gruppe.label)}${x.quelle === 'Spalte' ? ' <span class="pill" title="aus Spalte „LVVO-Gruppe“">Tabelle</span>' : ''}${x.annahme ? ` <span class="pill sev-I" title="${esc(x.annahme)}">angenommen</span>` : ''}</td>` +
+      `<td class="n">${nf2.format(x.anteil)}</td><td class="n">${nf(x.basis)}${x.gruppe.art === 'hoechst' ? ' <span class="note">max.</span>' : ''}</td>` +
+      `<td>${x.erm.map(e => `${esc((F.gruende.find(g => g.key === e.grund) || {kurz: e.e.grundRaw || 'unbekannt'}).kurz)}: ${nf(e.lvs)}`).join('<br>')}</td>` +
+      `<td class="n">${x.soll == null ? '–' : nf(x.soll)}</td><td class="n">${x.deputat == null ? '–' : nf(x.deputat)}</td><td>${diffTxt(x)}</td></tr>`).join('') + '</table>';
+  $$('#lvPersons th.sortable').forEach(th => th.onclick = () => { setLvSort(th.dataset.k); drawLvPersons(); });
+  $$('#lvPersons a[data-row]').forEach(a => a.onclick = e => { e.preventDefault(); showPerson(+a.dataset.row); });
 }

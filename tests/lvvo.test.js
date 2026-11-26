@@ -184,3 +184,26 @@ test('Prozentangaben der Ermäßigung: 12 %, 0,12 und 12 bedeuten dasselbe', () 
   const {S} = setup([{pnr: 1, ...PROF}], {reductions: [{pnr: 1, grund: 'GdB 50', pct: '12 %'}, {pnr: 1, grund: 'GdB 50', pct: 0.12}, {pnr: 1, grund: 'GdB 50', pct: 12}]});
   assert.deepEqual([...S.reductions.map(e => e.pct)], [12, 12, 12]);
 });
+
+test('Liste je Person: Sortierung auf- und absteigend, leere Werte am Ende, Umschalten per Klick', () => {
+  const {get, S} = setup([
+    {pnr: 1, name: 'Berg', ...PROF, deputat: 18},
+    {pnr: 2, name: 'Arndt', ...PROF, deputat: 16},
+    {pnr: 3, name: 'Cramer', ...PROF, vz: 0.5, arb: 50},           // ohne Deputat
+    {pnr: 4, name: 'Dahl', deputat: 2},                              // WiMi
+  ]);
+  const F = get('lvvoFassung')(S.today), people = S.recs.map(r => ({r, x: get('lvvo')(r, S.today)}));
+  const names = (k, d) => [...get('sortLvPeople')(people, F, k, d)].map(o => o.r.name);
+  assert.deepEqual(names('name', 1), ['Arndt', 'Berg', 'Cramer', 'Dahl']);
+  assert.deepEqual(names('name', -1), ['Dahl', 'Cramer', 'Berg', 'Arndt']);
+  assert.deepEqual(names('soll', 1), ['Dahl', 'Cramer', 'Arndt', 'Berg']);         // 2, 9, 18, 18 (gleich: Grundordnung)
+  assert.deepEqual(names('deputat', 1), ['Dahl', 'Arndt', 'Berg', 'Cramer']);      // ohne Deputat am Ende
+  assert.deepEqual(names('deputat', -1), ['Berg', 'Arndt', 'Dahl', 'Cramer']);     // auch absteigend am Ende
+  assert.deepEqual(names('abw', 1), ['Arndt', 'Berg', 'Cramer', 'Dahl']);          // −2, 0; Cramer und WiMi ohne Wert
+  assert.deepEqual(names(null, 1), ['Arndt', 'Berg', 'Cramer', 'Dahl']);           // Grundordnung: Cluster, Gruppe, Name
+  const L = get('LV_SORT'), set = get('setLvSort');
+  set('soll'); assert.deepEqual([L.key, L.dir], ['soll', 1]);
+  set('soll'); assert.deepEqual([L.key, L.dir], ['soll', -1]);
+  set('soll'); assert.equal(L.dir, 1);
+  set('name'); assert.deepEqual([L.key, L.dir], ['name', 1]);
+});
