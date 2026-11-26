@@ -101,6 +101,29 @@ npm install
 npm run build        # erzeugt Personalplanung_IuI.html
 ```
 
+### Tests
+
+```bash
+npm test
+```
+
+Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:test`). `tests/load-app.js` lädt das Anwendungsskript direkt aus `src/app.html`, sodass die Rechenfunktionen ohne Umbau getestet werden:
+
+| Datei | Inhalt |
+|---|---|
+| `grundlagen.test.js` | Datum, Zahlen, Rundung, Semestergrenzen |
+| `einlesen.test.js` | Spaltenerkennung, Stellenumfang, Vertragsart, maßgebliches Ende, kw |
+| `rechenkern.test.js` | Vertragslaufzeit, Ruhen und Teilruhen, Stichtagsbestand, offene Stellen, Vertragsstatus |
+| `pruefung.test.js` | Regeln der Datenprüfung |
+| `kapazitaet.test.js` | Lehrangebot aus Deputat |
+| `planung.test.js` | Szenarien (Nachbesetzung, neue Stelle, Vertragsende) und Zielwerte |
+| `testdaten.test.js` | Gesamtlauf mit der Testdatei und festgehaltenen Referenzwerten (Stichtag 26.11.2026) |
+| `build.test.js` | `Personalplanung_IuI.html` ist aktuell; Content-Security-Policy ohne Netzwerkzugriff |
+
+Neue Fälle lassen sich mit `setup([...])` aus `tests/helpers.js` knapp formulieren: Jede Person ist ein Objekt, das nur die abweichenden Felder angibt.
+Ändert sich durch eine gewollte Regeländerung ein Referenzwert in `testdaten.test.js`, wird er dort bewusst angepasst.
+Auf GitHub laufen die Tests bei jedem Push (`.github/workflows/test.yml`).
+
 Testdaten neu erzeugen (Python mit openpyxl):
 
 ```bash

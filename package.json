@@ -4,10 +4,14 @@
   "private": true,
   "description": "Lokales, interaktives Dashboard für die Personalplanung der Fakultät IuI",
   "scripts": {
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "test": "node --test \"tests/*.test.js\""
   },
   "dependencies": {
     "chart.js": "^4.4.0",
     "xlsx": "0.18.5"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
