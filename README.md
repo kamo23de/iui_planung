@@ -28,15 +28,20 @@ Zum Ausprobieren gibt es außerdem `testdaten/Testdaten_Personalplanung.xlsx`. D
 ## Datenschutz
 
 - Alle Bibliotheken (SheetJS, Chart.js) sind in der HTML-Datei eingebettet. Es wird nichts nachgeladen.
+- SheetJS stammt von https://cdn.sheetjs.com/ (Version 0.20.3), nicht aus dem npm-Register: Dort gibt es nur die veraltete 0.18.5 mit bekannten Schwachstellen (Prototype Pollution, ReDoS). Ein Test stellt sicher, dass mindestens 0.20.2 eingebettet ist.
 - Eine Content-Security-Policy in der Datei verbietet dem Browser jede Netzwerkverbindung.
 - Die Daten liegen nur im Arbeitsspeicher des Browserfensters und sind nach dem Schließen weg.
 - **Echte Excel-Dateien gehören nicht in dieses Repository** – es ist öffentlich. Die `.gitignore` schließt Excel- und CSV-Dateien aus, ausgenommen die Testdatei.
 
 ## Erwarteter Aufbau der Excel-Datei
 
-**Blatt Personal:** Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich, optional „ruht bis“ (Vertrag ruht bis zu diesem Datum), „Ruheanteil“ (ruhender Stellenumfang in VZÄ) und „Ruhestand“ (voraussichtliches Ausscheiden bei unbefristeten Verträgen) sowie „Vertretung für“ (Personalnummer der vertretenen Person)
+**Blatt Personal:** Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich, optional „ruht bis“ (Vertrag ruht bis zu diesem Datum), „Ruheanteil“ (ruhender Stellenumfang in VZÄ) und „Ruhestand“ (voraussichtliches Ausscheiden bei unbefristeten Verträgen) sowie „Vertretung für“ (Personalnummer der vertretenen Person), Deputat (festgelegte Lehrverpflichtung in LVS bzw. SWS je Semester nach Ermäßigungen; 0 = nur unterstützend in der Lehre), optional „LVVO-Gruppe“ (Professur, LfbA 20, LfbA 24, WiMi, WiMi Qualifikation, keine – überschreibt die abgeleitete Gruppe)
 
-**Blatt Studierende:** Studiengang, Cluster, Studierende
+**Blatt Studierende:** Studiengang, Cluster, Art (Bachelor/Master), CNW (Curricularnormwert), Studienplätze (je neuer Studierendengruppe), Studierende (eingeschrieben)
+
+**Blatt Ermäßigungen (optional, für die LVVO):** Personalnummer, Grund, LVS oder Prozent, von, bis – eine Zeile je Ermäßigung der Lehrverpflichtung. Der Grund wird aus dem Text erkannt (z. B. Forschung, Laborleitung, Studienfachberatung, Schwerbehinderung, Vizepräsidentschaft). Prozent: „12 %“, 12 und 0,12 bedeuten dasselbe.
+
+**Blatt Lehre (optional, für das Zeitkonto):** Personalnummer, Semester („WS 2026/27“, „SS 2027“, auch „WiSe 26/27“, „SoSe 27“), Veranstaltung, Art, SWS, optional Anteil (Lehrbeteiligung), Anzahl (Durchführungen im Semester) und LVS (bereits angerechnet; ersetzt die Rechnung aus SWS) – eine Zeile je Lehrveranstaltung und Semester. Art „Betreuung“ für Abschlussarbeiten, „Übertrag“ für den Kontostand vor der ersten erfassten Zeile.
 
 Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blattnamen sind egal.
 
@@ -50,6 +55,22 @@ Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blatt
 | Forecast | Zielzeitpunkt als Datum oder Semester (max. 20 voraus), Vergleich mit heute, Ab- und Zugangslisten |
 | Betreuung & WiMi | Studierende je Professor/in (inkl. LfbA) und je WiMi; WiMi je Professur (ohne LfbA) je Cluster und Organisationseinheit |
 | Detailansicht | Auswahl nach Cluster, Laborbereich und Organisationseinheit (die Liste der Organisationseinheiten richtet sich nach Cluster und Laborbereich). Genaues Verhältnis Professur (inkl. LfbA) : WiMi : sonstige Mitarbeitende : Studierende (Köpfe und VZÄ; Studierende nur ohne Labor-/OE-Auswahl, da diesen nicht zugeordnet). Professuren und Mitarbeitende je Laborbereich mit Diagramm und Tabelle. Vollständige Personalliste, gegliedert nach Mitarbeiterkreis oder Laborbereich, mit Vertragsdaten, Restlaufzeit, kw und Status; sortierbar, durchsuchbar, als CSV speicherbar |
+| Kapazität | Lehrangebot je Cluster und Organisationseinheit, nach Personalgruppe – wahlweise aus dem LVVO-Soll (Standard) oder aus der Spalte „Deputat“; erforderliche Kapazität (CNW × Studienplätze) je Studiengang neben den eingeschriebenen Studierenden; Bilanz und Auslastung für Fakultät und (vorläufig) je Cluster; Stichtag bis 20 Semester voraus |
+| Lehrverpflichtung | LVVO Niedersachsen für Fachhochschulen: Regellehrverpflichtung (Professuren, LfbA) bzw. Höchstlehrverpflichtung (WiMi) anteilig nach VZÄ, Ermäßigungen nach Grund mit Quote nach § 9, Soll je Cluster und je Person im Vergleich zum eingetragenen Deputat, Regelwerk mit Fundstellen; Stichtag bis 20 Semester voraus; gehaltene Lehre und Zeitkonto je Semester mit CSV-Export (eine Zeile je Person und Semester, mit Lehrveranstaltungen) als Grundlage für die Dokumentation nach § 18 |
+
+### Diagramme exportieren
+
+Jedes Diagramm hat oben rechts den Button **⤓ PNG**. Er speichert das Diagramm als Bild in hoher Auflösung, mit Titel, Legende und einer Quellenzeile (Stichtag, Maßeinheit, gewählte Filter, ggf. DEMO/PLAN, Erstellungsdatum). Ganze Seiten lassen sich über den Druckdialog des Browsers als PDF speichern.
+
+### Planung (Entwurf)
+
+Der Reiter **Planung** legt ein **Szenario** aus Planmaßnahmen über die Ist-Daten; die Excel-Datei bleibt unverändert.
+Planmaßnahmen: **Nachbesetzung** einer ausscheidenden Stelle, **neue Stelle**, **Vertragsende ändern** (Verlängerung, Verkürzung, Entfristung).
+Nachbesetzungen übernehmen das Deputat der bisherigen Stelle (anteilig zum Stellenumfang), bei neuen Stellen lässt es sich eintragen; ist das Szenario eingerechnet, zählt es auch in der Ansicht **Kapazität** mit.
+Szenarien werden als JSON-Datei gespeichert und wieder geladen (lokal, ohne Upload). Auf Wunsch wird das Szenario in **allen** Ansichten eingerechnet; die Kopfzeile zeigt dann „PLAN“.
+
+- **Stellenplan (Zeitstrahl):** je Vertrag ein Balken über bis zu 20 Semester, gegliedert nach Organisationseinheit, Laborbereich oder Mitarbeiterkreis. Ruhephasen schraffiert, Vertretungen und Nachbesetzungen eingerückt darunter, kw- und Ruhestands-Marken, rot gestrichelt die Zeit, in der eine Stelle nach Vertragsende unbesetzt ist. Klick auf Balken oder offene Stelle: nachbesetzen, Vertragsende ändern, Person anzeigen. Darunter die Wirkung Ist gegenüber Plan und die Liste der Planmaßnahmen.
+- **Zielwerte (Ampel):** Zielwerte für Studierende je Professur (inkl. LfbA) und WiMi je Professur (ohne LfbA) mit Toleranz. Ampel je Cluster und Semester (✓ / ! / ✕), erstes Semester mit Zielverfehlung, Fehlbedarf in VZÄ je Feld; der Fehlbedarf lässt sich als neue Stelle in das Szenario übernehmen.
 
 ### Diagramme exportieren
 
@@ -73,17 +94,82 @@ Die Treffer erscheinen als Auswahlliste mit Personalnummer, Mitarbeiterkreis, Cl
 - **Semester:** Wintersemester 01.09.–28./29.02., Sommersemester 01.03.–31.08. Bestand je Semester = Stand am ersten Tag.
 - **kw:** Stellen mit kw-Vermerk entfallen nach Vertragsende. Optional werden Stellen ohne kw als offene, nachzubesetzende Stellen weitergeführt (Schalter oben).
 - **Rundung:** Alle Berechnungen auf zwei Nachkommastellen. Kopfzahlen bleiben ganze Zahlen.
+- **Kapazität:** Lehrangebot je Semester in LVS. Quelle **LVVO-Soll** (Standard): Professuren und LfbA mit ihrer Regellehrverpflichtung nach LVVO (anteilig nach VZÄ, ohne ruhende Anteile) abzüglich der Ermäßigungen – das entspricht dem um Verminderungen bereinigten Lehrdeputat der Kapazitätsverordnung; WiMi und sonstiges Personal mit der Spalte „Deputat“, da die LVVO für sie nur eine Obergrenze nennt. Quelle **Deputat**: Spalte „Deputat“ für alle (bisherige Rechnung). Lehrangebot je Jahr = 2 × Lehrangebot je Semester, wie in der Kapazitätsverordnung (Aufnahmekapazität = 2 × Lehrangebot je Semester / Curricularanteil). Erforderliche Kapazität = CNW × Studienplätze × Aufnahmen je Jahr. Nicht berücksichtigt: Lehraufträge, Dienstleistungsexport/-import, Schwund, unbesetzte Stellen (die Kapazitätsverordnung rechnet mit Stellen statt Personen). In der Planung zählen neue Professuren und LfbA ebenfalls mit der LVVO; das Deputat im Formular gilt nur für WiMi und sonstiges Personal.
+- **Lehrverpflichtung (LVVO):** Grundlage ist die LVVO Niedersachsen vom 3.9.2018, zuletzt geändert am 26.8.2024, Fall Fachhochschule (Regelwerk mit Fundstellen und Gültigkeitsdatum in `src/js/lvvo.js`). Regellehrverpflichtung je Semester: Professur 18 LVS, LfbA ab zweitem Einstiegsamt 20 LVS, darunter 24 LVS (§ 5 Abs. 1); Höchstlehrverpflichtung WiMi 8 LVS, befristet zur Weiterqualifikation 4 LVS (§ 5 Abs. 2). Teilzeit und ruhende Anteile anteilig (§ 2 Abs. 3). Soll = Regellehrverpflichtung − Ermäßigungen (mindestens 0); bei WiMi gilt das eingetragene Deputat als Soll, die Höchstlehrverpflichtung als Obergrenze.
+- **LVVO-Annahmen:** Die LVVO gilt unmittelbar nur für Beamtinnen und Beamte (§ 1); für Tarifbeschäftigte wird sie ebenso angewendet. LfbA ab E13/A13 gelten als zweites Einstiegsamt. Befristete WiMi gelten als „auch zur Weiterqualifikation beschäftigt“. Ermäßigungen in Prozent beziehen sich auf die anteilige Lehrverpflichtung der Person. Die zulässige Quote nach § 9 wird als 7 % plus Lehre der WiMi in Prozent der Regellehrverpflichtungen gelesen, höchstens 10 %; sie gilt hochschulweit, die App zeigt nur den Anteil der Fakultät. Alle Annahmen lassen sich je Person mit der Spalte „LVVO-Gruppe“ übersteuern.
+- **Gehaltene Lehre (§§ 13–15):** LVS = SWS × Faktor × Anteil × Anzahl. Faktor 1 für Vorlesung, Übung, Seminar, seminaristischen Unterricht, Praktikum, Kolloquium, Repetitorium; 0,3 für Exkursionen (Anlage Nr. 3); drei Zehntel bei Faktor ≥ 0,5 ohne ständige Anwesenheit, wenn die Art „nicht ständig anwesend“ enthält (§ 14 Abs. 2). Betreuung von Abschlussarbeiten zählt höchstens 2 LVS je Semester (§ 15). Ist die Spalte LVS gefüllt, zählt dieser Wert. Unbekannte Arten zählen mit Faktor 1 (Warnung).
+- **Zeitkonto (§ 11 Abs. 3):** für Professuren und LfbA, je Semester vom ersten bis zum letzten Semester mit Einträgen (Semester ohne Eintrag zählen mit 0 LVS). Saldo = gehaltene Lehre − Soll; Soll nach LVVO am Semesterbeginn (mit Teilzeit, Ruhen und Ermäßigungen). Guthaben über dem Zweifachen der Regellehrverpflichtung verfällt am Semesterende (Kappung); ein Fehlbetrag über der Regellehrverpflichtung und Lehre unter der Hälfte des Solls werden gemeldet. Bei WiMi wird die gehaltene Lehre nur mit dem Deputat verglichen, ohne Konto. Nicht abgebildet: die Prüfung, ob eine ungleiche Verteilung nach § 11 Abs. 2 innerhalb von sechs Semestern ausgeglichen ist.
+- **Datenprüfung zur LVVO:** Deputat weicht vom LVVO-Soll ab; WiMi-Deputat über der Höchstlehrverpflichtung; Ermäßigungen über den Höchstgrenzen (§ 7: Vizepräsidentschaft 75 %, Studienfachberatung 25 %, Schwerbehinderung 25 %, herausragende Lehrende 50 %; § 9: je Professur 4 LVS, für Forschung/Entwicklung/Transfer 9 LVS) oder über der Lehrverpflichtung; unbekannte Personalnummern, fehlender Umfang, unbekannter Grund, Zeitraum außerhalb des Vertrags; unbekannte oder unpassende LVVO-Gruppe.
 - **Betreuungsverhältnis:** LfbA zählen als Professor/innen. In der WiMi-je-Professur-Auswertung werden LfbA nicht berücksichtigt.
 - Die Zuordnung der Mitarbeiterkreise zu Professor/in, LfbA, WiMi und Sonstige wird aus den Bezeichnungen erraten und lässt sich im Reiter „Betreuung & WiMi“ ändern.
 
 ## Entwicklung
 
-Der Quelltext liegt in `src/app.html`. Die fertige Einzeldatei wird so gebaut:
+Die fertige Einzeldatei wird so gebaut. `npm install` lädt SheetJS vom SheetJS-CDN (`cdn.sheetjs.com`), alles andere aus dem npm-Register:
 
 ```bash
 npm install
 npm run build        # erzeugt Personalplanung_IuI.html
 ```
+
+### Aufbau des Quelltexts
+
+| Pfad | Inhalt |
+|---|---|
+| `src/index.html` | HTML-Gerüst aller Ansichten, mit Platzhaltern für CSS, Bibliotheken und Anwendungsskript |
+| `src/styles.css` | Gestaltung |
+| `src/js/util.js` | Hilfsfunktionen: DOM-Kurzformen, Datum, Zahlenformate, Rundung, Semester |
+| `src/js/state.js` | gemeinsamer Anwendungszustand `S` |
+| `src/js/parse.js` | Einlesen der Excel-Datei, Spaltenerkennung, Aufbau der Datensätze |
+| `src/js/checks.js` | Datenprüfung |
+| `src/js/model.js` | Rechenkern: aktive Verträge, Ruhen, Teilruhen, Vertretungen, Personalgruppen, Stichtagsbestand |
+| `src/js/lvvo.js` | LVVO Niedersachsen (Fachhochschule): Regelwerk mit Fundstellen und Gültigkeitsdatum, Erkennung von Gruppe und Ermäßigungsgrund |
+| `src/js/teaching.js` | Lehre: Lehrangebot (Kapazität) und Lehrverpflichtung nach LVVO |
+| `src/js/charts.js` | Diagramme und PNG-Export |
+| `src/js/render.js` | Neuzeichnen der aktiven Ansicht |
+| `src/js/views/*.js` | je Reiter eine Ansicht, dazu das Personenfenster |
+| `src/js/plan/*.js` | Planung: Szenario, Formular, Zeitstrahl, Zielwerte |
+| `src/js/search.js` | globale Personensuche |
+| `src/js/main.js` | Laden der Datei, Reiterwechsel, Ereignisse, `init()` |
+| `src/js/app.js` | Einstiegspunkt: startet die Anwendung |
+
+Die Dateien unter `src/js/` sind ES-Module mit `import`/`export`. `scripts/build.js` bündelt sie mit [esbuild](https://esbuild.github.io/) ab dem Einstiegspunkt `src/js/app.js` zu einem Skript und setzt dieses zusammen mit CSS, SheetJS, Chart.js und den Demodaten in die HTML-Datei ein. Dabei gilt:
+
+- Was ein Modul aus einem anderen braucht, importiert es ausdrücklich. Importierte Variablen sind nur lesbar; zum Ändern bietet das besitzende Modul einen Setter (z. B. `setFcMode`).
+- Jeder Name auf oberster Ebene ist nur in einem Modul deklariert. Das braucht die Importprüfung in `scripts/modules.js`.
+- esbuild meldet Importe von Namen, die nicht exportiert werden. Einen vergessenen Import meldet es nicht. Diese Lücke schließen `npm run check` und der Test `ansichten.test.js`.
+
+```bash
+npm run check        # prüft Importe und Exporte aller Module
+npm run fix-imports  # schreibt die import-Zeilen aus der tatsächlichen Verwendung neu
+```
+
+### Tests
+
+```bash
+npm test
+```
+
+Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:test`). `tests/load-app.js` bündelt alle Module außer `app.js` mit esbuild (gleiche Einstellungen wie der Build) und lädt sie für jeden Test in einen frischen Node-Kontext:
+
+| Datei | Inhalt |
+|---|---|
+| `grundlagen.test.js` | Datum, Zahlen, Rundung, Semestergrenzen |
+| `einlesen.test.js` | Spaltenerkennung, Stellenumfang, Vertragsart, maßgebliches Ende, kw |
+| `rechenkern.test.js` | Vertragslaufzeit, Ruhen und Teilruhen, Stichtagsbestand, offene Stellen, Vertragsstatus |
+| `pruefung.test.js` | Regeln der Datenprüfung |
+| `kapazitaet.test.js` | Lehrangebot aus Deputat |
+| `lvvo.test.js` | LVVO: Regelwerte, Zuordnung zur Gruppe, Lehrverpflichtung mit Teilzeit, Ruhen und Ermäßigungen, Quote nach § 9, Prüfregeln |
+| `lehre.test.js` | Blatt „Lehre“: Semesterangaben, Gewichtung nach § 14, Betreuung nach § 15, Zeitkonto mit Kappung, Fehlbetrag, Übertrag und Lücken, Prüfregeln |
+| `planung.test.js` | Szenarien (Nachbesetzung, neue Stelle, Vertragsende) und Zielwerte |
+| `testdaten.test.js` | Gesamtlauf mit der Testdatei und festgehaltenen Referenzwerten (Stichtag 26.11.2026) |
+| `build.test.js` | `Personalplanung_IuI.html` ist aktuell; Content-Security-Policy ohne Netzwerkzugriff |
+| `module.test.js` | Importe und Exporte vollständig; die Module lassen sich als echte ES-Module laden |
+| `ansichten.test.js` | Alle Ansichten werden mit den echten ES-Modulen und einem Platzhalter-DOM gezeichnet; fängt vergessene Importe ab |
+
+Neue Fälle lassen sich mit `setup([...])` aus `tests/helpers.js` knapp formulieren: Jede Person ist ein Objekt, das nur die abweichenden Felder angibt.
+Ändert sich durch eine gewollte Regeländerung ein Referenzwert in `testdaten.test.js`, wird er dort bewusst angepasst.
+Auf GitHub laufen die Tests bei jedem Push (`.github/workflows/test.yml`).
 
 Testdaten neu erzeugen (Python mit openpyxl):
 
