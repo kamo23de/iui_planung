@@ -95,7 +95,7 @@ tr.tot td{font-weight:650;border-top:1px solid var(--axis)}
 @media (prefers-color-scheme: dark){.sev-W{color:var(--warning)}}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--text-secondary);margin:4px 0 10px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-#start{max-width:760px;margin:40px auto}
+#start{max-width:940px;margin:40px auto;padding:0 16px}
 .drop{border:2px dashed var(--axis);border-radius:12px;padding:40px;text-align:center;background:var(--card)}
 .drop.over{border-color:var(--accent)}
 .note{font-size:12.5px;color:var(--text-secondary)}
@@ -141,6 +141,23 @@ tr.prow:hover td{background:var(--neutral-mid)}
 dl.pd{display:grid;grid-template-columns:170px 1fr;gap:5px 12px;margin:0;font-size:13.5px}
 dl.pd dt{color:var(--text-secondary)}
 dl.pd dd{margin:0}
+.cap-pair{display:grid;grid-template-columns:3fr 2fr;gap:12px}
+@media (max-width:760px){.cap-pair{grid-template-columns:1fr}}
+.wip-banner{display:flex;align-items:center;gap:16px;margin-bottom:16px;padding:14px 18px;border-radius:10px;border:2px solid #0b0b0b;
+  background:repeating-linear-gradient(-45deg,#fab219 0 18px,#0b0b0b 18px 36px);position:relative}
+.wip-banner .wip-logo{flex:none;background:#fff;border-radius:50%;width:70px;height:70px;display:flex;align-items:center;justify-content:center;border:2px solid #0b0b0b}
+.wip-banner .wip-text{background:#fff;color:#0b0b0b;border:2px solid #0b0b0b;border-radius:8px;padding:8px 14px;flex:1}
+.wip-banner .wip-title{font-size:24px;font-weight:800;letter-spacing:.12em;line-height:1.1}
+.wip-banner .wip-sub{font-size:13px;margin-top:4px;color:#3b3a37}
+.wip-tab{display:inline-block;margin-left:6px;padding:0 5px;font-size:10px;font-weight:800;letter-spacing:.05em;border-radius:4px;background:#fab219;color:#0b0b0b;vertical-align:1px}
+@media (max-width:600px){.wip-banner{flex-direction:column;align-items:stretch}.wip-banner .wip-logo{align-self:center}}
+@media print{.wip-banner{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.layout-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:8px 24px}
+.layout-h{font-size:13px;margin:10px 0 4px}
+table.layout{font-size:12.5px}
+table.layout td{padding:3px 6px}
+table.layout td:first-child{font-weight:600;white-space:nowrap;width:1%}
+table.layout td:last-child{color:var(--text-secondary)}
 .pill.rs{font-size:10px;padding:0 5px;border-color:var(--s7);color:var(--s7)}
 tr.vt-child td{background:color-mix(in srgb, var(--s4) 7%, transparent)}
 tr.vt-child td:first-child{border-left:3px solid var(--s4)}
@@ -206,6 +223,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
   <button data-t="forecast">Forecast</button>
   <button data-t="ratio">Betreuung &amp; WiMi</button>
   <button data-t="detail">Detailansicht</button>
+  <button data-t="cap">Kapazität<span class="wip-tab" title="Work in Progress">WIP</span></button>
 </nav>
 
 <div id="start">
@@ -223,10 +241,44 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
     Nach dem Schließen des Fensters sind die Daten nicht mehr im Speicher.</p>
   </div>
   <div class="card" style="margin-top:16px">
-    <h2>Erwarteter Aufbau</h2>
-    <p class="note"><b>Blatt 1 (Personal):</b> Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich, optional „ruht bis“ (Vertrag ruht bis zu diesem Datum und wird bis dahin nicht gezählt) und „Ruhestand“ (voraussichtliches Ausscheiden bei unbefristeten Verträgen; Vertragsende gilt nur für Zeitverträge) „Ruheanteil“ (ruhender Stellenumfang in VZÄ, leer = ganze Stelle) sowie „Vertretung für“ (Personalnummer der vertretenen Person).<br>
-    <b>Blatt 2 (Studierende):</b> Studiengang, Cluster, Studierende.<br>
-    Die Blätter und Spalten werden anhand der Überschriften erkannt; Reihenfolge und Blattnamen sind egal.</p>
+    <h2>Erwarteter Aufbau der Excel-Datei</h2>
+    <p class="note" style="margin-top:0">Blätter und Spalten werden anhand der Überschriften erkannt; Reihenfolge und Blattnamen sind egal. Fehlt eine Spalte, meldet die Datenprüfung das.</p>
+    <div class="layout-grid">
+      <div>
+        <h3 class="layout-h">Blatt 1 – Personal <span class="note">(eine Zeile je Person bzw. Vertrag)</span></h3>
+        <table class="layout">
+          <tr><td>Personalnummer</td><td></td></tr>
+          <tr><td>Name, Vorname</td><td></td></tr>
+          <tr><td>Mitarbeiterkreis</td><td>z. B. Professor/in, LfbA, Wiss. Mitarbeiter/in</td></tr>
+          <tr><td>ArbAnteil</td><td>Arbeitsanteil in %</td></tr>
+          <tr><td>VZÄ</td><td>Vollzeitäquivalente</td></tr>
+          <tr><td>TrfGr</td><td>Tarifgruppe</td></tr>
+          <tr><td>Vertragsart</td><td>befristet / unbefristet</td></tr>
+          <tr><td>Beginn, Vertragsende</td><td>Vertragsende = tatsächliches Ende bei Zeitverträgen</td></tr>
+          <tr><td>Ruheanteil</td><td>ruhender Stellenumfang in VZÄ, z. B. 0,5 bei einem Dekanat; leer = ganze Stelle ruht <span class="pill">optional</span></td></tr>
+          <tr><td>Vertretung für</td><td>Personalnummer der Person, deren (ruhende) Stelle vertreten wird <span class="pill">optional</span></td></tr>
+          <tr><td>Ruhestand</td><td>voraussichtlicher Ruhestand bei unbefristeten Verträgen <span class="pill">optional</span></td></tr>
+          <tr><td>kw</td><td>„kann wegfallen“ – Stelle entfällt nach Vertragsende</td></tr>
+          <tr><td>Cluster</td><td></td></tr>
+          <tr><td>Organisationseinheit</td><td></td></tr>
+          <tr><td>Laborbereich</td><td></td></tr>
+          <tr><td>ruht bis</td><td>Vertrag ruht bis zu diesem Datum – Stelle und Deputat werden bis dahin nicht gezählt <span class="pill">optional</span></td></tr>
+          <tr><td>Deputat</td><td>Lehrdeputat in SWS je Semester; 0 = nur unterstützend in der Lehre <span class="pill">für Kapazität</span></td></tr>
+        </table>
+      </div>
+      <div>
+        <h3 class="layout-h">Blatt 2 – Studierende <span class="note">(eine Zeile je Studiengang)</span></h3>
+        <table class="layout">
+          <tr><td>Studiengang</td><td>Name des Studiengangs</td></tr>
+          <tr><td>Cluster</td><td>Cluster, in dem der Studiengang angesiedelt ist</td></tr>
+          <tr><td>Art</td><td>Bachelor oder Master <span class="pill">für Kapazität</span></td></tr>
+          <tr><td>CNW</td><td>Curricularnormwert <span class="pill">für Kapazität</span></td></tr>
+          <tr><td>Studienplätze</td><td>Plätze einer neuen Studierendengruppe <span class="pill">für Kapazität</span></td></tr>
+          <tr><td>Studierende</td><td>aktuell eingeschriebene Studierende</td></tr>
+        </table>
+        <p class="note">Spalten mit dem Vermerk <span class="pill">für Kapazität</span> werden nur für die Ansicht „Kapazität“ benötigt. Ältere Dateien ohne diese Spalten funktionieren in allen anderen Ansichten weiter.</p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -399,7 +451,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
   </div>
   <div class="card">
     <h2>Personalliste <span class="note" id="dtCount"></span></h2>
-    <p class="sub"><b>Erweitern</b> blendet TrfGr, ArbAnteil, Vertragsart, Beginn und „ruht bis“ ein (auf schmalen Bildschirmen auch Organisationseinheit und Laborbereich). Vertretungen stehen eingerückt unter der vertretenen Person. Klick auf eine Zeile zeigt alle Daten zur Person, Klick auf eine Spaltenüberschrift sortiert. ⛔/⚠ markiert Zeilen mit Befunden aus der Datenprüfung (Maus darüber bzw. antippen zeigt Details).</p>
+    <p class="sub"><b>Erweitern</b> blendet TrfGr, ArbAnteil, Deputat, Vertragsart, Beginn und „ruht bis“ ein (auf schmalen Bildschirmen auch Organisationseinheit und Laborbereich). Vertretungen stehen eingerückt unter der vertretenen Person. Klick auf eine Zeile zeigt alle Daten zur Person, Klick auf eine Spaltenüberschrift sortiert. ⛔/⚠ markiert Zeilen mit Befunden aus der Datenprüfung (Maus darüber bzw. antippen zeigt Details).</p>
     <div class="row">
       <input type="search" id="dtSearch" placeholder="Suche: Name, Pers.-Nr., OE, Tarif …" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);min-width:260px">
       <label class="ctl"><input type="checkbox" id="dtAll"> auch ausgelaufene und künftige Verträge</label>
@@ -410,6 +462,68 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
       <button id="dtOpen">Alle auf-/zuklappen</button>
     </div>
     <div id="dtLists"></div>
+  </div>
+</section>
+<!-- ================= Kapazität ================= -->
+<section class="view" id="v-cap">
+  <div class="wip-banner" role="note" aria-label="Work in Progress">
+    <div class="wip-logo" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="54" height="54"><path d="M32 5 L60 55 H4 Z" fill="#fab219" stroke="#0b0b0b" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="29" y="22" width="6" height="18" rx="2" fill="#0b0b0b"/><circle cx="32" cy="47" r="3.6" fill="#0b0b0b"/></svg>
+    </div>
+    <div class="wip-text">
+      <div class="wip-title">WORK IN PROGRESS</div>
+      <div class="wip-sub">Diese Ansicht befindet sich noch im Aufbau. Die Verknüpfung der Studiengänge mit Clustern und Organisationseinheiten fehlt noch; Ergebnisse sind vorläufig und nicht für Entscheidungen bestimmt.</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="row">
+      <label class="ctl">Stichtag <select id="capWhen"></select></label>
+      <label class="ctl" title="Wie oft im Jahr nimmt ein Studiengang eine neue Studierendengruppe auf?">Aufnahmen je Jahr <select id="capIntakes"><option value="1">1 (jährlich)</option><option value="2">2 (jedes Semester)</option></select></label>
+    </div>
+    <p class="sub" id="capSub" style="margin:0"></p>
+    <p class="note sev-W hidden" id="capMissing" style="margin:8px 0 0"></p>
+    <p class="note sev-W hidden" id="capDouble" style="margin:8px 0 0"></p>
+  </div>
+  <div class="kpis" id="capKpis"></div>
+  <div class="grid2 mb">
+    <div class="card">
+      <h2>Verfügbare Kapazität je Cluster</h2>
+      <p class="sub">Summe des Lehrdeputats in SWS je Semester, nach Personalgruppe.</p>
+      <div class="legend" id="lgCapCl"></div>
+      <div class="chartbox" id="capClBox" style="height:260px"><canvas id="cCapCl"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Verfügbar und erforderlich je Cluster <span class="pill sev-I">vorläufig</span></h2>
+      <p class="sub">Lehrangebot je Jahr (2 × SWS) gegenüber der erforderlichen Kapazität der Studiengänge, die im Studierendenblatt diesem Cluster zugeordnet sind. Lehrexport und -import zwischen Clustern sind noch nicht berücksichtigt.</p>
+      <div class="legend" id="lgCapBal"></div>
+      <div class="chartbox" id="capBalBox" style="height:260px"><canvas id="cCapBal"></canvas></div>
+    </div>
+  </div>
+  <div class="card"><h2>Kapazität je Cluster – Tabelle</h2><div class="scroll" id="capClTable"></div></div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">Verfügbare Kapazität je Organisationseinheit</h2><label class="ctl">Cluster <select id="capCluster"></select></label></div>
+    <p class="sub">Lehrdeputat in SWS je Semester. Organisationseinheiten ohne Lehrende und ohne unterstützende Personen sind im Diagramm ausgeblendet.</p>
+    <div class="legend" id="lgCapOe"></div>
+    <div class="chartbox" id="capOeBox" style="height:300px"><canvas id="cCapOe"></canvas></div>
+    <div class="scroll" id="capOeTable" style="margin-top:14px;max-height:620px"></div>
+  </div>
+  <div class="card">
+    <h2>Erforderliche Kapazität je Studiengang</h2>
+    <p class="sub">Erforderliche Kapazität = CNW × Studienplätze (Deputatstunden je Jahr bei der gewählten Zahl an Aufnahmen). Rechts die aktuell eingeschriebenen Studierenden, in derselben Reihenfolge.</p>
+    <div class="legend" id="lgCapSg"></div>
+    <div class="cap-pair">
+      <div class="chartbox" id="capSgBox" style="height:300px"><canvas id="cCapSg"></canvas></div>
+      <div class="chartbox" id="capStBox" style="height:300px"><canvas id="cCapSt"></canvas></div>
+    </div>
+    <div class="scroll" id="capSgTable" style="margin-top:14px"></div>
+  </div>
+  <div class="card">
+    <h2>Berechnungsgrundlage</h2>
+    <p class="note" style="margin:0">Lehrangebot je Semester = Summe des Deputats (SWS) aller Personen mit aktivem Vertrag am Stichtag. Personen mit Deputat 0 sind nur unterstützend tätig und tragen nicht zum Lehrangebot bei.
+    Wie in der Kapazitätsverordnung wird das Jahreslehrangebot als 2 × Lehrangebot je Semester angesetzt und der Summe aus CNW × Studienplätze gegenübergestellt.
+    Es zählen nur aktive Verträge und nur nicht ruhende Stellenanteile: Ruhende Verträge (Spalte „ruht bis“) zählen bis zum Ende des Ruhens nicht mit, bei teilweise ruhenden Verträgen (Spalte „Ruheanteil“) nur der nicht ruhende Anteil des Deputats, ihre Vertretungen (Spalte „Vertretung für“) dagegen schon, solange deren Vertrag läuft.
+    Nicht berücksichtigt sind Deputatsermäßigungen, Lehraufträge, Dienstleistungen für andere Lehreinheiten, Schwundfaktoren und offene Stellen.</p>
   </div>
 </section>
 </main>
@@ -478,6 +592,7 @@ const FIELDS = [
   ['ruhestand', 'Ruhestand', ['ruhestand', 'ruhestandsdatum', 'ruhestandsbeginn', 'renteneintritt', 'pensionierung']],
   ['ruheanteil', 'Ruheanteil', ['ruheanteil', 'ruhenderanteil', 'ruhendeanteil', 'ruhenderstellenanteil', 'ruhendesvzä']],
   ['vertretung', 'Vertretung für', ['vertretungfür', 'vertretungfuer', 'vertretung', 'vertrittpersonalnummer', 'vertritt']],
+  ['deputat', 'Deputat', ['deputat', 'lehrdeputat', 'lehrverpflichtung', 'lvs', 'sws']],
 ];
 const OPTIONAL_COLS = ['ruht bis', 'Ruheanteil', 'Ruhestand', 'Vertretung für'];
 const normH = h => String(h ?? '').toLowerCase().replace(/ß/g, 'ss').replace(/[^a-z0-9äöü]/g, '');
@@ -533,6 +648,14 @@ function parseNum(v) {
 }
 const str = v => (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim();
 
+const STUD_FIELDS = [
+  ['sg', 'Studiengang', ['studiengang']],
+  ['cl', 'Cluster', ['cluster']],
+  ['art', 'Art', ['art', 'abschluss', 'abschlussart', 'studienart']],
+  ['cnw', 'CNW', ['cnw', 'curricularernormwert', 'curricularnormwert', 'curricularwert']],
+  ['pl', 'Studienplätze', ['studienplätze', 'studienplaetze', 'aufnahmekapazität', 'zulassungszahl', 'plätze']],
+  ['n', 'Studierende', ['studierende', 'anzahl', 'studierendenzahl', 'eingeschriebene']],
+];
 function readWorkbook(buf, fileName) {
   const wb = XLSX.read(buf, {type: 'array'});
   let pers = null, stud = null;
@@ -540,7 +663,7 @@ function readWorkbook(buf, fileName) {
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header: 1, raw: true, defval: null, blankrows: false});
     if (!pers) { const t = findTable(rows, FIELDS, 6); if (t) { pers = {sn, rows, ...t}; continue; } }
     if (!stud) {
-      const t = findTable(rows, [['sg', 'Studiengang', ['studiengang']], ['cl', 'Cluster', ['cluster']], ['n', 'Studierende', ['studierende', 'anzahl', 'studierendenzahl']]], 2);
+      const t = findTable(rows, STUD_FIELDS, 2);
       if (t && 'sg' in t.map) stud = {sn, rows, ...t};
     }
   }
@@ -567,6 +690,7 @@ function buildRecords() {
     r.vart = str(get(row, 'vart'));
     r.clusterRaw = get(row, 'cluster'); r.cluster = str(r.clusterRaw);
     r.oe = str(get(row, 'oe')); r.labor = str(get(row, 'labor'));
+    const dp = parseNum(get(row, 'deputat')); r.deputat = dp.v == null ? null : r2(dp.v); r.deputatErr = dp.err;
     const a = parseNum(get(row, 'arb')), v = parseNum(get(row, 'vz'));
     r.arbErr = a.err; r.vzErr = v.err;
     r.arb = a.v; if (r.arb != null && (a.pct ? false : r.arb <= 1.0001) && r.arb > 0) { r.arb = r.arb * 100; r.arbScaled = true; }
@@ -599,8 +723,14 @@ function buildRecords() {
   if (stud) {
     for (let i = stud.headerRow + 1; i < stud.rows.length; i++) {
       const row = stud.rows[i]; if (!row || row.every(c => c == null || String(c).trim() === '')) continue;
-      const n = parseNum(stud.map.n != null ? row[stud.map.n] : null);
-      S.students.push({row: i + 1, sg: str(row[stud.map.sg]), clusterRaw: stud.map.cl != null ? row[stud.map.cl] : '', cluster: str(stud.map.cl != null ? row[stud.map.cl] : ''), n: n.v, nErr: n.err});
+      const cell = k => stud.map[k] != null ? row[stud.map[k]] : null;
+      const n = parseNum(cell('n')), cnw = parseNum(cell('cnw')), pl = parseNum(cell('pl'));
+      const artRaw = str(cell('art')), al = artRaw.toLowerCase();
+      const isB = al.includes('bachelor') || /^(b|ba|bsc|b\.\s?(sc|a|eng|ed)\.?)$/.test(al);
+      const isM = al.includes('master') || /^(m|ma|msc|m\.\s?(sc|a|eng|ed)\.?)$/.test(al);
+      const art = isB ? 'Bachelor' : isM ? 'Master' : (artRaw ? 'Sonstige' : '');
+      S.students.push({row: i + 1, sg: str(cell('sg')), clusterRaw: cell('cl') ?? '', cluster: str(cell('cl')), n: n.v, nErr: n.err,
+        artRaw, art, cnw: cnw.v == null ? null : r2(cnw.v), cnwErr: cnw.err, pl: pl.v, plErr: pl.err});
     }
   }
   normalizeCategories();
@@ -661,7 +791,8 @@ function runChecks() {
   const I = [], T = S.today;
   const add = (sev, check, r, field, msg) => I.push({sev, check, row: r ? r.row : null, pnr: r ? r.pnr : '', person: r ? [r.name, r.vorname].filter(Boolean).join(', ') : '', field, msg, sheet: r && r.sg != null ? 'Studierende' : 'Personal'});
 
-  S.missingCols.filter(c => !OPTIONAL_COLS.includes(c)).forEach(c => add(c === 'Laborbereich' || c === 'Organisationseinheit' ? 'W' : 'E', 'Spalte fehlt', null, c, `Spalte „${c}“ wurde im Personalblatt nicht gefunden.`));
+  S.missingCols.filter(c => !OPTIONAL_COLS.includes(c)).forEach(c => add(c === 'Laborbereich' || c === 'Organisationseinheit' || c === 'Deputat' ? 'W' : 'E', 'Spalte fehlt', null, c, `Spalte „${c}“ wurde im Personalblatt nicht gefunden.` + (c === 'Deputat' ? ' Die Ansicht Kapazität kann kein Lehrangebot berechnen.' : '')));
+  if (S.raw.stud) STUD_FIELDS.filter(f => !(f[0] in S.raw.stud.map)).forEach(f => add(['cnw', 'pl'].includes(f[0]) ? 'W' : f[0] === 'art' ? 'I' : 'E', 'Spalte fehlt', null, f[1], `Spalte „${f[1]}“ wurde im Studierendenblatt nicht gefunden.` + (['cnw', 'pl'].includes(f[0]) ? ' Die erforderliche Kapazität ist nicht berechenbar.' : '')));
   if (!S.raw.stud) add('E', 'Studierendenblatt fehlt', null, '', 'Kein Tabellenblatt mit Studiengang/Cluster/Studierende gefunden – Betreuungsverhältnis nicht berechenbar.');
 
   // exakte Duplikate
@@ -734,6 +865,13 @@ function runChecks() {
     // Zeitbezug
     if (r.ende != null && r.ende < T && !(r.beginn != null && r.beginn > r.ende)) add('I', r.endType === 'Ruhestand' ? 'Bereits im Ruhestand' : 'Vertrag bereits ausgelaufen', r, r.endType || 'Vertragsende', `${r.endType === 'Ruhestand' ? 'Ruhestand' : 'Vertragsende'} ${fmtD(r.ende)} liegt vor dem Stichtag – nicht aktiv.`);
     if (r.beginn != null && r.beginn > T) add('I', 'Vertrag beginnt in der Zukunft', r, 'Beginn', `Beginn ${fmtD(r.beginn)} – noch nicht aktiv, erscheint ab dann in Prognosen.`);
+    if ('deputat' in S.colMap) {
+      if (r.deputatErr) add('E', 'Zahl nicht lesbar', r, 'Deputat', `Deputat „${str(r.rawRow[S.colMap.deputat])}“ ist keine Zahl – als 0 gewertet.`);
+      else if (r.deputat != null && r.deputat < 0) add('E', 'Wert außerhalb des Bereichs', r, 'Deputat', `Deputat ${nf2.format(r.deputat)} SWS ist negativ.`);
+      else if (r.deputat != null && r.deputat > 30) add('W', 'Deputat unplausibel', r, 'Deputat', `Deputat ${nf2.format(r.deputat)} SWS je Semester ist ungewöhnlich hoch.`);
+      if ((cat === 'Professor/in' || cat === 'LfbA') && !r.deputatErr && !r.deputat) add('W', 'Lehrperson ohne Deputat', r, 'Deputat', `${cat} ${r.deputat === 0 ? 'mit Deputat 0 (nur unterstützend)' : 'ohne Deputatsangabe'} – trägt nicht zur Lehrkapazität bei.`);
+      if (r.deputat > 0 && cat === 'Sonstige') add('I', 'Deputat bei sonstigem Personal', r, 'Deputat', `${r.kreis || 'Person'} mit ${nf2.format(r.deputat)} SWS Deputat – wird zur Lehrkapazität gezählt.`);
+    }
     if (r.endeOpenSentinel) add('I', 'Platzhalter-Enddatum', r, 'Vertragsende', 'Enddatum ab Jahr 2100 als „unbefristet“ gewertet.');
     if (r.beginn != null && fromDay(r.beginn).y < 1960) add('W', 'Datum unplausibel', r, 'Beginn', `Beginn ${fmtD(r.beginn)} sehr früh.`);
     if (r.clusterCase) add('I', 'Schreibweise vereinheitlicht', r, 'Cluster', `„${r.clusterCase}“ als „${r.cluster}“ gezählt.`);
@@ -816,6 +954,20 @@ function runChecks() {
     if (s.sg) { const k = s.sg.toLowerCase(); if (sgSeen[k]) add('W', 'Studierende: Studiengang doppelt', r, 'Studiengang', `Studiengang auch in Zeile ${sgSeen[k]} – wird doppelt gezählt.`); else sgSeen[k] = s.row; }
     if (s.cluster) { studCl.add(s.cluster); if (!staffCl.has(s.cluster)) add('W', 'Cluster ohne Personal', r, 'Cluster', `Cluster „${s.cluster}“ kommt im Personalblatt nicht vor – Betreuungsrelation nicht berechenbar.`); }
     if (s.clusterCase) add('I', 'Schreibweise vereinheitlicht', r, 'Cluster', `„${s.clusterCase}“ als „${s.cluster}“ gezählt.`);
+    const sm = S.raw.stud.map;
+    if ('cnw' in sm) {
+      if (s.cnwErr || s.cnw == null) add('E', 'Studierende: CNW fehlt/unlesbar', r, 'CNW', 'CNW fehlt oder ist keine Zahl – erforderliche Kapazität nicht berechenbar.');
+      else if (s.cnw <= 0) add('E', 'Studierende: Wert unplausibel', r, 'CNW', `CNW ${nf2.format(s.cnw)} muss größer als 0 sein.`);
+      else if (s.cnw > 15) add('W', 'Studierende: Wert unplausibel', r, 'CNW', `CNW ${nf2.format(s.cnw)} ist ungewöhnlich hoch.`);
+    }
+    if ('pl' in sm) {
+      if (s.plErr || s.pl == null) add('E', 'Studierende: Studienplätze fehlen/unlesbar', r, 'Studienplätze', 'Anzahl Studienplätze fehlt oder ist keine Zahl – erforderliche Kapazität nicht berechenbar.');
+      else if (s.pl < 0 || !Number.isInteger(s.pl)) add('E', 'Studierende: Wert unplausibel', r, 'Studienplätze', `Studienplätze ${s.pl} ist keine nichtnegative ganze Zahl.`);
+    }
+    if ('art' in sm) {
+      if (!s.artRaw) add('W', 'Studierende: Pflichtfeld leer', r, 'Art', 'Art des Studiengangs (Bachelor/Master) fehlt.');
+      else if (s.art === 'Sonstige') add('W', 'Studierende: Art unklar', r, 'Art', `Art „${s.artRaw}“ nicht als Bachelor oder Master erkannt.`);
+    }
   }
   if (S.raw.stud) for (const c of staffCl) if (c !== '(ohne Cluster)' && !studCl.has(c)) add('W', 'Cluster ohne Studierende', null, 'Cluster', `Cluster „${c}“ hat im Studierendenblatt keine Studiengänge.`);
 
@@ -988,6 +1140,7 @@ function renderAll() {
   if (t === 'forecast') renderForecast();
   if (t === 'ratio') renderRatio();
   if (t === 'detail') renderDetail();
+  if (t === 'cap') renderCapacity();
 }
 
 /* ---------- Datenprüfung ---------- */
@@ -1301,7 +1454,7 @@ function renderRatio() {
 
 /* ---------- Detailansicht ---------- */
 const DT = {sort: 'name', dir: 1, group: 'kreis', expanded: false};
-const DT_EXT = new Set(['ruht', 'tarif', 'arb', 'vart', 'beginn']);
+const DT_EXT = new Set(['ruht', 'tarif', 'arb', 'deputat', 'vart', 'beginn']);
 /* Schmale Bildschirme (z. B. iPad hochkant): zusätzlich OE und Laborbereich erst beim Erweitern */
 const DT_EXT_NARROW = new Set(['oe', 'labor']);
 const DT_NARROW_PX = 1000;
@@ -1324,6 +1477,7 @@ const DT_COLS = [
   ['tarif', 'TrfGr', r => r.tarif],
   ['arb', 'ArbAnteil', r => r.arb, 'n'],
   ['vz', 'VZÄ', r => r.vz, 'n'],
+  ['deputat', 'Deputat (SWS)', r => r.deputat ?? -1, 'n'],
   ['vart', 'Vertragsart', r => r.vart],
   ['beginn', 'Beginn', r => r.beginn, 'n'],
   ['ende', 'Vertrags\u00adende / Ruhe\u00adstand', r => r.ende == null ? Infinity : r.ende, 'n'],
@@ -1479,6 +1633,7 @@ function renderDetailList() {
     switch (k) {
       case 'arb': return r.arb == null ? '–' : nf1.format(r.arb) + ' %';
       case 'vz': return r.vz == null ? '–' : nf1.format(r.vz) + (isPartlyResting(r, S.today) ? `<div class="eff" title="wirksam (nicht ruhend)">wirksam ${nf1.format(effVz(r, S.today))}</div>` : isResting(r, S.today) ? '<div class="eff">wirksam 0,00</div>' : '');
+      case 'deputat': return r.deputat == null ? '–' : nf1.format(r.deputat) + (inRestPeriod(r, S.today) && r.deputat > 0 ? `<div class="eff">wirksam ${nf1.format(effDep(r, S.today))}</div>` : '');
       case 'beginn': return fmtD(r.beginn);
       case 'ende': return r.ende == null ? 'unbefristet' : fmtD(r.ende) + (r.endType === 'Ruhestand' ? ' <span class="pill rs" title="voraussichtlicher Ruhestand">RS</span>' : '');
       case 'ruht': return r.ruht == null ? '' : fmtD(r.ruht);
@@ -1512,23 +1667,159 @@ function renderDetailList() {
   $$('#dtLists th.sortable').forEach(th => th.onclick = () => { if (DT.sort === th.dataset.k) DT.dir *= -1; else { DT.sort = th.dataset.k; DT.dir = 1; } renderDetailList(); });
   $$('#dtLists tr.prow').forEach(tr => tr.onclick = () => showPerson(+tr.dataset.row));
   $('#dtExpand').textContent = DT.expanded ? '◂ Reduzieren' : 'Erweitern ▸';
-  const extNames = (isNarrow() ? 'Organisationseinheit, Laborbereich, ' : '') + 'TrfGr, ArbAnteil, Vertragsart, Beginn und „ruht bis“';
+  const extNames = (isNarrow() ? 'Organisationseinheit, Laborbereich, ' : '') + 'TrfGr, ArbAnteil, Deputat, Vertragsart, Beginn und „ruht bis“';
   $('#dtExpand').title = (DT.expanded ? 'Ausblenden: ' : 'Einblenden: ') + extNames;
   DT.lastNarrow = isNarrow();
 }
 function detailCsv() {
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-  const head = ['Mitarbeiterkreis', 'Gruppe', 'Personalnummer', 'Name', 'Vorname', 'Cluster', 'Organisationseinheit', 'Laborbereich', 'TrfGr', 'ArbAnteil', 'VZÄ', 'Vertragsart', 'Beginn', 'Vertragsende', 'Ruhestand', 'Ausscheiden', 'ruht bis', 'Ruheanteil (VZÄ)', 'wirksame VZÄ heute', 'Vertretung für', 'Restlaufzeit (Jahre)', 'kw', 'Status'];
+  const head = ['Mitarbeiterkreis', 'Gruppe', 'Personalnummer', 'Name', 'Vorname', 'Cluster', 'Organisationseinheit', 'Laborbereich', 'TrfGr', 'ArbAnteil', 'VZÄ', 'Deputat (SWS)', 'wirksames Deputat heute', 'Vertragsart', 'Beginn', 'Vertragsende', 'Ruhestand', 'Ausscheiden', 'ruht bis', 'Ruheanteil (VZÄ)', 'wirksame VZÄ heute', 'Vertretung für', 'Restlaufzeit (Jahre)', 'kw', 'Status'];
   const rows = detailRows().sort(DT.group === 'lab'
     ? (a, b) => labSort(labKey(a), labKey(b)) || S.kreisOrder.indexOf(kreisOf(a)) - S.kreisOrder.indexOf(kreisOf(b)) || a.name.localeCompare(b.name, 'de')
     : (a, b) => S.kreisOrder.indexOf(kreisOf(a)) - S.kreisOrder.indexOf(kreisOf(b)) || a.name.localeCompare(b.name, 'de'));
   const n = v => v == null ? '' : nf1.format(v);
-  const lines = [head.map(q).join(';')].concat(rows.map(r => [kreisOf(r), S.catMap[kreisOf(r)], r.pnr, r.name, r.vorname, clusterOf(r), r.oe, r.labor, r.tarif, n(r.arb), n(r.vz), r.vart,
+  const lines = [head.map(q).join(';')].concat(rows.map(r => [kreisOf(r), S.catMap[kreisOf(r)], r.pnr, r.name, r.vorname, clusterOf(r), r.oe, r.labor, r.tarif, n(r.arb), n(r.vz), n(r.deputat), n(effDep(r, S.today)), r.vart,
     r.beginn == null ? '' : fmtD(r.beginn), r.vertragsende == null ? (r.fixedTerm ? '' : 'unbefristet') : fmtD(r.vertragsende), r.ruhestand == null ? '' : fmtD(r.ruhestand), r.ende == null ? '' : fmtD(r.ende) + ' (' + r.endType + ')', r.ruht == null ? '' : fmtD(r.ruht), n(r.ruht == null ? null : r2((r.vz || 0) * restShare(r))), n(effVz(r, S.today)), r.vertretungFuer, n(restJahre(r)), r.kw ? 'x' : '', contractStatus(r).txt].map(q).join(';')));
   const lab = (selLab() ? '_' + labLabel(selLab(), false) : '') + (selOE() ? '_' + selOE() : '');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'}));
   a.download = ('Personalliste_' + ($('#dtCluster').value || 'Fakultaet') + lab).replace(/[^\wäöüÄÖÜß-]+/g, '_') + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------- Kapazität ---------- */
+/* Lehrangebot: Summe Deputat (SWS je Semester) der Personen mit aktivem Vertrag; Jahreslehrangebot = 2 × SWS je Semester
+   (KapVO: jährliche Aufnahmekapazität = 2 × Lehrangebot je Semester / Curricularanteil).
+   Erforderliche Kapazität je Studiengang = CNW × Studienplätze × Aufnahmen pro Jahr. */
+const CAP_GROUPS = [['P', 'Professor/innen', 'Professor/in'], ['L', 'LfbA', 'LfbA'], ['W', 'WiMi', 'WiMi'], ['O', 'Sonstige', 'Sonstige']];
+const ART_COL = {Bachelor: '--s7', Master: '--s5', Sonstige: '--muted', '': '--muted'};
+let CAP_D = null;   // Stichtag der Kapazitätsrechnung
+function capStats(list) {
+  const o = {sws: 0, P: 0, L: 0, W: 0, O: 0, teach: 0, support: 0, none: 0};
+  for (const r of list) {
+    const dep = r.deputatErr ? null : effDep(r, CAP_D ?? S.today);   // nur der nicht ruhende Anteil
+    if (dep > 0) { const g = grpOf(r); o[g] = r2(o[g] + dep); o.sws = r2(o.sws + dep); o.teach++; }
+    else if (r.deputat === 0 && !r.deputatErr) o.support++;
+    else o.none++;
+  }
+  o.year = r2(2 * o.sws);
+  return o;
+}
+/* Zwei nebeneinanderstehende Diagramme mit gleicher Kategorie-Reihenfolge vertikal deckungsgleich machen */
+function alignCharts(a, b) {
+  for (let pass = 0; pass < 2; pass++) {
+    const A = a.chartArea, B = b.chartArea;
+    const dt = Math.round(A.top - B.top), db = Math.round(A.bottom - B.bottom);
+    if (!dt && !db) return;
+    const pad = (c, top, bottom) => { const p = c.options.layout.padding = Object.assign({top: 0, bottom: 0, left: 0, right: 0}, c.options.layout.padding || {}); p.top += top; p.bottom += bottom; c.update('none'); };
+    if (dt > 0) pad(b, dt, 0); else if (dt < 0) pad(a, -dt, 0);
+    if (db < 0) pad(b, 0, -db); else if (db > 0) pad(a, 0, db);
+  }
+}
+function renderCapacity() {
+  const cur = semIdx(S.today), sel = $('#capWhen'), prev = sel.value;
+  sel.innerHTML = `<option value="today">heute (${fmtD(S.today)})</option>` + Array.from({length: 20}, (_, j) => cur + 1 + j).map(i => `<option value="${i}">${semLabel(i)}</option>`).join('');
+  sel.value = [...sel.options].some(o => o.value === prev) ? prev : 'today';
+  const D = sel.value === 'today' ? S.today : semStart(+sel.value);
+  fillClusterSelect($('#capCluster'));
+  const cf = $('#capCluster').value || null, intakes = +$('#capIntakes').value;
+  const hasDep = 'deputat' in S.colMap, sm = S.raw.stud ? S.raw.stud.map : {}, hasReq = 'cnw' in sm && 'pl' in sm;
+  $('#capMissing').innerHTML = [!hasDep ? '⚠ Im Personalblatt fehlt die Spalte <b>Deputat</b> – das Lehrangebot kann nicht berechnet werden.' : '',
+    !hasReq ? '⚠ Im Studierendenblatt fehlen die Spalten <b>CNW</b> und/oder <b>Studienplätze</b> – die erforderliche Kapazität kann nicht berechnet werden.' : ''].filter(Boolean).join('<br>');
+  $('#capMissing').classList.toggle('hidden', hasDep && hasReq);
+  CAP_D = D;
+  const act = used().filter(r => isActive(r, D));
+  const T = capStats(act);
+  // Erforderliche Kapazität je Studiengang
+  const sg = S.students.map(s => ({...s, req: (s.cnw > 0 && s.pl >= 0 && !s.cnwErr && !s.plErr) ? r2(s.cnw * s.pl * intakes) : null}));
+  const reqTot = sumBy(sg, s => s.req);
+  const reqBy = {}; sg.forEach(s => { if (s.req != null) reqBy[s.cluster || '(ohne Cluster)'] = r2((reqBy[s.cluster || '(ohne Cluster)'] || 0) + s.req); });
+  const fmtS = v => nf1.format(v);
+  const bal = r2(T.year - reqTot), util = T.year ? r2(reqTot / T.year * 100) : null;
+  const utilPill = u => u == null ? '<span class="note">–</span>' : `<span class="pill ${u > 100 ? 'sev-E' : u >= 90 ? 'sev-W' : ''}" ${u < 90 ? 'style="border-color:var(--good)"' : ''}>${nf1.format(u)} %${u > 100 ? ' · Überlast' : u >= 90 ? ' · knapp' : ''}</span>`;
+  const balTxt = b => `<span class="${b < 0 ? 'down' : 'up'}">${b < 0 ? '−' : '+'}${fmtS(Math.abs(b))}</span>`;
+  $('#capKpis').innerHTML = [
+    ['Lehrangebot je Semester', fmtS(T.sws) + ' SWS', `${T.teach} Lehrende mit Deputat · ${T.support} unterstützend (Deputat 0)`],
+    ['Lehrangebot je Jahr', fmtS(T.year), 'Deputatstunden (2 × SWS je Semester)'],
+    ['Erforderliche Kapazität je Jahr', fmtS(reqTot), `CNW × Studienplätze${intakes === 2 ? ' × 2 Aufnahmen' : ''}, ${sg.filter(s => s.req != null).length} Studiengänge`],
+    ['Bilanz', balTxt(bal), bal < 0 ? 'Deputatstunden fehlen' : 'Deputatstunden Reserve'],
+    ['Auslastung', util == null ? '–' : nf1.format(util) + ' %', util == null ? '' : util > 100 ? '⛔ Lehrangebot reicht nicht aus' : util >= 90 ? '⚠ knapp' : '✓ ausreichend'],
+  ].map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+  const restDep = used().filter(r => inRestPeriod(r, D) && r.deputat > 0 && !r.deputatErr);
+  // Vertretungen: nur aktive Verträge zählen – die Vertretung zählt, der vertretene ruhende Vertrag nicht
+  const vtAct = used().filter(r => r.vertretene && isActive(r, D));
+  const vtDouble = vtAct.filter(r => !inRestPeriod(r.vertretene, D));
+  $('#capSub').textContent = `Stand ${fmtD(D)}${sel.value === 'today' ? '' : ' (' + semLabel(+sel.value) + ')'} · nur Personen mit aktivem Vertrag und Deputat > 0 · Studierenden- und Studiengangsdaten unverändert.` +
+    (restDep.length ? ` · Nicht gezählt, da ruhend: ${nf1.format(sumBy(restDep, r => r2(r.deputat - effDep(r, D))))} SWS aus ${restDep.length} ${restDep.length === 1 ? 'Vertrag' : 'Verträgen'}${restDep.some(r => isPartlyResting(r, D)) ? ` (davon ${restDep.filter(r => isPartlyResting(r, D)).length} teilweise ruhend)` : ''}.` : '') +
+    (vtAct.length ? ` · Gezählt als aktive Vertretung: ${vtAct.length} ${vtAct.length === 1 ? 'Vertrag' : 'Verträge'} mit ${nf1.format(sumBy(vtAct, r => effDep(r, D) || 0))} SWS.` : '');
+  $('#capDouble').innerHTML = vtDouble.length ? `⚠ ${vtDouble.length} ${vtDouble.length === 1 ? 'Vertretung bezieht' : 'Vertretungen beziehen'} sich auf ${vtDouble.length === 1 ? 'einen Vertrag, der' : 'Verträge, die'} am Stichtag nicht ruh${vtDouble.length === 1 ? 't' : 'en'} – beide Verträge sind aktiv und werden gezählt (${vtDouble.map(r => esc(r.name) + ' → ' + esc(r.vertretene.name)).join(', ')}). Bitte in der Datenprüfung klären.` : '';
+  $('#capDouble').classList.toggle('hidden', !vtDouble.length);
+
+  // ---- je Cluster ----
+  const cls = clusterList().filter(c => act.some(r => clusterOf(r) === c));
+  Object.keys(reqBy).forEach(c => { if (!cls.includes(c)) cls.push(c); });
+  cls.sort((a, b) => a.localeCompare(b, 'de'));
+  const cs = Object.fromEntries(cls.map(c => [c, capStats(act.filter(r => clusterOf(r) === c))]));
+  const grpDs = (labels, stats) => CAP_GROUPS.map(([k, l, cat]) => barDs(l, labels.map((_, i) => stats[i][k]), catColor(cat), {stack: 's', borderRadius: 0, borderWidth: {right: 2}, borderColor: css('--card'), maxBarThickness: 22}));
+  $('#lgCapCl').innerHTML = legendHtml(CAP_GROUPS.map(([, l, cat]) => [catColor(cat), l]));
+  $('#capClBox').style.height = Math.max(200, cls.length * 44 + 60) + 'px';
+  const totLbl = (vals) => ({id: 'totLbl', afterDatasetsDraw(c) { const ctx = c.ctx; ctx.save(); ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = css('--text-secondary'); ctx.textBaseline = 'middle';
+    vals.forEach((v, j) => { let x = c.scales.x.left; c.data.datasets.forEach((_, i) => { const el = c.getDatasetMeta(i).data[j]; if (el && el.x > x) x = el.x; }); if (v) ctx.fillText(fmtS(v), x + 5, c.scales.y.getPixelForValue(j)); }); ctx.restore(); }});
+  mkChart('cCapCl', {type: 'bar', plugins: [totLbl(cls.map(c => cs[c].sws))], data: {labels: cls, datasets: grpDs(cls, cls.map(c => cs[c]))},
+    options: {indexAxis: 'y', layout: {padding: {right: 50}}, scales: {x: axis({stacked: true, beginAtZero: true, title: {display: true, text: 'SWS je Semester'}}), y: axis({stacked: true, grid: {display: false}})},
+      plugins: {tooltip: {mode: 'index', filter: x => x.raw > 0, callbacks: {label: c => ` ${c.dataset.label}: ${fmtS(c.raw)} SWS`, footer: it => 'Summe: ' + fmtS(cs[cls[it[0].dataIndex]].sws) + ' SWS'}}}}});
+  // verfügbar vs. erforderlich je Cluster
+  const balCls = cls.filter(c => cs[c].year || reqBy[c]);
+  $('#lgCapBal').innerHTML = legendHtml([[css('--s1'), 'Lehrangebot je Jahr (verfügbar)'], [css('--s2'), 'Erforderliche Kapazität je Jahr']]);
+  $('#capBalBox').style.height = Math.max(200, balCls.length * 52 + 60) + 'px';
+  mkChart('cCapBal', {type: 'bar', plugins: [endLabels], data: {labels: balCls, datasets: [
+      barDs('Lehrangebot je Jahr', balCls.map(c => cs[c].year), css('--s1'), {maxBarThickness: 14}),
+      barDs('Erforderliche Kapazität je Jahr', balCls.map(c => reqBy[c] || 0), css('--s2'), {maxBarThickness: 14})]},
+    options: {indexAxis: 'y', layout: {padding: {right: 60}}, scales: {x: axis({beginAtZero: true, title: {display: true, text: 'Deputatstunden je Jahr'}}), y: axis({grid: {display: false}})},
+      plugins: {endLabels: {enabled: true, fmt: fmtS}, tooltip: {callbacks: {label: c => ` ${c.dataset.label}: ${fmtS(c.raw)}`,
+        footer: it => { const c = balCls[it[0].dataIndex], y = cs[c].year, q = reqBy[c] || 0; return [`Bilanz: ${y - q < 0 ? '−' : '+'}${fmtS(Math.abs(r2(y - q)))}`, `Auslastung: ${y ? nf1.format(r2(q / y * 100)) + ' %' : '–'}`]; }}}}}});
+  const row = (lbl, st, req, cls2) => { const b = req == null ? null : r2(st.year - req), u = (req != null && st.year) ? r2(req / st.year * 100) : null;
+    return `<tr class="${cls2 || ''}"><td>${lbl}</td><td class="n">${st.teach}</td><td class="n">${st.support}</td>${CAP_GROUPS.map(([k]) => `<td class="n">${fmtS(st[k])}</td>`).join('')}<td class="n"><b>${fmtS(st.sws)}</b></td><td class="n">${fmtS(st.year)}</td><td class="n">${req == null ? '<span class="note">–</span>' : fmtS(req)}</td><td class="n">${b == null ? '<span class="note">–</span>' : balTxt(b)}</td><td class="n">${req == null ? '<span class="note">–</span>' : utilPill(u)}</td></tr>`; };
+  const head = (first) => `<tr><th>${first}</th><th class="n">Lehrende</th><th class="n">unterstützend</th>${CAP_GROUPS.map(([, l, cat]) => `<th class="n"><span class="sw" style="background:${catColor(cat)}"></span>${l} (SWS)</th>`).join('')}<th class="n">SWS je Semester</th><th class="n">Lehrangebot je Jahr</th><th class="n">Erforderlich je Jahr</th><th class="n">Bilanz</th><th class="n">Auslastung</th></tr>`;
+  $('#capClTable').innerHTML = `<table>${head('Cluster')}${cls.map(c => row(esc(c), cs[c], reqBy[c] ?? null)).join('')}${row('Fakultät gesamt', T, reqTot, 'tot')}</table>`;
+
+  // ---- je Organisationseinheit ----
+  const oeAct = act.filter(r => !cf || clusterOf(r) === cf);
+  const oeKeys = [...new Set(oeAct.map(r => clusterOf(r) + '\u0000' + oeOf(r)))].sort(labSort);
+  const os = Object.fromEntries(oeKeys.map(k => [k, capStats(oeAct.filter(r => clusterOf(r) + '\u0000' + oeOf(r) === k))]));
+  const oeLabels = oeKeys.map(k => { const [c, o] = k.split('\u0000'); return cf ? o : `${o} (${c})`; });
+  const oeShown = oeKeys.filter(k => os[k].sws > 0 || os[k].support > 0);
+  $('#lgCapOe').innerHTML = legendHtml(CAP_GROUPS.map(([, l, cat]) => [catColor(cat), l]));
+  $('#capOeBox').style.height = Math.max(200, oeShown.length * 30 + 60) + 'px';
+  const oeL = oeShown.map(k => oeLabels[oeKeys.indexOf(k)]);
+  mkChart('cCapOe', {type: 'bar', plugins: [totLbl(oeShown.map(k => os[k].sws))], data: {labels: oeL, datasets: grpDs(oeL, oeShown.map(k => os[k]))},
+    options: {indexAxis: 'y', layout: {padding: {right: 50}}, scales: {x: axis({stacked: true, beginAtZero: true, title: {display: true, text: 'SWS je Semester'}}), y: axis({stacked: true, grid: {display: false}})},
+      plugins: {tooltip: {mode: 'index', filter: x => x.raw > 0, callbacks: {label: c => ` ${c.dataset.label}: ${fmtS(c.raw)} SWS`, footer: it => 'Summe: ' + fmtS(os[oeShown[it[0].dataIndex]].sws) + ' SWS'}}}}});
+  const oeCl = [...new Set(oeKeys.map(k => k.split('\u0000')[0]))];
+  const rowO = (lbl, st, share, cls2) => `<tr class="${cls2 || ''}"><td>${lbl}</td><td class="n">${st.teach}</td><td class="n">${st.support}</td>${CAP_GROUPS.map(([k]) => `<td class="n">${fmtS(st[k])}</td>`).join('')}<td class="n"><b>${fmtS(st.sws)}</b></td><td class="n">${fmtS(st.year)}</td><td class="n">${share == null ? '' : nf1.format(share) + ' %'}</td></tr>`;
+  $('#capOeTable').innerHTML = `<table><tr><th>Cluster / Organisationseinheit</th><th class="n">Lehrende</th><th class="n">unterstützend</th>${CAP_GROUPS.map(([, l, cat]) => `<th class="n"><span class="sw" style="background:${catColor(cat)}"></span>${l} (SWS)</th>`).join('')}<th class="n">SWS je Semester</th><th class="n">Lehrangebot je Jahr</th><th class="n">Anteil am Cluster</th></tr>` +
+    oeCl.map(c => { const cst = capStats(oeAct.filter(r => clusterOf(r) === c));
+      return rowO(esc(c), cst, null, 'tot') + oeKeys.filter(k => k.startsWith(c + '\u0000')).map(k => rowO(`<span style="padding-left:16px">${esc(k.split('\u0000')[1])}</span>`, os[k], pct(os[k].sws, cst.sws))).join(''); }).join('') + '</table>';
+
+  // ---- erforderliche Kapazität je Studiengang ----
+  const sgs = [...sg].sort((a, b) => (b.req ?? -1) - (a.req ?? -1) || a.sg.localeCompare(b.sg, 'de'));
+  const sgL = sgs.map(s => s.sg || '(ohne Namen)');
+  const arts = [...new Set(sgs.map(s => s.art || ''))];
+  $('#lgCapSg').innerHTML = legendHtml(arts.map(a => [css(ART_COL[a]), a || 'Art unbekannt']));
+  const h = Math.max(220, sgs.length * 30 + 60) + 'px'; $('#capSgBox').style.height = h; $('#capStBox').style.height = h;
+  const colors = sgs.map(s => css(ART_COL[s.art || '']));
+  mkChart('cCapSg', {type: 'bar', plugins: [endLabels], data: {labels: sgL, datasets: [barDs('Erforderliche Kapazität je Jahr', sgs.map(s => s.req), colors, {maxBarThickness: 18})]},
+    options: {indexAxis: 'y', layout: {padding: {right: 60}}, scales: {x: axis({beginAtZero: true, afterFit: sc => { sc.height = 48; }, title: {display: true, text: 'Deputatstunden je Jahr (CNW × Studienplätze)'}}), y: axis({grid: {display: false}})},
+      plugins: {endLabels: {enabled: true, fmt: fmtS}, tooltip: {callbacks: {label: c => { const s = sgs[c.dataIndex]; return s.req == null ? ' nicht berechenbar (CNW/Studienplätze fehlen)' : [` ${fmtS(s.req)} = CNW ${fmtS(s.cnw)} × ${s.pl} Plätze${intakes === 2 ? ' × 2' : ''}`, ` ${s.art || 'Art unbekannt'} · ${s.cluster || 'ohne Cluster'}`]; }}}}}});
+  mkChart('cCapSt', {type: 'bar', plugins: [endLabels], data: {labels: sgL, datasets: [barDs('Eingeschriebene Studierende', sgs.map(s => s.n), colors, {maxBarThickness: 18})]},
+    options: {indexAxis: 'y', layout: {padding: {right: 50}}, scales: {x: axis({beginAtZero: true, afterFit: sc => { sc.height = 48; }, title: {display: true, text: 'Eingeschriebene Studierende'}}), y: axis({grid: {display: false}, ticks: {display: false}})},
+      plugins: {endLabels: {enabled: true, fmt: v => nf0.format(v)}, tooltip: {callbacks: {title: it => sgL[it[0].dataIndex], label: c => { const s = sgs[c.dataIndex]; return [` ${nf0.format(s.n ?? 0)} Studierende`, ` ${s.pl ? nf1.format(r2((s.n ?? 0) / s.pl)) + ' je Studienplatz einer Kohorte' : ''}`]; }}}}}});
+  alignCharts(charts.cCapSg, charts.cCapSt);
+  const artSum = a => { const l = sg.filter(s => (s.art || '') === a); return {req: sumBy(l, s => s.req), pl: l.reduce((t, s) => t + (s.pl || 0), 0), n: l.reduce((t, s) => t + (s.n || 0), 0)}; };
+  const sgRow = s => `<tr><td><span class="sw" style="background:${css(ART_COL[s.art || ''])}"></span>${esc(s.sg)}</td><td>${esc(s.art || s.artRaw || '–')}</td><td>${esc(s.cluster || '–')}</td><td class="n">${s.cnw == null ? '<span class="note">–</span>' : fmtS(s.cnw)}</td><td class="n">${s.pl == null ? '<span class="note">–</span>' : nf0.format(s.pl)}</td><td class="n"><b>${s.req == null ? '<span class="sev-E">nicht berechenbar</span>' : fmtS(s.req)}</b></td><td class="n">${s.req == null || !reqTot ? '' : nf1.format(pct(s.req, reqTot)) + ' %'}</td><td class="n">${s.n == null ? '–' : nf0.format(s.n)}</td><td class="n">${s.pl ? nf1.format(r2((s.n || 0) / s.pl)) : '–'}</td></tr>`;
+  $('#capSgTable').innerHTML = `<table><tr><th>Studiengang</th><th>Art</th><th>Cluster</th><th class="n">CNW</th><th class="n">Studienplätze</th><th class="n">Erforderliche Kapazität je Jahr</th><th class="n">Anteil</th><th class="n">Eingeschriebene Studierende</th><th class="n">Studierende je Studienplatz</th></tr>` +
+    sgs.map(sgRow).join('') +
+    arts.map(a => { const x = artSum(a); return `<tr class="tot"><td>Summe ${esc(a || 'Art unbekannt')}</td><td></td><td></td><td></td><td class="n">${nf0.format(x.pl)}</td><td class="n">${fmtS(x.req)}</td><td class="n">${reqTot ? nf1.format(pct(x.req, reqTot)) + ' %' : ''}</td><td class="n">${nf0.format(x.n)}</td><td></td></tr>`; }).join('') +
+    `<tr class="tot"><td>Gesamt</td><td></td><td></td><td></td><td class="n">${nf0.format(sg.reduce((t, s) => t + (s.pl || 0), 0))}</td><td class="n">${fmtS(reqTot)}</td><td class="n">100,00 %</td><td class="n">${nf0.format(sg.reduce((t, s) => t + (s.n || 0), 0))}</td><td></td></tr></table>`;
 }
 
 /* ---------- Personen-Detailfenster ---------- */
@@ -1573,6 +1864,7 @@ function showPerson(rowNo) {
         ['Arbeitsanteil', r.arb == null ? '' : nf1.format(r.arb) + ' %'],
         ['VZÄ', r.vz == null ? '' : nf1.format(r.vz) + (r.vzDerived ? ' <span class="note">(aus ArbAnteil abgeleitet)</span>' : '')],
         ['Wirksame VZÄ heute', inRestPeriod(r, T) ? `<b>${nf1.format(effVz(r, T))}</b> <span class="note">(${nf1.format(restVz(r, T))} VZÄ ruhen)</span>` : ''],
+        ['Lehrdeputat', r.deputat == null ? '' : `${nf1.format(r.deputat)} SWS je Semester` + (inRestPeriod(r, T) && r.deputat > 0 ? ` <span class="note">– wirksam heute ${nf1.format(effDep(r, T))} SWS</span>` : '') + (r.deputat === 0 ? ' <span class="note">(nur unterstützend in der Lehre)</span>' : '')],
       ])}</section>
       <section><h3>Herkunft</h3>${dl([
         ['Tabellenblatt', esc(P.sn)],
@@ -1751,6 +2043,7 @@ function init() {
   $('#dtCluster').onchange = renderDetail;
   $('#dtLab').onchange = renderDetail;
   $('#dtOE').onchange = renderDetail;
+  ['#capWhen', '#capCluster', '#capIntakes'].forEach(x => $(x).onchange = renderCapacity);
   $$('#dtGroup button').forEach(b => b.onclick = () => { DT.group = b.dataset.v; $$('#dtGroup button').forEach(x => x.classList.toggle('on', x === b)); renderDetailList(); });
   ['#dtAll', '#dtSoon'].forEach(x => $(x).onchange = renderDetailList);
   $('#dtSearch').oninput = renderDetailList;
