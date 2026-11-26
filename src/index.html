@@ -515,9 +515,25 @@
     <div class="kpis" id="lvLehreKpis"></div>
     <div class="scroll" id="lvKonto" style="max-height:620px"></div>
   </div>
+  <div class="card">
+    <h2>Dokumentation nach § 18</h2>
+    <p class="sub">Nachweis je Lehrperson für ein Studienjahr (Wintersemester und folgendes Sommersemester): Gruppe und Lehrverpflichtung, Ermäßigungen, Freistellungen und Befreiung mit Rechtsgrundlage, angerechnete Lehrveranstaltungen und Betreuung, Zeitkonto und Befunde. Vorlage beim Präsidium nach Abschluss des Studienjahres. Der Bericht entsteht vollständig im Browser; zum Weitergeben drucken (auch als PDF) oder als HTML-Datei speichern.</p>
+    <div class="row">
+      <label class="ctl">Studienjahr <select id="dkJahr"></select></label>
+      <label class="ctl">Cluster <select id="dkCluster"></select></label>
+      <label class="ctl"><input type="checkbox" id="dkSeite" checked> jede Lehrperson auf neuer Seite</label>
+      <button id="dkShow">Dokumentation anzeigen</button>
+    </div>
+    <p class="note" id="dkInfo" style="margin:8px 0 0"></p>
+  </div>
   <div class="card"><h2>Regelwerk</h2><div id="lvRules"></div></div>
 </section>
 </main>
+<div id="dkOverlay" class="dk-overlay hidden" role="dialog" aria-modal="true" aria-label="Dokumentation nach § 18 LVVO">
+  <div class="dk-bar"><b>Dokumentation nach § 18 LVVO</b><span class="dk-sp"></span>
+    <button id="dkPrint">Drucken / PDF</button><button id="dkSave">Als HTML speichern</button><button id="dkClose" aria-label="Schließen">✕ Schließen</button></div>
+  <div id="dkBody" class="dk-body"></div>
+</div>
 <div id="pdOverlay" class="pd-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pdTitle">
   <div class="pd-box">
     <div class="pd-head"><h2 id="pdTitle"></h2><span style="display:flex;gap:8px"><button id="pdToList" title="Person in der Detailansicht hervorheben">In Detailliste zeigen</button><button id="pdClose" aria-label="Schließen">✕ Schließen</button></span></div>

@@ -1,5 +1,5 @@
 // Einlesen der Excel-Datei: Spaltenerkennung, Datums-/Zahlenwerte, Aufbau der Datensätze
-import {css, fromDay, parseSemester, pct, r2, toDay} from './util.js';
+import {css, fromDay, parseSemester, r2, toDay} from './util.js';
 import {CATS, S} from './state.js';
 import {grundKey, lehrartKey, LVVO_FASSUNGEN, nichtAnwesend, parseLvvoGruppe} from './lvvo.js';
 

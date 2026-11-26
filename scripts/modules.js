@@ -15,7 +15,7 @@ const path = require('path');
 const SRC = path.join(__dirname, '..', 'src', 'js');
 
 // Schichtenfolge – bestimmt nur die Reihenfolge der import-Zeilen; neue Module ohne Eintrag stehen am Ende.
-const LAYERS = ['util.js', 'state.js', 'lvvo.js', 'parse.js', 'checks.js', 'model.js', 'teaching.js', 'charts.js', 'render.js', 'views/', 'plan/', 'search.js', 'main.js', 'app.js'];
+const LAYERS = ['util.js', 'state.js', 'lvvo.js', 'parse.js', 'checks.js', 'model.js', 'teaching.js', 'doku.js', 'charts.js', 'render.js', 'views/', 'plan/', 'search.js', 'main.js', 'app.js'];
 const rank = f => { const i = LAYERS.findIndex(l => l.endsWith('/') ? f.startsWith(l) : f === l); return i < 0 ? LAYERS.length : i; };
 
 /** Alle Module unter src/js/ (ohne package.json), in Schichtenfolge. */
@@ -137,7 +137,8 @@ function analyze() {
   const byFile = new Map(mods.map(m => [m.file, m]));
   const wanted = new Map();
   for (const m of mods) {
-    const code = codeOnly(m.body);
+    // Objektschlüssel („{name: …}“, „, name: …“) sind keine Verwendung des Namens; die Kurzform „{name}“ schon
+    const code = codeOnly(m.body).replace(/([{,]\s*)[A-Za-z_$][\w$]*(\s*:)(?!:)/g, '$1 $2');
     const used = new Set(code.match(new RegExp(`${NOT_PROP}[A-Za-z_$][\\w$]*`, 'g')));
     // $ und $$ (DOM-Kurzformen) nur als Aufruf zählen – ein „$“ in Regex-Literalen (/…$/) ist ein Anker
     for (const n of ['$', '$$']) if (!new RegExp(`${NOT_PROP}${re(n)}\\s*\\(`).test(code)) used.delete(n);

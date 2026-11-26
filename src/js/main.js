@@ -8,7 +8,7 @@ import {renderCapacity} from './views/capacity.js';
 import {renderCheck} from './views/check.js';
 import {detailCsv, DT, isNarrow, renderDetail, renderDetailList} from './views/detail.js';
 import {fcMode, renderForecast, setFcMode} from './views/forecast.js';
-import {renderLvvo, zeitkontoCsv} from './views/lvvo.js';
+import {closeDoku, printDoku, renderLvvo, saveDoku, showDoku, zeitkontoCsv} from './views/lvvo.js';
 import {closePerson} from './views/person.js';
 import {renderRatio} from './views/ratio.js';
 import {renderSemDetail, renderSemester} from './views/semester.js';
@@ -52,6 +52,7 @@ function loadDemo() {
 }
 /* Alle geladenen Daten aus dem Speicher entfernen und zur Startseite zurückkehren */
 function unloadData() {
+  closeDoku();   // Bericht mit personenbezogenen Daten schließen
   Object.keys(charts).forEach(id => { charts[id].destroy(); delete charts[id]; });
   Object.assign(S, {raw: null, recs: [], students: [], issues: [], colMap: {}, missingCols: [], catMap: {}, kreisOrder: [], kreisCounts: {}, checkFilter: null, isDemo: false, applyPlan: false});
   Object.assign(PLAN, {name: 'Szenario 1', items: [], seq: 1, cache: null}); setGSel(null); $('#plApply').checked = false; planTouch();
@@ -118,6 +119,8 @@ export function init() {
   $('#dtOE').onchange = renderDetail;
   ['#capWhen', '#capCluster', '#capIntakes', '#capSource'].forEach(x => $(x).onchange = renderCapacity);
   ['#lvWhen', '#lvCluster', '#lvSem'].forEach(x => $(x).onchange = renderLvvo);
+  $('#dkJahr').onchange = renderLvvo;
+  $('#dkShow').onclick = showDoku; $('#dkPrint').onclick = printDoku; $('#dkSave').onclick = saveDoku; $('#dkClose').onclick = closeDoku;
   $('#lvCsv').onclick = zeitkontoCsv;
   $$('#dtGroup button').forEach(b => b.onclick = () => { DT.group = b.dataset.v; $$('#dtGroup button').forEach(x => x.classList.toggle('on', x === b)); renderDetailList(); });
   ['#dtAll', '#dtSoon'].forEach(x => $(x).onchange = renderDetailList);
@@ -153,7 +156,7 @@ export function init() {
     if ((e.key === '/' && !typing) || (e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); $('#gsInput').focus(); $('#gsInput').select(); }
   });
   $('#pdOverlay').onclick = e => { if (e.target.id === 'pdOverlay') closePerson(); };
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#pdOverlay').classList.contains('hidden')) closePerson(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#pdOverlay').classList.contains('hidden')) closePerson(); else if (e.key === 'Escape' && !$('#dkOverlay').classList.contains('hidden')) closeDoku(); });
   $('#dtOpen').onclick = () => { const d = $$('#dtLists details'); const open = !d.every(x => x.open); d.forEach(x => x.open = open); };
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { chartDefaults(); if (S.raw) renderAll(); });
   let rsT;

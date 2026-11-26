@@ -158,6 +158,19 @@ tr.vt-child td:nth-child(2){padding-left:22px}
 .gs-item .gs-n b{color:var(--accent)}
 .gs-item .gs-m{grid-column:1/-1;font-size:11.5px;color:var(--text-secondary)}
 .gs-item .gs-s{align-self:start}
+.dk-overlay{position:fixed;inset:0;z-index:120;background:var(--page);display:flex;flex-direction:column}
+.dk-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--card)}
+.dk-sp{flex:1}
+.dk-body{flex:1;overflow:auto;padding:20px 16px;background:#e9e9e6}
+.dk-body .doku{max-width:210mm;padding:14mm;box-shadow:0 1px 6px rgba(0,0,0,.15)}   /* A4: 210 mm mit 14 mm Rand wie im Druck */
+.doku th{position:static;background:none;color:inherit}
+@media print{
+  body.dk-open>*:not(#dkOverlay){display:none!important}
+  body.dk-open .dk-overlay{position:static;display:block;background:#fff}
+  body.dk-open .dk-bar{display:none}
+  body.dk-open .dk-body{overflow:visible;padding:0;background:#fff}
+  body.dk-open .dk-body .doku{padding:0;box-shadow:none;max-width:none}
+}
 .gs-head{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-secondary);padding:8px 8px 3px}
 .gs-head:not(:first-child){border-top:1px solid var(--grid);margin-top:4px}
 .gs-foot{font-size:11.5px;color:var(--text-secondary);padding:6px 8px 4px;border-top:1px solid var(--grid);margin-top:2px}

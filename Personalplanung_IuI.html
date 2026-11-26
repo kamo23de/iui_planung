@@ -181,6 +181,19 @@ tr.vt-child td:nth-child(2){padding-left:22px}
 .gs-item .gs-n b{color:var(--accent)}
 .gs-item .gs-m{grid-column:1/-1;font-size:11.5px;color:var(--text-secondary)}
 .gs-item .gs-s{align-self:start}
+.dk-overlay{position:fixed;inset:0;z-index:120;background:var(--page);display:flex;flex-direction:column}
+.dk-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--card)}
+.dk-sp{flex:1}
+.dk-body{flex:1;overflow:auto;padding:20px 16px;background:#e9e9e6}
+.dk-body .doku{max-width:210mm;padding:14mm;box-shadow:0 1px 6px rgba(0,0,0,.15)}   /* A4: 210 mm mit 14 mm Rand wie im Druck */
+.doku th{position:static;background:none;color:inherit}
+@media print{
+  body.dk-open>*:not(#dkOverlay){display:none!important}
+  body.dk-open .dk-overlay{position:static;display:block;background:#fff}
+  body.dk-open .dk-bar{display:none}
+  body.dk-open .dk-body{overflow:visible;padding:0;background:#fff}
+  body.dk-open .dk-body .doku{padding:0;box-shadow:none;max-width:none}
+}
 .gs-head{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-secondary);padding:8px 8px 3px}
 .gs-head:not(:first-child){border-top:1px solid var(--grid);margin-top:4px}
 .gs-foot{font-size:11.5px;color:var(--text-secondary);padding:6px 8px 4px;border-top:1px solid var(--grid);margin-top:2px}
@@ -741,9 +754,25 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
     <div class="kpis" id="lvLehreKpis"></div>
     <div class="scroll" id="lvKonto" style="max-height:620px"></div>
   </div>
+  <div class="card">
+    <h2>Dokumentation nach § 18</h2>
+    <p class="sub">Nachweis je Lehrperson für ein Studienjahr (Wintersemester und folgendes Sommersemester): Gruppe und Lehrverpflichtung, Ermäßigungen, Freistellungen und Befreiung mit Rechtsgrundlage, angerechnete Lehrveranstaltungen und Betreuung, Zeitkonto und Befunde. Vorlage beim Präsidium nach Abschluss des Studienjahres. Der Bericht entsteht vollständig im Browser; zum Weitergeben drucken (auch als PDF) oder als HTML-Datei speichern.</p>
+    <div class="row">
+      <label class="ctl">Studienjahr <select id="dkJahr"></select></label>
+      <label class="ctl">Cluster <select id="dkCluster"></select></label>
+      <label class="ctl"><input type="checkbox" id="dkSeite" checked> jede Lehrperson auf neuer Seite</label>
+      <button id="dkShow">Dokumentation anzeigen</button>
+    </div>
+    <p class="note" id="dkInfo" style="margin:8px 0 0"></p>
+  </div>
   <div class="card"><h2>Regelwerk</h2><div id="lvRules"></div></div>
 </section>
 </main>
+<div id="dkOverlay" class="dk-overlay hidden" role="dialog" aria-modal="true" aria-label="Dokumentation nach § 18 LVVO">
+  <div class="dk-bar"><b>Dokumentation nach § 18 LVVO</b><span class="dk-sp"></span>
+    <button id="dkPrint">Drucken / PDF</button><button id="dkSave">Als HTML speichern</button><button id="dkClose" aria-label="Schließen">✕ Schließen</button></div>
+  <div id="dkBody" class="dk-body"></div>
+</div>
 <div id="pdOverlay" class="pd-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pdTitle">
   <div class="pd-box">
     <div class="pd-head"><h2 id="pdTitle"></h2><span style="display:flex;gap:8px"><button id="pdToList" title="Person in der Detailansicht hervorheben">In Detailliste zeigen</button><button id="pdClose" aria-label="Schließen">✕ Schließen</button></span></div>
@@ -3270,6 +3299,166 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
     $("#fcIn").innerHTML = personTable(ins, ["Beginn / Rückkehr", zDate, (r) => [rets.includes(r) ? `<span class="pill" style="border-color:var(--s4)">Rückkehr nach Ruhen${isPartlyResting(r, T) ? ` (+${nf1.format(r2(effVz(r, D) - effVz(r, T)))} VZÄ)` : ""}</span>` : "", r.kw ? "kw" : ""].filter(Boolean).join(" ")]);
   }
 
+  // src/js/doku.js
+  var sjStart = (s) => s % 2 ? s : s - 1;
+  var sjLabel = (w) => {
+    const y = Math.floor(w / 2);
+    return `${y}/${String((y + 1) % 100).padStart(2, "0")}`;
+  };
+  function studienjahre() {
+    const ws = /* @__PURE__ */ new Set([sjStart(semIdx(S.today))]);
+    for (const t of S.teaching || []) if (t.ok) ws.add(sjStart(t.sem));
+    return [...ws].sort((a, b) => b - a);
+  }
+  var BEFUND = /^(LVVO|Deputat|Ermäßigung|Lehre|Zeitkonto|Betreuung|Lehrperson ohne Deputat)/;
+  function dokuDaten(w, { cluster = null } = {}) {
+    const sems = [w, w + 1], von = semStart(w), bis = semEnd(w + 1);
+    const F = lvvoFassung(von);
+    const overlaps = (a, b, x, y) => (a == null || a <= y) && (b == null || b >= x);
+    const mitLehre = new Set((S.teaching || []).filter((t) => t.ok && sems.includes(t.sem)).map((t) => t.pnr));
+    const gesehen = /* @__PURE__ */ new Set(), personen = [];
+    for (const r of usedBase()) {
+      if (cluster && clusterOf(r) !== cluster) continue;
+      if (!overlaps(r.beginn, r.ende, von, bis)) continue;
+      const gr = lvvoGruppe(r), g = F.gruppen[gr.key];
+      if (g.art === "keine" && !mitLehre.has(r.pnr)) continue;
+      const zweit = gesehen.has(r.pnr);
+      gesehen.add(r.pnr);
+      const k = zweit ? null : zeitkonto(r);
+      const semester = sems.map((s) => {
+        const D = semStart(s), imVertrag = overlaps(r.beginn, r.ende, D, semEnd(s));
+        const x = lvvo(r, D), L = zweit ? { ist: 0, lehre: 0, betreuung: 0, betreuungRoh: 0, betreuungGekappt: false, uebertrag: 0, zeilen: [] } : lehreIst(r, s);
+        const e = k ? k.semester.find((q) => q.sem === s) || null : null;
+        const soll = x.gruppe.art === "regel" ? x.soll : x.soll ?? 0;
+        const hinweise = [];
+        if (imVertrag && soll > 0 && !L.zeilen.filter((t) => !(F.lehrarten.find((a) => a.key === t.art) || {}).uebertrag).length) hinweise.push("keine Lehre erfasst");
+        if (e && e.unterHaelfte && L.zeilen.length) hinweise.push("weniger als die Hälfte des Solls (§ 11)");
+        if (e && e.fehlbetragZuHoch) hinweise.push("Fehlbetrag über der Regellehrverpflichtung (§ 11 Abs. 3)");
+        if (e && e.verfallen) hinweise.push(`${nf2.format(e.verfallen)} LVS Guthaben verfallen (§ 11 Abs. 3)`);
+        if (L.betreuungGekappt) hinweise.push(`Betreuung ${nf2.format(L.betreuungRoh)} LVS, angerechnet ${nf2.format(L.betreuung)} LVS (§ 15)`);
+        if (x.gruppe.art === "hoechst" && soll > x.basis + 5e-3) hinweise.push("Deputat über der Höchstlehrverpflichtung (§ 5 Abs. 2)");
+        if (!imVertrag) hinweise.push("kein Vertrag in diesem Semester");
+        return {
+          sem: s,
+          label: semLabel(s),
+          imVertrag,
+          x,
+          soll,
+          L,
+          konto: e,
+          hinweise,
+          saldo: r2(L.ist - soll)
+        };
+      });
+      const ermaessigungen = (S.reductions || []).filter((e) => e.pnr === r.pnr && !e.lvsErr && !e.pctErr && !e.vonErr && !e.bisErr && (e.lvs != null || e.pct != null) && overlaps(e.von, e.bis, von, bis)).map((e) => ({ e, grund: F.gruende.find((q) => q.key === e.grund) || null }));
+      const befunde = zweit ? [] : S.issues.filter((i) => i.pnr === r.pnr && BEFUND.test(i.check));
+      personen.push({
+        r,
+        gruppe: g,
+        gruppeQuelle: gr.quelle,
+        annahme: gr.annahme,
+        cluster: clusterOf(r),
+        semester,
+        ermaessigungen,
+        befunde,
+        weitererVertrag: zweit,
+        soll: sumBy(semester, (q) => q.soll),
+        ist: sumBy(semester, (q) => q.L.ist),
+        saldo: sumBy(semester, (q) => q.saldo),
+        kontoEnde: semester[1].konto ? semester[1].konto.ende : semester[0].konto ? semester[0].konto.ende : null,
+        befreiung: ermaessigungen.some((q) => q.grund && q.grund.key === "befreiung"),
+        auffaellig: semester.some((q) => q.hinweise.length && q.imVertrag) || befunde.some((i) => i.sev !== "I")
+      });
+    }
+    const ord = Object.keys(F.gruppen);
+    personen.sort((a, b) => a.cluster.localeCompare(b.cluster, "de") || ord.indexOf(lvvoGruppe(a.r).key) - ord.indexOf(lvvoGruppe(b.r).key) || a.r.name.localeCompare(b.r.name, "de") || a.r.vorname.localeCompare(b.r.vorname, "de"));
+    const grundSummen = {};
+    for (const p of personen) for (const q of p.semester) for (const e of q.x.erm) {
+      const key = e.grund || "unbekannt";
+      (grundSummen[key] = grundSummen[key] || [0, 0])[q.sem - w] = r2((grundSummen[key][q.sem - w] || 0) + e.lvs);
+    }
+    return {
+      w,
+      sems,
+      von,
+      bis,
+      F,
+      cluster,
+      personen,
+      grundSummen,
+      summen: sems.map((s, i) => ({ sem: s, soll: sumBy(personen, (p) => p.semester[i].soll), ist: sumBy(personen, (p) => p.semester[i].L.ist), saldo: sumBy(personen, (p) => p.semester[i].saldo) })),
+      mitLehre: personen.filter((p) => p.semester.some((q) => q.L.zeilen.length)).length,
+      auffaellig: personen.filter((p) => p.auffaellig).length
+    };
+  }
+  var DOKU_CSS = `
+.doku{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#111;font-size:11pt;line-height:1.4;max-width:190mm;margin:0 auto;background:#fff}
+.doku h1{font-size:17pt;margin:0 0 4pt}.doku h2{font-size:13pt;margin:16pt 0 4pt}.doku h3{font-size:11pt;margin:10pt 0 3pt}
+.doku .meta{color:#444;font-size:9.5pt;margin:0 0 8pt}.doku .note{color:#555;font-size:9pt}
+.doku table{border-collapse:collapse;width:100%;margin:3pt 0 6pt;font-size:9.5pt}
+.doku th,.doku td{border-bottom:1px solid #ccc;padding:2.5pt 4pt;text-align:left;vertical-align:top}
+.doku th{border-bottom:1.5px solid #333;font-weight:600}.doku td.n,.doku th.n{text-align:right;white-space:nowrap}
+.doku tr.sum td{font-weight:700;border-top:1.5px solid #333}
+.doku .person{break-inside:avoid-page;margin-top:14pt;padding-top:6pt;border-top:2px solid #333}
+.doku.seite .person{break-before:page;border-top:0;margin-top:0;padding-top:0}
+.doku dl{display:grid;grid-template-columns:44mm 1fr;gap:1pt 8pt;margin:4pt 0;font-size:10pt}.doku dt{color:#444}.doku dd{margin:0}
+.doku .w{color:#9a5b00}.doku .e{color:#b3261e}.doku .ok{color:#1b6e3a}
+.doku .sign{display:grid;grid-template-columns:1fr 1fr;gap:16mm;margin-top:22mm;font-size:9.5pt}.doku .sign div{border-top:1px solid #333;padding-top:2pt}
+@page{size:A4;margin:16mm 14mm}
+`;
+  var dkNum = (v) => v == null ? "–" : nf2.format(v);
+  var dkSig = (v) => v == null ? "–" : (v > 0 ? "+" : v < 0 ? "−" : "") + nf2.format(Math.abs(v));
+  function dokuHtml(d, { seiteJePerson = true, erstellt = "", fakultaet = "Fakultät IuI" } = {}) {
+    const F = d.F, [ws, ss] = d.sems, lbl = (q) => esc(q.label);
+    const grundLbl = (k) => {
+      const g = F.gruende.find((q) => q.key === k);
+      return g ? `${esc(g.label)} <span class="note">(${g.ref})</span>` : "Grund nicht erkannt";
+    };
+    const kopf = `<h1>Dokumentation der Lehrverpflichtung nach § 18 LVVO</h1>
+    <p class="meta">${esc(fakultaet)}${d.cluster ? " · Cluster " + esc(d.cluster) : ""} · Studienjahr ${sjLabel(d.w)} (${semLabel(ws)} und ${semLabel(ss)}, ${fmtD(d.von)}–${fmtD(d.bis)})<br>
+    Rechtsgrundlage: ${esc(F.titel)}, ${esc(F.fassung)}${erstellt ? " · erstellt " + esc(erstellt) : ""}</p>`;
+    const ueb = `<h2>Übersicht</h2>
+    <p>${d.personen.length} Lehrpersonen, davon ${d.mitLehre} mit erfasster Lehre; ${d.auffaellig ? `<span class="w">${d.auffaellig} mit Hinweisen</span>` : "keine mit Hinweisen"}.</p>
+    <table><tr><th>Name</th><th>Cluster</th><th>Gruppe</th><th class="n">Soll<br>${semLabel(ws)}</th><th class="n">Ist<br>${semLabel(ws)}</th><th class="n">Soll<br>${semLabel(ss)}</th><th class="n">Ist<br>${semLabel(ss)}</th><th class="n">Saldo</th><th class="n">Zeit&shy;konto</th><th></th></tr>
+    ${d.personen.map((p) => `<tr><td>${esc([p.r.name, p.r.vorname].filter(Boolean).join(", "))}${p.weitererVertrag ? ' <span class="note">(weiterer Vertrag)</span>' : ""}</td><td>${esc(p.cluster)}</td><td>${esc(p.gruppe.label)}</td>
+      <td class="n">${dkNum(p.semester[0].soll)}</td><td class="n">${dkNum(p.semester[0].L.ist)}</td><td class="n">${dkNum(p.semester[1].soll)}</td><td class="n">${dkNum(p.semester[1].L.ist)}</td>
+      <td class="n">${dkSig(p.saldo)}</td><td class="n">${p.kontoEnde == null ? "–" : dkSig(p.kontoEnde)}</td><td>${p.auffaellig ? '<span class="w" title="Hinweise im Einzelnachweis">⚠</span>' : p.semester.some((q) => q.L.zeilen.length) ? '<span class="ok">✓</span>' : ""}</td></tr>`).join("")}
+    <tr class="sum"><td>Summe</td><td></td><td></td><td class="n">${dkNum(d.summen[0].soll)}</td><td class="n">${dkNum(d.summen[0].ist)}</td><td class="n">${dkNum(d.summen[1].soll)}</td><td class="n">${dkNum(d.summen[1].ist)}</td><td class="n">${dkSig(r2(d.summen[0].saldo + d.summen[1].saldo))}</td><td></td><td></td></tr></table>
+    <p class="note">LVS je Semester. Soll: Regellehrverpflichtung nach § 5 Abs. 1, anteilig nach VZÄ, abzüglich Ermäßigungen, jeweils am Semesterbeginn; bei WiMi das festgelegte Deputat (Höchstlehrverpflichtung nach § 5 Abs. 2). Ist: angerechnete Lehre nach §§ 13–15. Zeitkonto: Stand am Ende des Studienjahres (§ 11 Abs. 3). ⚠ = Hinweise im Einzelnachweis, ✓ = Lehre erfasst und ohne Hinweise.</p>`;
+    const gr = Object.entries(d.grundSummen);
+    const ermUeb = `<h3>Ermäßigungen und Freistellungen nach Grund</h3>` + (!gr.length ? "<p>Keine.</p>" : `<table><tr><th>Grund</th><th class="n">${semLabel(ws)}</th><th class="n">${semLabel(ss)}</th></tr>${gr.map(([k, v]) => `<tr><td>${grundLbl(k)}</td><td class="n">${dkNum(v[0] || 0)}</td><td class="n">${dkNum(v[1] || 0)}</td></tr>`).join("")}</table>`);
+    const person = (p) => {
+      const r = p.r;
+      const stamm = `<dl><dt>Personalnummer</dt><dd>${esc(r.pnr)}</dd><dt>Mitarbeiterkreis</dt><dd>${esc(r.kreis)}${r.tarif ? " · " + esc(r.tarif) : ""}</dd>
+      <dt>Cluster / OE</dt><dd>${esc(p.cluster)}${r.oe ? " · " + esc(r.oe) : ""}</dd><dt>Vertrag</dt><dd>${r.beginn != null ? fmtD(r.beginn) : "ohne Beginn"} – ${r.ende != null ? fmtD(r.ende) : "unbefristet"} · ${dkNum(r.vz)} VZÄ${r.ruht != null ? ` · ruht ${r.ruheVz != null ? "teilweise " : ""}bis ${fmtD(r.ruht)}` : ""}</dd>
+      <dt>Gruppe nach LVVO</dt><dd>${esc(p.gruppe.label)}: ${p.gruppe.art === "regel" ? `Regellehrverpflichtung ${p.gruppe.lvs} LVS` : p.gruppe.art === "hoechst" ? `Höchstlehrverpflichtung ${p.gruppe.lvs} LVS` : "keine Lehrverpflichtung"} (${p.gruppe.ref})${p.gruppeQuelle === "Spalte" ? " – laut Tabelle" : ""}${p.annahme ? ` – <span class="w">${esc(p.annahme)}</span>` : ""}</dd></dl>`;
+      const erm = p.ermaessigungen.length ? `<h3>Ermäßigungen, Freistellungen, Befreiung</h3><table><tr><th>Grund</th><th>Rechtsgrundlage</th><th class="n">Umfang</th><th>Zeitraum</th></tr>` + p.ermaessigungen.map(({ e, grund }) => `<tr><td>${esc(e.grundRaw || "–")}</td><td>${grund ? esc(grund.ref) : '<span class="w">nicht zugeordnet</span>'}</td><td class="n">${e.lvs != null ? dkNum(e.lvs) + " LVS" : dkNum(e.pct) + " %"}</td><td>${e.von != null ? fmtD(e.von) : "offen"} – ${e.bis != null ? fmtD(e.bis) : "offen"}</td></tr>`).join("") + "</table>" : "";
+      const sem = (q) => {
+        const x = q.x, zeilen = q.L.zeilen;
+        const art = (t) => F.lehrarten.find((a) => a.key === t.art) || {};
+        const lv = zeilen.length ? `<table><tr><th>Lehrveranstaltung</th><th>Art</th><th class="n">SWS</th><th class="n">Faktor</th><th class="n">Anteil</th><th class="n">Anzahl</th><th class="n">LVS</th><th>Grundlage</th></tr>` + zeilen.map((t) => `<tr><td>${esc(t.titel || "–")}</td><td>${esc(t.artRaw || "–")}</td><td class="n">${t.sws == null ? "–" : dkNum(t.sws)}</td><td class="n">${t.lvsEin != null ? "–" : dkNum(t.faktor)}</td><td class="n">${t.anteil === 1 ? "" : dkNum(t.anteil * 100) + " %"}</td><td class="n">${t.anzahl === 1 ? "" : dkNum(t.anzahl) + "×"}</td><td class="n">${dkNum(t.lvs)}</td><td class="note">${t.lvsEin != null ? "LVS eingetragen" : art(t).uebertrag ? "Übertrag, § 11 Abs. 3" : t.nichtAnwesend ? "§ 14 Abs. 2" : esc(art(t).ref || "Art nicht erkannt, Faktor 1")}${t.anteil !== 1 ? ", § 14 Abs. 3" : ""}${t.anzahl !== 1 ? ", § 13 Abs. 5" : ""}</td></tr>`).join("") + "</table>" : `<p class="note">${q.imVertrag && q.soll > 0 ? '<span class="w">Keine Lehre erfasst.</span>' : "Keine Lehre erfasst."}</p>`;
+        const erml = x.erm.length ? x.erm.map((e) => `${esc((F.gruende.find((g) => g.key === e.grund) || { kurz: e.e.grundRaw }).kurz)} ${dkNum(e.lvs)}`).join(", ") : "";
+        const rechnung = x.gruppe.art === "regel" ? `${x.gruppe.lvs} LVS × ${dkNum(x.anteil)} VZÄ = ${dkNum(x.basis)} LVS${x.ermSum ? ` − Ermäßigungen ${dkNum(x.ermSum)} LVS (${erml})` : ""} = <b>${dkNum(q.soll)} LVS</b>` : x.gruppe.art === "hoechst" ? `festgelegtes Deputat <b>${dkNum(q.soll)} LVS</b> (höchstens ${x.gruppe.lvs} LVS × ${dkNum(x.anteil)} VZÄ = ${dkNum(x.basis)} LVS)` : "keine Lehrverpflichtung";
+        const k = q.konto;
+        return `<h3>${lbl(q)}</h3><dl><dt>Soll</dt><dd>${rechnung}</dd>
+        <dt>Ist</dt><dd>Lehre ${dkNum(q.L.lehre)} LVS${q.L.betreuungRoh ? ` + Betreuung ${dkNum(q.L.betreuung)} LVS${q.L.betreuungGekappt ? ` (von ${dkNum(q.L.betreuungRoh)}, höchstens ${F.betreuungMax.lvs} LVS nach § 15)` : ""}` : ""} = <b>${dkNum(q.L.ist)} LVS</b> · Saldo ${dkSig(q.saldo)} LVS</dd>
+        ${k && k.ende != null ? `<dt>Zeitkonto (§ 11 Abs. 3)</dt><dd>Anfang ${dkSig(k.anfang)}${k.uebertrag ? ` (inkl. Übertrag ${dkNum(k.uebertrag)})` : ""} · Ende ${dkSig(k.ende)} LVS${k.verfallen ? ` · ${dkNum(k.verfallen)} LVS verfallen (Kappung ${dkNum(k.kappung)})` : ""}</dd>` : ""}
+        ${q.hinweise.length ? `<dt>Hinweise</dt><dd class="w">${q.hinweise.map(esc).join("; ")}</dd>` : ""}</dl>${lv}`;
+      };
+      const bef = p.befunde.length ? `<h3>Befunde der Datenprüfung <span class="note">(Stand ${fmtD(S.today)})</span></h3><ul>${p.befunde.map((i) => `<li class="${i.sev === "E" ? "e" : i.sev === "W" ? "w" : ""}">${esc(i.check)}: ${esc(i.msg)}</li>`).join("")}</ul>` : "";
+      return `<section class="person"><h2>${esc([r.vorname, r.name].filter(Boolean).join(" "))}${p.weitererVertrag ? ' <span class="note">(weiterer Vertrag; Lehre siehe ersten Vertrag)</span>' : ""}</h2>${stamm}${erm}${p.semester.map(sem).join("")}${bef}</section>`;
+    };
+    const unterschrift = `<div class="sign"><div>Ort, Datum</div><div>Für das Dekanat</div></div>`;
+    return `<div class="doku${seiteJePerson ? " seite" : ""}">${kopf}${ueb}${ermUeb}${unterschrift}${d.personen.map(person).join("")}</div>`;
+  }
+  function dokuDatei(d, opts = {}) {
+    return `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dokumentation Lehrverpflichtung § 18 LVVO – Studienjahr ${sjLabel(d.w)}</title>
+<style>body{margin:12mm;background:#fff}${DOKU_CSS}</style></head><body>${dokuHtml(d, opts)}</body></html>`;
+  }
+
   // src/js/views/lvvo.js
   function renderLvvo() {
     const cur = semIdx(S.today), sel = $("#lvWhen"), prev = sel.value;
@@ -3335,6 +3524,7 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
       showPerson(+a.dataset.row);
     });
     renderLehre(cf);
+    renderDokuAuswahl();
     const gr = Object.values(F.gruppen).filter((g) => g.art !== "keine");
     $("#lvRules").innerHTML = `<p class="note" style="margin-top:0">${esc(F.titel)} · ${esc(F.fassung)} · gültig ab ${fmtD(parseIso(F.gueltigAb))} · Quelle: <a href="${esc(F.quelle)}" target="_blank" rel="noopener">${esc(F.quelle)}</a></p><div class="layout-grid"><div><h3 class="layout-h">Lehrverpflichtung je Semester</h3><table class="layout">${gr.map((g) => `<tr><td>${esc(g.label)}</td><td>${g.lvs} LVS ${g.art === "regel" ? "(Regel)" : "(höchstens)"} · ${g.ref}</td></tr>`).join("")}<tr><td>Teilzeit</td><td>anteilig nach VZÄ · § 2 Abs. 3</td></tr></table></div><div><h3 class="layout-h">Ermäßigungen</h3><table class="layout">${F.gruende.map((g) => `<tr><td>${esc(g.label)}</td><td>${g.maxPct ? `bis ${g.maxPct} % · ` : ""}${g.ref}</td></tr>`).join("")}<tr><td>Je Professur nach § 9</td><td>höchstens ${F.p9.profMax} LVS, für Forschung/Entwicklung/Transfer ${F.p9.profMaxForschung} LVS · ${F.p9.ref}</td></tr></table></div></div><p class="note">Annahmen dieser Auswertung: LfbA ab E13/A13 gehören zum zweiten Einstiegsamt (20 LVS), darunter 24 LVS. Befristete WiMi werden als „auch zur Weiterqualifikation beschäftigt“ gewertet (höchstens 4 LVS), unbefristete mit höchstens 8 LVS. Abweichungen lassen sich je Person in der Spalte „LVVO-Gruppe“ eintragen (Professur, LfbA 20, LfbA 24, WiMi, WiMi Qualifikation, keine). Ermäßigungen in Prozent beziehen sich auf die anteilige Lehrverpflichtung der Person.</p>`;
   }
@@ -3434,6 +3624,43 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "Zeitkonto_LVVO.csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1e3);
+  }
+  var DK = null;
+  function renderDokuAuswahl() {
+    const sel = $("#dkJahr"), prev = sel.value, jahre = studienjahre();
+    sel.innerHTML = jahre.map((w2) => `<option value="${w2}">${sjLabel(w2)}${w2 === sjStart(semIdx(S.today)) ? " (laufend)" : ""}</option>`).join("");
+    const lauf = sjStart(semIdx(S.today)), fertig = jahre.find((w2) => w2 < lauf);
+    sel.value = jahre.includes(+prev) ? prev : String(fertig ?? lauf);
+    fillClusterSelect($("#dkCluster"));
+    const w = +sel.value;
+    $("#dkInfo").textContent = !S.raw.lehre ? "Hinweis: Es gibt kein Blatt „Lehre“ – der Bericht enthält dann nur Soll und Ermäßigungen, keine gehaltene Lehre." : w >= lauf ? `Das Studienjahr ${sjLabel(w)} ist noch nicht abgeschlossen; die Dokumentation ist vorläufig.` : "";
+  }
+  function showDoku() {
+    const w = +$("#dkJahr").value, cluster = $("#dkCluster").value || null;
+    const now = /* @__PURE__ */ new Date(), erstellt = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
+    DK = { daten: dokuDaten(w, { cluster }), opts: { seiteJePerson: $("#dkSeite").checked, erstellt: erstellt + (S.isDemo ? " · DEMO, fiktive Daten" : "") } };
+    $("#dkBody").innerHTML = `<style>${DOKU_CSS}</style>` + dokuHtml(DK.daten, DK.opts);
+    $("#dkOverlay").classList.remove("hidden");
+    document.body.classList.add("dk-open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeDoku() {
+    $("#dkOverlay").classList.add("hidden");
+    document.body.classList.remove("dk-open");
+    document.body.style.overflow = "";
+    $("#dkBody").innerHTML = "";
+    DK = null;
+  }
+  function printDoku() {
+    window.print();
+  }
+  function saveDoku() {
+    if (!DK) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([dokuDatei(DK.daten, DK.opts)], { type: "text/html;charset=utf-8" }));
+    a.download = `Dokumentation_LVVO_18_Studienjahr_${sjLabel(DK.daten.w).replace("/", "-")}${DK.daten.cluster ? "_" + DK.daten.cluster.replace(/[^\wäöüÄÖÜß-]+/g, "_") : ""}.html`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1e3);
   }
@@ -3999,6 +4226,7 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
     }
   }
   function unloadData() {
+    closeDoku();
     Object.keys(charts).forEach((id) => {
       charts[id].destroy();
       delete charts[id];
@@ -4122,6 +4350,11 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
     $("#dtOE").onchange = renderDetail;
     ["#capWhen", "#capCluster", "#capIntakes", "#capSource"].forEach((x) => $(x).onchange = renderCapacity);
     ["#lvWhen", "#lvCluster", "#lvSem"].forEach((x) => $(x).onchange = renderLvvo);
+    $("#dkJahr").onchange = renderLvvo;
+    $("#dkShow").onclick = showDoku;
+    $("#dkPrint").onclick = printDoku;
+    $("#dkSave").onclick = saveDoku;
+    $("#dkClose").onclick = closeDoku;
     $("#lvCsv").onclick = zeitkontoCsv;
     $$("#dtGroup button").forEach((b) => b.onclick = () => {
       DT.group = b.dataset.v;
@@ -4213,6 +4446,7 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
     };
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !$("#pdOverlay").classList.contains("hidden")) closePerson();
+      else if (e.key === "Escape" && !$("#dkOverlay").classList.contains("hidden")) closeDoku();
     });
     $("#dtOpen").onclick = () => {
       const d = $$("#dtLists details");

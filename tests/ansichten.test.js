@@ -66,6 +66,9 @@ test('Jede Ansicht lässt sich mit den Testdaten zeichnen (Köpfe, VZÄ, mit Sze
         try { showPerson(p.row); } catch (e) { assert.fail(`Personenfenster (WIP ${wip}): ${e.name}: ${e.message}`); }
       }
     }
+    // Dokumentation nach § 18: Vorschau, Speichern, Schließen
+    const {showDoku, saveDoku, closeDoku} = await mod('views/lvvo.js');
+    try { showDoku(); saveDoku(); closeDoku(); } catch (e) { assert.fail(`Dokumentation § 18: ${e.name}: ${e.message}`); }
     // Suche: Treffer aller Gruppen und Sprung in die Detailansicht
     const {gsMatches, gsOpen} = await mod('search.js');
     for (const q of ['a', 'labor', 'technik']) {
