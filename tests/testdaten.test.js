@@ -26,12 +26,12 @@ test('Testdatei wird vollständig eingelesen', () => {
 test('Absichtlich eingebaute Fehler werden gefunden', () => {
   const {S} = load();
   const count = {E: 0, W: 0, I: 0}; S.issues.forEach(i => count[i.sev]++);
-  assert.deepEqual(count, {E: 18, W: 38, I: 81});
+  assert.deepEqual(count, {E: 21, W: 44, I: 89});
   const checks = new Set(S.issues.filter(i => i.sev === 'E').map(i => i.check));
   for (const c of ['Personalnummer mehrfach vergeben', 'Datum nicht lesbar', 'Beginn nach Vertragsende', 'Wert außerhalb des Bereichs',
     'Zahl nicht lesbar', 'Pflichtfeld leer', 'Befristet ohne Vertragsende', 'Doppelte Zeile', 'Vertretung: vertretene Person nicht gefunden',
     'Studierende: CNW fehlt/unlesbar', 'LVVO-Gruppe nicht erkannt', 'Ermäßigung: Person nicht gefunden', 'Ermäßigung ohne Umfang',
-    'Ermäßigung: von nach bis']) assert.ok(checks.has(c), c);
+    'Ermäßigung: von nach bis', 'Lehre: Person nicht gefunden', 'Lehre: Semester nicht erkannt', 'Lehre: Umfang fehlt']) assert.ok(checks.has(c), c);
 });
 
 test('Referenzwerte Bestand heute und zum SS 2029', () => {
@@ -58,4 +58,13 @@ test('Referenzwerte Lehrverpflichtung nach LVVO heute', () => {
   assert.deepEqual({regel: st.regel, erm: st.erm, ermP9: st.ermP9, soll: st.soll, wimi: st.wimi, lehre: st.lehre, p9Quote: st.p9Quote},
     {regel: 1261, erm: 29.16, ermP9: 24, soll: 1231.84, wimi: 73, lehre: 1304.84, p9Quote: 1.9});
   assert.equal(S.reductions.length, 14);
+});
+
+test('Referenzwerte gehaltene Lehre und Zeitkonto (WS 2026/27)', () => {
+  const {get, S} = load();
+  assert.equal(S.teaching.length, 299);
+  assert.equal(S.teaching.filter(t => t.ok).length, 297);   // lesbar; die unbekannte Personalnummer wird keiner Person zugeordnet
+  const st = get('lehreStats')(get('used')(), get('semIdx')(S.today));
+  assert.deepEqual({n: st.n, soll: st.soll, ist: st.ist, saldo: st.saldo, guthaben: st.guthaben, fehlbetrag: st.fehlbetrag, verfallen: st.verfallen},
+    {n: 12, soll: 194, ist: 204, saldo: 10, guthaben: 42, fehlbetrag: -45.5, verfallen: 14});
 });

@@ -3,7 +3,7 @@ import {$, $$, esc, fmtD, nf1, semIdx, semLabel} from '../util.js';
 import {S} from '../state.js';
 import {clusterOf, kreisColor, kreisOf} from '../parse.js';
 import {effDep, effVz, inRestPeriod, isPartlyResting, isResting, restShare, restVz, used} from '../model.js';
-import {lvvo} from '../teaching.js';
+import {lvvo, zeitkonto} from '../teaching.js';
 import {contractStatus, restJahre} from './detail.js';
 import {editPlanItem} from '../plan/form.js';
 import {planFind} from '../plan/scenario.js';
@@ -64,6 +64,7 @@ export function showPerson(rowNo) {
         ...extra.map(([h, i]) => [esc(h), esc(r.rawRow[i])]),
       ])}</section>
     </div>` +
+    kontoHtml(r) +
     (iss.length ? `<section><h3>Befunde der Datenprüfung</h3><table>${iss.map(i => `<tr><td><span class="pill sev-${i.sev}">${sevLbl[i.sev]}</span></td><td>${esc(i.field)}</td><td>${esc(i.msg)}</td></tr>`).join('')}</table></section>` : '') +
     (others.length ? `<section><h3>Weitere Verträge mit derselben Personalnummer</h3><table><tr><th>Zeile</th><th>Name</th><th>Mitarbeiterkreis</th><th>Cluster</th><th class="n">VZÄ</th><th>Beginn</th><th>Ausscheiden</th><th>Status</th></tr>${others.map(o => `<tr class="click" data-row="${o.row}"><td>${o.row}</td><td>${esc([o.name, o.vorname].filter(Boolean).join(', '))}</td><td>${esc(kreisOf(o))}</td><td>${esc(clusterOf(o))}</td><td class="n">${o.vz == null ? '–' : nf1.format(o.vz)}</td><td>${fmtD(o.beginn)}</td><td>${o.ende == null ? 'unbefristet' : fmtD(o.ende)}</td><td>${contractStatus(o).t}</td></tr>`).join('')}</table></section>` : '');
   $$('#pdBody [data-row]').forEach(el => el.onclick = e => { e.preventDefault(); showPerson(+el.dataset.row); });
@@ -74,4 +75,17 @@ export function showPerson(rowNo) {
 export function closePerson() {
   $('#pdOverlay').classList.add('hidden'); document.body.style.overflow = ''; $('#pdBody').innerHTML = '';
   if (GS.fromSearch) { GS.fromSearch = false; gsClear(); }   // aus der Suche geöffnet: Suchfeld beim Schließen leeren
+}
+
+/* Zeitkonto der Person über alle Semester mit Einträgen im Blatt „Lehre“ (§ 11) */
+function kontoHtml(r) {
+  const k = zeitkonto(r); if (!k) return '';
+  const n = v => nf1.format(v), sg = v => v == null ? '<span class="note">–</span>' : `<span class="${v < 0 ? 'down' : 'up'}">${v < 0 ? '−' : v > 0 ? '+' : ''}${n(Math.abs(v))}</span>`;
+  const regel = k.semester.some(e => e.ende != null);
+  const lv = e => e.zeilen.map(t => `${esc(t.titel || t.artRaw || '–')} <span class="note">${esc(t.artRaw)}${t.sws != null ? ', ' + n(t.sws) + ' SWS' : ''}${t.anteil !== 1 ? ', ' + n(t.anteil * 100) + ' %' : ''}${t.anzahl !== 1 ? ', ' + n(t.anzahl) + '×' : ''} → ${n(t.lvs)}</span>`).join('<br>');
+  return `<section><h3>Gehaltene Lehre und Zeitkonto</h3><table><tr><th>Semester</th><th class="n">Soll</th><th class="n">Gehalten</th><th class="n">Saldo</th>${regel ? '<th class="n">Konto Ende</th>' : ''}<th>Lehrveranstaltungen (LVS)</th></tr>` +
+    k.semester.map(e => `<tr><td>${semLabel(e.sem)}</td><td class="n">${n(e.soll)}</td><td class="n">${n(e.ist)}</td><td class="n">${sg(e.saldo)}</td>` +
+      (regel ? `<td class="n">${sg(e.ende)}${e.verfallen ? `<div class="note">${n(e.verfallen)} verfallen</div>` : ''}${e.fehlbetragZuHoch ? '<div class="pill sev-W">Fehlbetrag zu hoch</div>' : ''}</td>` : '') +
+      `<td>${e.ohneEintrag ? '<span class="pill sev-W">keine Lehre eingetragen</span>' : lv(e)}</td></tr>`).join('') + '</table>' +
+    (regel ? `<p class="note">Zeitkonto nach § 11 Abs. 3: Guthaben über dem Zweifachen der Regellehrverpflichtung verfällt am Semesterende.</p>` : '<p class="note">Ohne Regellehrverpflichtung wird kein Zeitkonto geführt; Soll = festgelegtes Deputat.</p>') + '</section>';
 }

@@ -36,6 +36,20 @@ const GRUENDE_FH = [
   {key: 'befreiung', kurz: 'Befreiung', label: 'Befreiung wegen Überangebots in der Lehre', ref: '§ 12', muster: /befreiung|uberangebot|ueberangebot/},
 ];
 
+/** Veranstaltungsarten für das Blatt „Lehre“ und ihre Gewichtung (§ 14 Abs. 1 mit Anlage Nr. 1 und 3).
+ *  betreuung: Betreuung von Abschlussarbeiten, höchstens betreuungMax LVS je Semester (§ 15);
+ *  uebertrag: Kontostand des Zeitkontos aus der Zeit vor der Erfassung (zählt nicht als Lehre des Semesters). */
+const LEHRARTEN_FH = [
+  {key: 'vorlesung', kurz: 'Vorlesung', faktor: 1, ref: 'Anlage Nr. 1', muster: /vorles|^v$|^vl$/},
+  {key: 'uebung', kurz: 'Übung', faktor: 1, ref: 'Anlage Nr. 1', muster: /ubung|uebung|^u$|^ue$|^ü$/},
+  {key: 'seminar', kurz: 'Seminar', faktor: 1, ref: 'Anlage Nr. 1', muster: /seminar|^s$|^su$/},
+  {key: 'praktikum', kurz: 'Praktikum', faktor: 1, ref: 'Anlage Nr. 1', muster: /praktik|labor|^p$|^pr$/},
+  {key: 'kolloquium', kurz: 'Kolloquium/Repetitorium', faktor: 1, ref: 'Anlage Nr. 1', muster: /kolloq|repetit/},
+  {key: 'exkursion', kurz: 'Exkursion', faktor: 0.3, ref: 'Anlage Nr. 3 i. V. m. Nr. 2.3', muster: /exkursion|anschauung/},
+  {key: 'betreuung', kurz: 'Betreuung Abschlussarbeiten', faktor: 1, ref: '§ 15', betreuung: true, muster: /betreuung|abschlussarb|bachelorarb|masterarb|thesis/},
+  {key: 'uebertrag', kurz: 'Übertrag Zeitkonto', faktor: 1, ref: '§ 11 Abs. 3', uebertrag: true, muster: /ubertrag|uebertrag|kontostand|saldo/},
+];
+
 export const LVVO_FASSUNGEN = [
   {
     gueltigAb: '2018-09-10',
@@ -44,6 +58,9 @@ export const LVVO_FASSUNGEN = [
     quelle: 'https://www.schure.de/22210/lvvo.htm',
     gruppen: GRUPPEN_FH,
     gruende: GRUENDE_FH,
+    lehrarten: LEHRARTEN_FH,
+    // § 14 Abs. 2: Veranstaltungen mit Faktor ≥ 0,5 ohne ständige Anwesenheit der Lehrperson zählen zu drei Zehnteln
+    nichtAnwesend: {faktor: 0.3, ab: 0.5, muster: /nicht standig|nicht staendig|ohne standige|ohne staendige|unbeaufsichtigt/, ref: '§ 14 Abs. 2'},
     // § 9 Satz 2 und 3: Ermäßigungen nach § 9 insgesamt höchstens 7 % der Regellehrverpflichtungen des Lehrpersonals
     // der Fachhochschule, bis 10 %, soweit Lehrverpflichtungen nach § 5 Abs. 2 (WiMi) erfüllt werden;
     // je Professur höchstens 4 LVS, für Forschung/Entwicklung/Transfer höchstens 9 LVS.
@@ -81,6 +98,11 @@ export function parseLvvoGruppe(raw) {
   if (/^(keine|kein|-|–|0|nein)$/.test(s)) return 'keine';
   return null;
 }
+
+/** Veranstaltungsart aus Freitext erkennen; null = unbekannt. */
+export const lehrartKey = (raw, fassung = LVVO_FASSUNGEN[0]) => (fassung.lehrarten.find(a => a.muster.test(norm(raw).trim())) || {}).key || null;
+/** Hinweis „nicht ständig anwesend“ (§ 14 Abs. 2) im Freitext der Art? */
+export const nichtAnwesend = (raw, fassung = LVVO_FASSUNGEN[0]) => fassung.nichtAnwesend.muster.test(norm(raw));
 
 /** Ermäßigungsgrund aus Freitext erkennen; null = unbekannt. */
 export const grundKey = (raw, fassung = LVVO_FASSUNGEN[0]) => (fassung.gruende.find(g => g.muster.test(norm(raw))) || {}).key || null;

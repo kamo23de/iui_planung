@@ -1,9 +1,9 @@
 // Lehre: Lehrdeputat, Lehrangebot (Kapazität) und Lehrverpflichtung nach LVVO (Regelwerk in lvvo.js)
-import {r2, sumBy} from './util.js';
+import {r2, semEnd, semStart, sumBy} from './util.js';
 import {S} from './state.js';
 import {lvvoFassung} from './lvvo.js';
 import {tarifNum} from './parse.js';
-import {effDep, effVz, grpOf} from './model.js';
+import {effDep, effVz, grpOf, inContract} from './model.js';
 
 /* Lehrangebot einer Personenliste am Stichtag D: Summe des wirksamen Deputats (SWS je Semester,
    nur nicht ruhende Anteile) je Personalgruppe; year = 2 × SWS (Jahreslehrangebot).
@@ -82,5 +82,65 @@ export function lvvoStats(list, D) {
   o.lehre = r2(o.soll + o.wimi);
   o.p9Quote = o.regel ? r2(o.ermP9 / o.regel * 100) : null;
   o.p9Grenze = o.regel ? r2(Math.min(F.p9.quoteErweitert, F.p9.quote + o.wimi / o.regel * 100)) : F.p9.quote;
+  return o;
+}
+
+/* ---------- Gehaltene Lehre und Zeitkonto (§ 11, § 15) ---------- */
+
+/** Lehre einer Person (Blatt „Lehre“), nur gültige Zeilen. */
+export const lehreVon = r => (S.teaching || []).filter(t => t.ok && t.pnr === r.pnr);
+
+/** Gehaltene LVS einer Person in Semester s: Summe der angerechneten LVS, Betreuung von Abschlussarbeiten
+ *  höchstens betreuungMax (§ 15); Übertrag-Zeilen zählen nicht als Lehre, sondern zum Kontostand. */
+export function lehreIst(r, s, rows = lehreVon(r)) {
+  const F = lvvoFassung(semStart(s)), art = k => F.lehrarten.find(a => a.key === k) || {};
+  const im = rows.filter(t => t.sem === s);
+  const betreuungRoh = sumBy(im.filter(t => art(t.art).betreuung), t => t.lvs);
+  const betreuung = Math.min(betreuungRoh, F.betreuungMax.lvs);
+  const lehre = sumBy(im.filter(t => !art(t.art).betreuung && !art(t.art).uebertrag), t => t.lvs);
+  const uebertrag = sumBy(im.filter(t => art(t.art).uebertrag), t => t.lvs);
+  return {ist: r2(lehre + betreuung), lehre, betreuung, betreuungRoh, betreuungGekappt: betreuungRoh > betreuung + 0.005, uebertrag, zeilen: im};
+}
+
+/** Zeitkonto einer Person über alle Semester mit Einträgen im Blatt „Lehre“ (lückenlos vom ersten bis zum letzten).
+ *  Je Semester: Soll (LVVO am Semesterbeginn), Ist, Saldo, Kontostand am Anfang und Ende, verfallene LVS.
+ *  Nur für Gruppen mit Regellehrverpflichtung wird ein Konto geführt (§ 11 Abs. 3): Guthaben über kappung × Regel
+ *  verfällt am Semesterende; ein Fehlbetrag über fehlbetrag × Regel und Lehre unter der Hälfte des Solls werden markiert.
+ *  Bei WiMi wird nur Ist und Soll (Deputat) je Semester verglichen. */
+export function zeitkonto(r) {
+  const rows = lehreVon(r);
+  if (!rows.length) return null;
+  const sems = rows.map(t => t.sem), von = Math.min(...sems), bis = Math.max(...sems);
+  const out = [];
+  let konto = 0;
+  for (let s = von; s <= bis; s++) {
+    const D = semStart(s), F = lvvoFassung(D), x = lvvo(r, D), L = lehreIst(r, s, rows);
+    const regel = x.gruppe.art === 'regel', soll = regel ? x.soll : (x.soll ?? 0);
+    const e = {sem: s, gruppe: x.gruppe, regelLvs: x.basis, soll, ist: L.ist, lehre: L.lehre, betreuung: L.betreuung, betreuungGekappt: L.betreuungGekappt,
+      saldo: r2(L.ist - soll), zeilen: L.zeilen, ohneEintrag: !L.zeilen.length, imVertrag: inContract(r, D) || inContract(r, semEnd(s))};
+    if (regel) {
+      e.anfang = r2(konto + L.uebertrag); e.uebertrag = L.uebertrag;
+      let ende = r2(e.anfang + e.saldo), verfallen = 0;
+      const kappung = r2(F.erfuellung.kappung * x.basis), fehl = r2(F.erfuellung.fehlbetrag * x.basis);
+      if (ende > kappung) { verfallen = r2(ende - kappung); ende = kappung; }
+      Object.assign(e, {ende, verfallen, kappung, fehlbetragZuHoch: ende < -fehl - 0.005, fehlGrenze: fehl,
+        unterHaelfte: soll > 0 && L.ist < F.erfuellung.mindestanteil * soll - 0.005});
+      konto = ende;
+    }
+    out.push(e);
+  }
+  return {von, bis, semester: out, konto: out[out.length - 1].ende ?? null};
+}
+
+/** Summen für Semester s über eine Personenliste: nur Personen mit Einträgen im Blatt „Lehre“. */
+export function lehreStats(list, s) {
+  const o = {n: 0, soll: 0, ist: 0, saldo: 0, guthaben: 0, fehlbetrag: 0, verfallen: 0, personen: []};
+  for (const r of list) {
+    const k = zeitkonto(r); if (!k) continue;
+    const e = k.semester.find(x => x.sem === s); if (!e) continue;
+    o.n++; o.soll = r2(o.soll + e.soll); o.ist = r2(o.ist + e.ist); o.saldo = r2(o.saldo + e.saldo);
+    if (e.ende != null) { if (e.ende > 0) o.guthaben = r2(o.guthaben + e.ende); else o.fehlbetrag = r2(o.fehlbetrag + e.ende); o.verfallen = r2(o.verfallen + e.verfallen); }
+    o.personen.push({r, e, k});
+  }
   return o;
 }

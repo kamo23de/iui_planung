@@ -23,3 +23,18 @@ export const semIdx = n => { const {y, m} = fromDay(n); return m >= 9 ? y * 2 + 
 export const semStart = i => { const y = Math.floor(i / 2); return i % 2 ? toDay(y, 9, 1) : toDay(y, 3, 1); };
 export const semEnd = i => semStart(i + 1) - 1;
 export const semLabel = i => { const y = Math.floor(i / 2); return i % 2 ? `WS ${y}/${pad((y + 1) % 100)}` : `SS ${y}`; };
+/** Semesterangabe lesen: „WS 2026/27“, „Wintersemester 2026/2027“, „WiSe 26/27“, „SS 2027“, „SoSe 27“, „Sommersemester 2027“.
+ *  Rückgabe: Semesterindex wie semIdx, oder null. */
+export function parseSemester(v) {
+  if (typeof v === 'number' && isFinite(v)) return null;
+  const s = String(v ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const year = t => { const y = +t; return t.length <= 2 ? 2000 + y : y; };
+  let m = /^(ws|wise|wintersemester|w)\.? ?(\d{2}|\d{4})(?: ?[/-] ?(\d{2}|\d{4}))?$/.exec(s);
+  if (m) {
+    const y = year(m[2]);
+    if (m[3] != null && (year(m[3]) % 100) !== ((y + 1) % 100)) return null;   // z. B. „WS 2026/28“
+    return y * 2 + 1;
+  }
+  m = /^(ss|sose|sommersemester|s)\.? ?(\d{2}|\d{4})$/.exec(s);
+  return m ? year(m[2]) * 2 : null;
+}

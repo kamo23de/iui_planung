@@ -4,7 +4,7 @@ import {S} from '../state.js';
 import {lvvoFassung} from '../lvvo.js';
 import {catColor, clusterOf} from '../parse.js';
 import {clusterList, inContract, used} from '../model.js';
-import {lvvo, lvvoStats} from '../teaching.js';
+import {lehreStats, lvvo, lvvoStats, zeitkonto} from '../teaching.js';
 import {axis, barDs, legendHtml, mkChart} from '../charts.js';
 import {showPerson} from './person.js';
 import {fillClusterSelect} from './semester.js';
@@ -82,6 +82,8 @@ export function renderLvvo() {
       `<td class="n">${x.soll == null ? '–' : nf(x.soll)}</td><td class="n">${x.deputat == null ? '–' : nf(x.deputat)}</td><td>${diffTxt({x})}</td></tr>`).join('') + '</table>';
   $$('#lvPersons a[data-row]').forEach(a => a.onclick = e => { e.preventDefault(); showPerson(+a.dataset.row); });
 
+  renderLehre(cf);
+
   // ---- Regelwerk ----
   const gr = Object.values(F.gruppen).filter(g => g.art !== 'keine');
   $('#lvRules').innerHTML = `<p class="note" style="margin-top:0">${esc(F.titel)} · ${esc(F.fassung)} · gültig ab ${fmtD(parseIso(F.gueltigAb))} · Quelle: <a href="${esc(F.quelle)}" target="_blank" rel="noopener">${esc(F.quelle)}</a></p>` +
@@ -91,4 +93,62 @@ export function renderLvvo() {
     `<tr><td>Je Professur nach § 9</td><td>höchstens ${F.p9.profMax} LVS, für Forschung/Entwicklung/Transfer ${F.p9.profMaxForschung} LVS · ${F.p9.ref}</td></tr></table></div></div>` +
     `<p class="note">Annahmen dieser Auswertung: LfbA ab E13/A13 gehören zum zweiten Einstiegsamt (20 LVS), darunter 24 LVS. Befristete WiMi werden als „auch zur Weiterqualifikation beschäftigt“ gewertet (höchstens 4 LVS), unbefristete mit höchstens 8 LVS. ` +
     `Abweichungen lassen sich je Person in der Spalte „LVVO-Gruppe“ eintragen (Professur, LfbA 20, LfbA 24, WiMi, WiMi Qualifikation, keine). Ermäßigungen in Prozent beziehen sich auf die anteilige Lehrverpflichtung der Person.</p>`;
+}
+
+/* ---------- Gehaltene Lehre und Zeitkonto ---------- */
+function renderLehre(cf) {
+  const sems = [...new Set((S.teaching || []).filter(t => t.ok).map(t => t.sem))].sort((a, b) => a - b);
+  const sel = $('#lvSem'), prev = sel.value;
+  if (!sems.length) {
+    sel.innerHTML = ''; $('#lvLehreKpis').innerHTML = '';
+    $('#lvKonto').innerHTML = `<p class="note">${S.raw.lehre ? 'Das Blatt „Lehre“ enthält keine gültigen Zeilen.' : 'Kein Blatt <b>Lehre</b> gefunden. Erwartete Spalten: Personalnummer, Semester (z. B. „WS 2026/27“), Veranstaltung, Art, SWS, optional Anteil, Anzahl und LVS.'}</p>`;
+    return;
+  }
+  sel.innerHTML = sems.map(i => `<option value="${i}">${semLabel(i)}</option>`).join('');
+  const cur = semIdx(S.today);
+  sel.value = sems.includes(+prev) ? prev : String(sems.includes(cur) ? cur : sems[sems.length - 1]);
+  const s = +sel.value, nf = v => nf1.format(v);
+  const list = used().filter(r => !r.plan && (!cf || clusterOf(r) === cf));
+  const st = lehreStats(list, s);
+  const sgn = v => `<span class="${v < 0 ? 'down' : 'up'}">${v < 0 ? '−' : v > 0 ? '+' : ''}${nf(Math.abs(v))}</span>`;
+  $('#lvLehreKpis').innerHTML = [
+    ['Personen mit Lehre', nf0.format(st.n), `${semLabel(s)}${s > cur ? ' (geplant)' : s === cur ? ' (laufend)' : ''}`],
+    ['Soll', nf(st.soll) + ' LVS', 'nach LVVO am Semesterbeginn'],
+    ['Gehalten', nf(st.ist) + ' LVS', 'angerechnet nach § 14, § 15'],
+    ['Saldo', sgn(st.saldo), 'LVS im Semester'],
+    ['Zeitkonten', `${sgn(st.guthaben)} / ${sgn(st.fehlbetrag)}`, 'Summe Guthaben / Fehlbeträge am Semesterende' + (st.verfallen ? ` · ${nf(st.verfallen)} LVS verfallen` : '')],
+  ].map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+  const ps = st.personen.sort((a, b) => clusterOf(a.r).localeCompare(clusterOf(b.r), 'de') || a.r.name.localeCompare(b.r.name, 'de'));
+  const flags = e => [e.ohneEintrag ? '<span class="pill sev-W">keine Lehre eingetragen</span>' : '', e.unterHaelfte && !e.ohneEintrag ? '<span class="pill sev-W">unter der Hälfte</span>' : '',
+    e.fehlbetragZuHoch ? '<span class="pill sev-W">Fehlbetrag zu hoch</span>' : '', e.verfallen ? `<span class="pill sev-I">${nf(e.verfallen)} verfallen</span>` : '',
+    e.betreuungGekappt ? '<span class="pill sev-W">Betreuung gekappt</span>' : '', e.uebertrag ? `<span class="pill">Übertrag ${nf(e.uebertrag)}</span>` : ''].filter(Boolean).join(' ');
+  const k = v => v == null ? '<span class="note">–</span>' : sgn(v);
+  $('#lvKonto').innerHTML = !ps.length ? '<p class="note">Im gewählten Semester und Cluster ist keine Lehre eingetragen.</p>' :
+    `<table><tr><th>Name</th><th>Cluster</th><th>LVVO-Gruppe</th><th class="n">Soll</th><th class="n">Lehre</th><th class="n">Betreuung</th><th class="n">Gehalten</th><th class="n">Saldo</th><th class="n">Konto Anfang</th><th class="n">Konto Ende</th><th>Hinweise</th></tr>` +
+    ps.map(({r, e}) => `<tr><td><a href="#" data-row="${r.row}">${esc([r.name, r.vorname].filter(Boolean).join(', '))}</a></td><td>${esc(clusterOf(r))}</td><td>${esc(e.gruppe.label)}</td>` +
+      `<td class="n">${nf(e.soll)}</td><td class="n">${nf(e.lehre)}</td><td class="n">${nf(e.betreuung)}</td><td class="n"><b>${nf(e.ist)}</b></td><td class="n">${sgn(e.saldo)}</td>` +
+      `<td class="n">${k(e.anfang)}</td><td class="n">${k(e.ende)}</td><td>${flags(e)}</td></tr>`).join('') +
+    `<tr class="tot"><td>Summe</td><td></td><td></td><td class="n">${nf(st.soll)}</td><td class="n">${nf(sumBy(ps, o => o.e.lehre))}</td><td class="n">${nf(sumBy(ps, o => o.e.betreuung))}</td><td class="n">${nf(st.ist)}</td><td class="n">${sgn(st.saldo)}</td><td></td><td></td><td></td></tr></table>` +
+    '<p class="note">LVS je Semester. Konto nur für Professuren und LfbA (Regellehrverpflichtung); bei WiMi wird die gehaltene Lehre mit dem Deputat verglichen. Klick auf den Namen zeigt das Zeitkonto über alle Semester.</p>';
+  $$('#lvKonto a[data-row]').forEach(a => a.onclick = ev => { ev.preventDefault(); showPerson(+a.dataset.row); });
+}
+
+/** Zeitkonto aller Personen mit Lehre als CSV: eine Zeile je Person und Semester (Grundlage für § 18). */
+export function zeitkontoCsv() {
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"', n = v => v == null ? '' : nf1.format(v);
+  const head = ['Personalnummer', 'Name', 'Vorname', 'Cluster', 'LVVO-Gruppe', 'Semester', 'Regellehrverpflichtung (LVS)', 'Ermäßigungen (LVS)', 'Ermäßigungsgründe', 'Soll (LVS)',
+    'Lehre (LVS)', 'Betreuung (LVS)', 'Gehalten (LVS)', 'Saldo (LVS)', 'Übertrag (LVS)', 'Konto Anfang (LVS)', 'Konto Ende (LVS)', 'verfallen (LVS)', 'Hinweise', 'Lehrveranstaltungen'];
+  const lines = [head.map(q).join(';')];
+  const rs = used().filter(r => !r.plan && zeitkonto(r)).sort((a, b) => clusterOf(a).localeCompare(clusterOf(b), 'de') || a.name.localeCompare(b.name, 'de'));
+  for (const r of rs) for (const e of zeitkonto(r).semester) {
+    const x = lvvo(r, semStart(e.sem)), F = x.F;
+    const gr = x.erm.map(m => `${(F.gruende.find(g => g.key === m.grund) || {kurz: m.e.grundRaw}).kurz} ${n(m.lvs)}`).join(', ');
+    const hinweise = [e.ohneEintrag ? 'keine Lehre eingetragen' : '', e.unterHaelfte && !e.ohneEintrag ? 'unter der Hälfte' : '', e.fehlbetragZuHoch ? 'Fehlbetrag zu hoch' : '', e.betreuungGekappt ? 'Betreuung gekappt (§ 15)' : ''].filter(Boolean).join(', ');
+    const lv = e.zeilen.map(t => `${t.titel || '(ohne Titel)'} (${t.artRaw || 'Art ?'}${t.sws != null ? ', ' + n(t.sws) + ' SWS' : ''}${t.anteil !== 1 ? ', Anteil ' + n(t.anteil * 100) + ' %' : ''}${t.anzahl !== 1 ? ', ' + n(t.anzahl) + '×' : ''}: ${n(t.lvs)} LVS)`).join(' | ');
+    lines.push([r.pnr, r.name, r.vorname, clusterOf(r), e.gruppe.label, semLabel(e.sem), n(e.regelLvs), n(x.ermSum), gr, n(e.soll), n(e.lehre), n(e.betreuung), n(e.ist), n(e.saldo),
+      n(e.uebertrag), n(e.anfang), n(e.ende), n(e.verfallen), hinweise, lv].map(q).join(';'));
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'}));
+  a.download = 'Zeitkonto_LVVO.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

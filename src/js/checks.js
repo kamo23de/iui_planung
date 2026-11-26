@@ -1,10 +1,10 @@
 // Datenprüfung (Plausibilitätsregeln)
-import {fmtD, fromDay, nf2, r2, sumBy} from './util.js';
+import {fmtD, fromDay, nf2, r2, semEnd, semLabel, semStart, sumBy} from './util.js';
 import {S} from './state.js';
 import {lvvoFassung} from './lvvo.js';
 import {clusterOf, kreisOf, OPTIONAL_COLS, str, STUD_FIELDS, tarifNum} from './parse.js';
-import {effVz, grpOf, inContract, inRestPeriod, restShare, restVz} from './model.js';
-import {lvvo, lvvoGruppe, lvvoStats} from './teaching.js';
+import {effVz, grpOf, inContract, inRestPeriod, isActive, restShare, restVz} from './model.js';
+import {lvvo, lvvoGruppe, lvvoStats, zeitkonto} from './teaching.js';
 
 export function lev(a, b) {
   a = a.toLowerCase(); b = b.toLowerCase();
@@ -226,6 +226,42 @@ export function runChecks() {
         if (pctV != null && pctV > G.maxPct + 0.005) add('W', 'Ermäßigung über der Höchstgrenze', ref, e.lvs != null ? 'LVS' : 'Prozent', `${G.label}: ${nf(pctV)} % der Lehrverpflichtung – höchstens ${G.maxPct} % (${G.ref}).`);
       }
       if (G && G.hinweisLvs && e.lvs != null && e.lvs > G.hinweisLvs) add('I', 'Ermäßigung: Hinweis', ref, 'LVS', `${G.label}: je Studiengang sollen nicht mehr als ${G.hinweisLvs} LVS gewährt werden (${G.ref}) – bei ${nf(e.lvs)} LVS also mehrere Studiengänge.`);
+    }
+    // Blatt „Lehre“: Zeilen
+    const nfL = v => nf2.format(v);
+    for (const t of S.teaching || []) {
+      const p = byPnr.get(t.pnr), ref = {row: t.row, pnr: t.pnr, name: p ? p.name : t.titel, vorname: p ? p.vorname : '', sheet: 'Lehre'};
+      if (!t.pnr) { add('E', 'Lehre: Pflichtfeld leer', ref, 'Personalnummer', 'Personalnummer fehlt – Zeile wird nicht berücksichtigt.'); continue; }
+      if (!p) { add('E', 'Lehre: Person nicht gefunden', ref, 'Personalnummer', `Personalnummer ${t.pnr} kommt im Personalblatt nicht vor – Zeile wird nicht berücksichtigt.`); continue; }
+      if (t.sem == null) add('E', 'Lehre: Semester nicht erkannt', ref, 'Semester', `„${t.semRaw || '(leer)'}“ ist keine Semesterangabe (erwartet z. B. „WS 2026/27“ oder „SS 2027“) – Zeile wird nicht berücksichtigt.`);
+      for (const [k, f] of [['swsErr', 'SWS'], ['anteilErr', 'Anteil'], ['anzahlErr', 'Anzahl'], ['lvsErr', 'LVS']])
+        if (t[k]) add('E', 'Lehre: Zahl nicht lesbar', ref, f, `${f} ist keine Zahl – Zeile wird nicht berücksichtigt.`);
+      if (t.sws == null && t.lvsEin == null && !t.swsErr && !t.lvsErr) add('E', 'Lehre: Umfang fehlt', ref, 'SWS/LVS', 'Weder SWS noch LVS angegeben – Zeile wird nicht berücksichtigt.');
+      if (!t.anteilErr && (t.anteil <= 0 || t.anteil > 1)) add('E', 'Wert außerhalb des Bereichs', ref, 'Anteil', `Anteil ${nfL(t.anteil * 100)} % liegt außerhalb von 0–100 %.`);
+      if (t.lvs != null && t.lvs < 0) add('E', 'Wert außerhalb des Bereichs', ref, t.lvsEin != null ? 'LVS' : 'SWS', `${nfL(t.lvs)} LVS ist negativ.`);
+      if (!t.art && t.lvsEin == null) add('W', 'Lehre: Art nicht erkannt', ref, 'Art', `Art „${t.artRaw || '(leer)'}“ nicht erkannt – Faktor 1 angenommen. Erwartet z. B. Vorlesung, Übung, Seminar, Praktikum, Exkursion, Betreuung.`);
+      if (t.lvsEin != null && t.sws != null && !t.swsErr && !t.lvsErr && Math.abs(r2(t.sws * t.faktor * t.anteil * t.anzahl) - t.lvsEin) > 0.005)
+        add('I', 'Lehre: LVS eingetragen', ref, 'LVS', `Eingetragen sind ${nfL(t.lvsEin)} LVS; aus SWS ergäben sich ${nfL(r2(t.sws * t.faktor * t.anteil * t.anzahl))} LVS. Es zählen die eingetragenen LVS.`);
+      if (t.nichtAnwesend) add('I', 'Lehre: ohne ständige Anwesenheit', ref, 'Art', `Nur zu drei Zehnteln angerechnet (§ 14 Abs. 2): ${nfL(t.lvs)} LVS.`);
+      if (t.ok && !(inContract(p, semStart(t.sem)) || inContract(p, semEnd(t.sem)))) add('W', 'Lehre außerhalb der Vertragslaufzeit', ref, 'Semester', `${semLabel(t.sem)} liegt außerhalb des Vertrags (${fmtD(p.beginn)}–${fmtD(p.ende)}).`);
+    }
+    // Zeitkonto je Person (§ 11, § 15)
+    if (S.raw.lehre) {
+      const mitLehre = new Set((S.teaching || []).filter(t => t.ok).map(t => t.pnr));
+      for (const r of recs) {
+        if (!mitLehre.has(r.pnr) || byPnr.get(r.pnr) !== r) continue;   // je Personalnummer einmal
+        const k = zeitkonto(r);
+        for (const e of k.semester) {
+          const sl = semLabel(e.sem);
+          if (e.ohneEintrag && e.imVertrag) add('W', 'Zeitkonto: Semester ohne Lehre', r, 'Lehre', `${sl}: keine Lehre eingetragen – zählt als 0 LVS (Soll ${nfL(e.soll)} LVS).`);
+          if (e.betreuungGekappt) add('W', 'Betreuung über der Höchstgrenze', r, 'Lehre', `${sl}: Betreuung von Abschlussarbeiten über ${lvvoFassung(semStart(e.sem)).betreuungMax.lvs} LVS – angerechnet werden ${nfL(e.betreuung)} LVS (§ 15).`);
+          if (e.unterHaelfte && !e.ohneEintrag) add('W', 'Zeitkonto: weniger als die Hälfte', r, 'Lehre', `${sl}: ${nfL(e.ist)} LVS gehalten, Soll ${nfL(e.soll)} LVS – weniger als die Hälfte (§ 11 Abs. 2 und 3).`);
+          if (e.fehlbetragZuHoch) add('W', 'Zeitkonto: Fehlbetrag zu hoch', r, 'Lehre', `Ende ${sl}: Kontostand ${nfL(e.ende)} LVS – der Fehlbetrag darf höchstens die Regellehrverpflichtung (${nfL(e.fehlGrenze)} LVS) betragen (§ 11 Abs. 3 Satz 4).`);
+          if (e.verfallen > 0) add('I', 'Zeitkonto: Guthaben verfallen', r, 'Lehre', `Ende ${sl}: ${nfL(e.verfallen)} LVS verfallen – Guthaben höchstens ${nfL(e.kappung)} LVS (Zweifaches der Regellehrverpflichtung, § 11 Abs. 3 Satz 3).`);
+        }
+      }
+      const ohne = current.filter(r => F.gruppen[lvvoGruppe(r).key].art === 'regel' && isActive(r, T) && !mitLehre.has(r.pnr));
+      if (ohne.length) add('I', 'Lehre nicht erfasst', null, 'Lehre', `${ohne.length} Professuren und LfbA mit aktivem Vertrag haben keine Einträge im Blatt „Lehre“ – für sie wird kein Zeitkonto geführt.`);
     }
     // § 9 Satz 2: Ermäßigungsquote (gilt für die ganze Hochschule – hier nur der Anteil der Fakultät)
     const st = lvvoStats(recs, T);

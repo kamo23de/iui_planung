@@ -15,8 +15,9 @@ const BASE = {name: 'Muster', vorname: 'Max', kreis: 'Wiss. Mitarbeiter/in', arb
 let seq = 1000;
 /** Lädt die App, baut eine Personaltabelle aus `people` (Objekte mit Kurznamen wie oben) und
  *  führt Einlesen und Datenprüfung aus. reductions: Zeilen des Blatts „Ermäßigungen“ als Objekte
- *  {pnr, grund, lvs, pct, von, bis}. Rückgabe: {get, S, rec(pnr), issues(pnr?)}. */
-function setup(people, {today = '26.11.2026', students = null, reductions = null, header = HEADER, excludeDup = true} = {}) {
+ *  {pnr, grund, lvs, pct, von, bis}; teaching: Zeilen des Blatts „Lehre“ als Objekte {pnr, sem, titel, art, sws, anteil, anzahl, lvs}.
+ *  Rückgabe: {get, S, rec(pnr), issues(pnr?)}. */
+function setup(people, {today = '26.11.2026', students = null, reductions = null, teaching = null, header = HEADER, excludeDup = true} = {}) {
   const get = loadApp();
   const rows = [header].concat(people.map(p => {
     const o = Object.assign({pnr: String(seq++)}, BASE, p);
@@ -33,10 +34,15 @@ function setup(people, {today = '26.11.2026', students = null, reductions = null
     const erows = [['Personalnummer', 'Grund', 'LVS', 'Prozent', 'von', 'bis']].concat(reductions.map(e => [e.pnr == null ? null : String(e.pnr), e.grund ?? null, e.lvs ?? null, e.pct ?? null, e.von ?? null, e.bis ?? null]));
     erm = {sn: 'Ermäßigungen', rows: erows, headerRow: 0, map: get('mapHeaders')(erows[0], get('ERM_FIELDS'))};
   }
+  let lehre = null;
+  if (teaching) {
+    const lrows = [['Personalnummer', 'Semester', 'Veranstaltung', 'Art', 'SWS', 'Anteil', 'Anzahl', 'LVS']].concat(teaching.map(t => [t.pnr == null ? null : String(t.pnr), t.sem ?? null, t.titel ?? 'Modul', t.art ?? null, t.sws ?? null, t.anteil ?? null, t.anzahl ?? null, t.lvs ?? null]));
+    lehre = {sn: 'Lehre', rows: lrows, headerRow: 0, map: get('mapHeaders')(lrows[0], get('LEHRE_FIELDS'))};
+  }
   const S = get('S');
   S.today = get('parseDate')(today).v;
   S.excludeDup = excludeDup;
-  S.raw = {fileName: 'test.xlsx', pers: {sn: 'Personal', rows, headerRow: 0, map}, stud, erm, sheetNames: ['Personal']};
+  S.raw = {fileName: 'test.xlsx', pers: {sn: 'Personal', rows, headerRow: 0, map}, stud, erm, lehre, sheetNames: ['Personal']};
   get('buildRecords')();
   get('runChecks')();
   const rec = pnr => { const r = S.recs.find(x => x.pnr === String(pnr)); if (!r) throw new Error('Kein Datensatz ' + pnr); return r; };

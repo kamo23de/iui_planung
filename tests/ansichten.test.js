@@ -57,6 +57,12 @@ test('Jede Ansicht lässt sich mit den Testdaten zeichnen (Köpfe, VZÄ, mit Sze
     const r = usedBase().find(x => x.ende != null && x.ende > S.today);
     PLAN.items.push({id: PLAN.seq++, type: 'nach', row: r.row, vz: r.vz, beginn: r.ende + 1, ende: null, kw: false});
     planTouch(); S.applyPlan = true; drawAll('mit Szenario');
+    // Personenfenster, auch mit Zeitkonto (Blatt „Lehre“)
+    const {showPerson} = await mod('views/person.js');
+    const mitLehre = new Set(S.teaching.filter(t => t.ok).map(t => t.pnr));
+    for (const p of [usedBase().find(x => mitLehre.has(x.pnr)), usedBase().find(x => !mitLehre.has(x.pnr))]) {
+      try { showPerson(p.row); } catch (e) { assert.fail(`Personenfenster: ${e.name}: ${e.message}`); }
+    }
   } finally {
     for (const [k, d] of Object.entries(saved)) { if (d) Object.defineProperty(globalThis, k, d); else delete globalThis[k]; }
   }

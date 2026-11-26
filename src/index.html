@@ -116,6 +116,14 @@
           <tr><td>LVS oder Prozent</td><td>Umfang in LVS je Semester oder in Prozent der Lehrverpflichtung</td></tr>
           <tr><td>von, bis</td><td>Zeitraum; leer = unbegrenzt</td></tr>
         </table>
+        <h3 class="layout-h">Blatt 4 – Lehre <span class="note">(optional, eine Zeile je Lehrveranstaltung und Semester)</span></h3>
+        <table class="layout">
+          <tr><td>Personalnummer, Semester</td><td>z. B. „WS 2026/27“ oder „SS 2027“</td></tr>
+          <tr><td>Veranstaltung, Art</td><td>Vorlesung, Übung, Seminar, Praktikum: Faktor 1 · Exkursion: 0,3 · Betreuung (Abschlussarbeiten): höchstens 2 LVS je Semester · Übertrag: Anfangsstand des Zeitkontos</td></tr>
+          <tr><td>SWS</td><td>Semesterwochenstunden</td></tr>
+          <tr><td>Anteil, Anzahl</td><td>Lehrbeteiligung (z. B. 50 %) und Zahl der Durchführungen im Semester <span class="pill">optional</span></td></tr>
+          <tr><td>LVS</td><td>bereits angerechnete LVS; ersetzt die Rechnung aus SWS <span class="pill">optional</span></td></tr>
+        </table>
       </div>
     </div>
   </div>
@@ -494,6 +502,15 @@
     <h2>Lehrverpflichtung je Person</h2>
     <p class="sub">Wirksame Werte am Stichtag (Teilzeit und ruhende Anteile berücksichtigt). „Abweichung“ vergleicht das wirksame Deputat aus der Tabelle mit dem Soll nach LVVO. Klick auf den Namen öffnet das Personenfenster.</p>
     <div class="scroll" id="lvPersons" style="max-height:620px"></div>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Gehaltene Lehre und Zeitkonto</h2>
+      <div class="row"><label class="ctl">Semester <select id="lvSem"></select></label><button id="lvCsv" title="Zeitkonto aller Personen und Semester als CSV speichern (Grundlage für die Dokumentation nach § 18)">⤓ CSV</button></div>
+    </div>
+    <p class="sub">Blatt „Lehre“: angerechnete LVS je Semester (§ 13 Abs. 5, § 14 mit Anlage, Betreuung höchstens 2 LVS nach § 15). Zeitkonto nach § 11 Abs. 3 für Professuren und LfbA: Saldo = gehaltene Lehre − Soll; Guthaben über dem Zweifachen der Regellehrverpflichtung verfällt am Semesterende, ein Fehlbetrag soll die Regellehrverpflichtung nicht übersteigen. Soll am Semesterbeginn.</p>
+    <div class="kpis" id="lvLehreKpis"></div>
+    <div class="scroll" id="lvKonto" style="max-height:620px"></div>
   </div>
   <div class="card"><h2>Regelwerk</h2><div id="lvRules"></div></div>
 </section>

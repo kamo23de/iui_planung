@@ -202,6 +202,53 @@ ermaessigung(frei[9], "Labor", None, None, d(2026, 9, 1), None)                 
 ermaessigung(wimis[4], "Forschung", 1, None, d(2026, 9, 1), None)                      # Fehler: WiMi ohne Regellehrverpflichtung
 ermaessigung(frei[10], "Praktikantenbetreuung", 1, None, d(2027, 9, 1), d(2027, 3, 1))  # Fehler: von nach bis
 
+# ---- Blatt „Lehre“: gehaltene Lehre je Lehrveranstaltung und Semester (für das Zeitkonto nach § 11) ----
+rl = random.Random(11)                                    # eigener Zufall: die Personaldaten oben bleiben unverändert
+SEMS = ["SS 2025", "WS 2025/26", "SS 2026", "WS 2026/27"]
+mit_erm = {e[0] for e in erm}
+def regel(r): return (18 if r[3] == "Professor/in" else 20) * r[4] / 100
+pool = [r for i, r in enumerate(rows[:-8]) if i not in FEHLERZEILEN and r[11] == "Elektrotechnik" and r[3] in ("Professor/in", "LfbA")
+        and r[RUHT] is None and r[RUHEANTEIL] is None and r[VERTRETUNG] is None and r[LVVO] is None and r[0] not in mit_erm
+        and r[8] and r[8] <= d(2025, 3, 1) and (r[9] is None or r[9] >= d(2027, 2, 28)) and (r[RUHESTAND] is None or r[RUHESTAND] >= d(2027, 3, 1))
+        and isinstance(r[DEP], (int, float)) and abs(r[DEP] - regel(r)) < 0.01]
+lehre = []   # Personalnummer, Semester, Veranstaltung, Art, SWS, Anteil, Anzahl, LVS
+MODULE = ["Grundlagen der Elektrotechnik", "Signale und Systeme", "Regelungstechnik", "Leistungselektronik", "Messtechnik",
+          "Hochfrequenztechnik", "Elektrische Maschinen", "Digitaltechnik", "Projektarbeit", "Energiesysteme"]
+def kurse(pnr, sem, lvs):
+    rest = round(lvs, 2)
+    while rest > 0.001:
+        sws = min(rest, rl.choice([2, 2, 4, 4, 3]))
+        lehre.append([pnr, sem, rl.choice(MODULE), rl.choice(["Vorlesung", "Übung", "Vorlesung", "seminaristischer Unterricht", "Praktikum"]), sws, None, None, None])
+        rest = round(rest - sws, 2)
+spezial = pool[:7]
+for r in pool[7:]:
+    for sem in SEMS: kurse(r[0], sem, regel(r) + rl.choice([-2, -1, 0, 0, 0, 1, 2, 3]))
+ueber, minus, betreu, gewicht, uebertrag, luecke, tut = spezial
+for sem in SEMS: kurse(ueber[0], sem, regel(ueber) + 14)                         # Guthaben wächst bis zur Kappung (2 × 18)
+for sem, ist in zip(SEMS, [8, 10, 16, 18]): kurse(minus[0], sem, ist)          # Fehlbetrag wächst über 18 LVS; SS 2025 unter der Hälfte
+for sem in SEMS: kurse(betreu[0], sem, regel(betreu) - 2)
+lehre.append([betreu[0], "SS 2026", "Betreuung Bachelorarbeiten", "Betreuung", None, None, None, 3])   # Fehler: über 2 LVS (§ 15)
+for sem in SEMS[:3]: lehre.append([betreu[0], sem, "Betreuung Bachelorarbeiten", "Betreuung", None, None, None, 2])
+for sem in SEMS:                                                                 # Gewichtung nach § 13 Abs. 5 und § 14
+    lehre += [[gewicht[0], sem, "Grundlagen der Elektrotechnik", "Vorlesung", 4, "50 %", None, None],      # 2 LVS (Lehrbeteiligung)
+              [gewicht[0], sem, "Grundlagen der Elektrotechnik", "Übung", 2, None, 2, None],              # 4 LVS (zweimal)
+              [gewicht[0], sem, "Exkursion Kraftwerk", "Exkursion", 2, None, None, None],                 # 0,6 LVS
+              [gewicht[0], sem, "Laborpraktikum", "Praktikum (nicht ständig anwesend)", 4, None, None, None]]   # 1,2 LVS
+    kurse(gewicht[0], sem, regel(gewicht) - 7.8)
+lehre.append([uebertrag[0], "SS 2025", "Kontostand aus dem Vorjahr", "Übertrag", None, None, None, 5])
+for sem in SEMS: kurse(uebertrag[0], sem, regel(uebertrag) - 1)
+for sem in [SEMS[0], SEMS[1], SEMS[3]]: kurse(luecke[0], sem, regel(luecke))  # SS 2026 fehlt
+for sem in SEMS: kurse(tut[0], sem, regel(tut) - 2)
+lehre.append([tut[0], "WS 2025/26", "Mathematik-Tutorium", "Tutorium", 2, None, None, None])           # Art nicht erkannt: Faktor 1
+lehre.append([tut[0], "SS 2026", "Mathematik-Tutorium", "Übung", 2, None, None, 1.5])                  # LVS eingetragen (zählt statt 2)
+for sem in SEMS: kurse(frei[0][0], sem, 14 if sem == "WS 2026/27" else 18)    # Professur mit Forschungsermäßigung ab WS 2026/27
+wimi_l = next(r for i, r in enumerate(rows[:-8]) if i not in FEHLERZEILEN and r[3] == "Wiss. Mitarbeiter/in" and r[DEP] and r[DEP] > 0 and r[RUHT] is None
+              and r[11] == "Elektrotechnik" and r[8] and r[8] <= d(2025, 3, 1) and (r[9] is None or r[9] >= d(2027, 2, 28)))
+for sem in SEMS: lehre.append([wimi_l[0], sem, "Übung Messtechnik", "Übung", wimi_l[DEP], None, None, None])
+lehre.append([999997, "WS 2026/27", "Signale und Systeme", "Vorlesung", 4, None, None, None])          # Fehler: Personalnummer unbekannt
+lehre.append([pool[8][0], "Herbst 2026", "Signale und Systeme", "Vorlesung", 4, None, None, None])     # Fehler: Semester nicht erkannt
+lehre.append([pool[9][0], "WS 2026/27", "Projektarbeit", "Seminar", None, None, None, None])            # Fehler: weder SWS noch LVS
+
 wb = Workbook()
 ws = wb.active; ws.title = "Personal"
 hdr = ["Personalnummer", "Name", "Vorname", "Mitarbeiterkreis", "ArbAnteil", "VZÄ", "TrfGr", "Vertragsart",
@@ -236,5 +283,10 @@ for r in erm: ws3.append(r)
 for c in ws3[1]: c.font = Font(bold=True)
 for col in "EF":
     for cell in ws3[col][1:]: cell.number_format = "DD.MM.YYYY"
+ws4 = wb.create_sheet("Lehre")
+ws4.append(["Personalnummer", "Semester", "Veranstaltung", "Art", "SWS", "Anteil", "Anzahl", "LVS"])
+for r in lehre: ws4.append(r)
+for c in ws4[1]: c.font = Font(bold=True)
 wb.save("testdaten/Testdaten_Personalplanung.xlsx")
+print(len(pool), "Lehrpersonen im Pool,", len(lehre), "Zeilen Lehre")
 print(len(rows), "Zeilen")

@@ -8,7 +8,7 @@ import {renderCapacity} from './views/capacity.js';
 import {renderCheck} from './views/check.js';
 import {detailCsv, DT, isNarrow, renderDetail, renderDetailList} from './views/detail.js';
 import {fcMode, renderForecast, setFcMode} from './views/forecast.js';
-import {renderLvvo} from './views/lvvo.js';
+import {renderLvvo, zeitkontoCsv} from './views/lvvo.js';
 import {closePerson} from './views/person.js';
 import {renderRatio} from './views/ratio.js';
 import {renderSemDetail, renderSemester} from './views/semester.js';
@@ -106,7 +106,8 @@ export function init() {
   $('#dtLab').onchange = renderDetail;
   $('#dtOE').onchange = renderDetail;
   ['#capWhen', '#capCluster', '#capIntakes'].forEach(x => $(x).onchange = renderCapacity);
-  ['#lvWhen', '#lvCluster'].forEach(x => $(x).onchange = renderLvvo);
+  ['#lvWhen', '#lvCluster', '#lvSem'].forEach(x => $(x).onchange = renderLvvo);
+  $('#lvCsv').onclick = zeitkontoCsv;
   $$('#dtGroup button').forEach(b => b.onclick = () => { DT.group = b.dataset.v; $$('#dtGroup button').forEach(x => x.classList.toggle('on', x === b)); renderDetailList(); });
   ['#dtAll', '#dtSoon'].forEach(x => $(x).onchange = renderDetailList);
   $('#dtSearch').oninput = renderDetailList;

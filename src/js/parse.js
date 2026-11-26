@@ -1,7 +1,7 @@
 // Einlesen der Excel-Datei: Spaltenerkennung, Datums-/Zahlenwerte, Aufbau der Datensätze
-import {css, fromDay, pct, r2, toDay} from './util.js';
+import {css, fromDay, parseSemester, pct, r2, toDay} from './util.js';
 import {CATS, S} from './state.js';
-import {grundKey, parseLvvoGruppe} from './lvvo.js';
+import {grundKey, lehrartKey, LVVO_FASSUNGEN, nichtAnwesend, parseLvvoGruppe} from './lvvo.js';
 
 export const FIELDS = [
   ['pnr', 'Personalnummer', ['personalnummer', 'persnr', 'personalnr', 'pnr']],
@@ -34,6 +34,17 @@ export const ERM_FIELDS = [
   ['pct', 'Prozent', ['prozent', 'ermässigungprozent', 'ermäßigungprozent', 'anteilprozent']],
   ['von', 'von', ['von', 'gültigab', 'gueltigab']],
   ['bis', 'bis', ['bis', 'gültigbis', 'gueltigbis']],
+];
+/** Optionales Blatt „Lehre“ (LVVO): gehaltene Lehre, eine Zeile je Lehrveranstaltung und Semester. */
+export const LEHRE_FIELDS = [
+  ['pnr', 'Personalnummer', ['personalnummer', 'persnr', 'personalnr', 'pnr']],
+  ['sem', 'Semester', ['semester', 'studiensemester', 'sem']],
+  ['titel', 'Veranstaltung', ['veranstaltung', 'lehrveranstaltung', 'modul', 'titel']],
+  ['art', 'Art', ['art', 'veranstaltungsart', 'lehrform', 'typ']],
+  ['sws', 'SWS', ['sws', 'semesterwochenstunden', 'wochenstunden']],
+  ['anteil', 'Anteil', ['anteil', 'lehrbeteiligung', 'beteiligung']],
+  ['anzahl', 'Anzahl', ['anzahl', 'durchführungen', 'durchfuehrungen', 'gruppen']],
+  ['lvs', 'LVS', ['lvs', 'angerechnet', 'anrechnung']],
 ];
 /** Zahl der Tarif- bzw. Besoldungsgruppe (E13 → 13, A13 → 13, W2 → 2); null, wenn nicht erkennbar. */
 export const tarifNum = t => { const m = /^[EWA]?(\d+)/.exec(String(t || '').replace(/^TV-?L?/, '')); return m ? +m[1] : null; };
@@ -100,7 +111,7 @@ export const STUD_FIELDS = [
 ];
 export function readWorkbook(buf, fileName) {
   const wb = XLSX.read(buf, {type: 'array'});
-  let pers = null, stud = null, erm = null;
+  let pers = null, stud = null, erm = null, lehre = null;
   for (const sn of wb.SheetNames) {
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header: 1, raw: true, defval: null, blankrows: false});
     if (!pers) { const t = findTable(rows, FIELDS, 6); if (t) { pers = {sn, rows, ...t}; continue; } }
@@ -110,16 +121,20 @@ export function readWorkbook(buf, fileName) {
     }
     if (!erm) {
       const t = findTable(rows, ERM_FIELDS, 2);
-      if (t && 'pnr' in t.map && 'grund' in t.map) erm = {sn, rows, ...t};
+      if (t && 'pnr' in t.map && 'grund' in t.map) { erm = {sn, rows, ...t}; continue; }
+    }
+    if (!lehre) {
+      const t = findTable(rows, LEHRE_FIELDS, 3);
+      if (t && 'pnr' in t.map && 'sem' in t.map) lehre = {sn, rows, ...t};
     }
   }
   if (!pers) throw new Error('Kein Tabellenblatt mit Personaldaten gefunden. Erwartet werden Überschriften wie Personalnummer, Name, Mitarbeiterkreis, VZÄ, Vertragsende, Cluster …');
-  S.raw = {fileName, pers, stud, erm, sheetNames: wb.SheetNames};
+  S.raw = {fileName, pers, stud, erm, lehre, sheetNames: wb.SheetNames};
   buildRecords();
 }
 
 export function buildRecords() {
-  const {pers, stud, erm} = S.raw, M = pers.map;
+  const {pers, stud, erm, lehre} = S.raw, M = pers.map;
   S.colMap = M;
   S.missingCols = FIELDS.filter(f => !(f[0] in M)).map(f => f[1]);
   S.parseIssues = [];
@@ -192,6 +207,27 @@ export function buildRecords() {
         lvs: lvs.v == null ? null : r2(lvs.v), lvsErr: lvs.err,
         pct: p.v == null ? null : r2(p.pct || p.v > 1 ? p.v : p.v * 100), pctErr: p.err,   // 0,25 und 25 % bedeuten beide 25 %
         von: von.v, vonErr: von.err, bis: bis.v, bisErr: bis.err});
+    }
+  }
+  // Gehaltene Lehre (LVVO): angerechnete LVS je Zeile nach § 13 Abs. 5, § 14 und Anlage; § 15 (Deckel) in teaching.js
+  S.teaching = [];
+  if (lehre) {
+    const F = LVVO_FASSUNGEN[0];
+    for (let i = lehre.headerRow + 1; i < lehre.rows.length; i++) {
+      const row = lehre.rows[i]; if (!row || row.every(c => c == null || String(c).trim() === '')) continue;
+      const cell = k => lehre.map[k] != null ? row[lehre.map[k]] : null;
+      const sws = parseNum(cell('sws')), an = parseNum(cell('anteil')), cnt = parseNum(cell('anzahl')), lv = parseNum(cell('lvs'));
+      const semRaw = str(cell('sem')), artRaw = str(cell('art')), art = lehrartKey(artRaw), A = F.lehrarten.find(a => a.key === art);
+      const t = {row: i + 1, pnr: str(cell('pnr')).replace(/\.0+$/, ''), semRaw, sem: parseSemester(semRaw), titel: str(cell('titel')), artRaw, art,
+        sws: sws.v, swsErr: sws.err, anteil: an.v == null ? 1 : (an.pct || an.v > 1 ? an.v / 100 : an.v), anteilErr: an.err,
+        anzahl: cnt.v == null ? 1 : cnt.v, anzahlErr: cnt.err, lvsEin: lv.v, lvsErr: lv.err};
+      // Faktor der Art (unbekannte Art: 1), bei fehlender ständiger Anwesenheit drei Zehntel (§ 14 Abs. 2)
+      t.faktor = A ? A.faktor : 1;
+      t.nichtAnwesend = nichtAnwesend(artRaw) && t.faktor >= F.nichtAnwesend.ab;
+      if (t.nichtAnwesend) t.faktor = F.nichtAnwesend.faktor;
+      t.lvs = t.lvsEin != null ? r2(t.lvsEin) : t.sws != null ? r2(t.sws * t.faktor * t.anteil * t.anzahl) : null;
+      t.ok = !!t.pnr && t.sem != null && t.lvs != null && !t.swsErr && !t.anteilErr && !t.anzahlErr && !t.lvsErr && t.lvs >= 0 && t.anteil > 0 && t.anteil <= 1;
+      S.teaching.push(t);
     }
   }
   normalizeCategories();
