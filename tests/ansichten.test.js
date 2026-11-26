@@ -42,7 +42,7 @@ test('Jede Ansicht lässt sich mit den Testdaten zeichnen (Köpfe, VZÄ, mit Sze
     const {usedBase} = await mod('model.js');
     S.today = toDay(2026, 11, 26);
     readWorkbook(fs.readFileSync(path.join(root, 'testdaten/Testdaten_Personalplanung.xlsx')), 'Testdaten');
-    const tabs = ['check', 'overview', 'semester', 'forecast', 'ratio', 'detail', 'cap', 'plan'];
+    const tabs = ['check', 'overview', 'semester', 'forecast', 'ratio', 'detail', 'cap', 'lvvo', 'plan'];
     const drawAll = label => {
       for (const t of tabs) {
         S.tab = t;

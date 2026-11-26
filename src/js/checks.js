@@ -1,8 +1,10 @@
 // Datenprüfung (Plausibilitätsregeln)
-import {fmtD, fromDay, nf2, r2} from './util.js';
+import {fmtD, fromDay, nf2, r2, sumBy} from './util.js';
 import {S} from './state.js';
-import {clusterOf, kreisOf, OPTIONAL_COLS, str, STUD_FIELDS} from './parse.js';
-import {effVz, inContract, inRestPeriod, restShare, restVz} from './model.js';
+import {lvvoFassung} from './lvvo.js';
+import {clusterOf, kreisOf, OPTIONAL_COLS, str, STUD_FIELDS, tarifNum} from './parse.js';
+import {effVz, grpOf, inContract, inRestPeriod, restShare, restVz} from './model.js';
+import {lvvo, lvvoGruppe, lvvoStats} from './teaching.js';
 
 export function lev(a, b) {
   a = a.toLowerCase(); b = b.toLowerCase();
@@ -12,11 +14,10 @@ export function lev(a, b) {
     d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
   return d[a.length][b.length];
 }
-export const tarifNum = t => { const m = /^[EW]?(\d+)/.exec(t.replace(/^TV-?L?/, '')); return m ? +m[1] : null; };
 
 export function runChecks() {
   const I = [], T = S.today;
-  const add = (sev, check, r, field, msg) => I.push({sev, check, row: r ? r.row : null, pnr: r ? r.pnr : '', person: r ? [r.name, r.vorname].filter(Boolean).join(', ') : '', field, msg, sheet: r && r.sg != null ? 'Studierende' : 'Personal'});
+  const add = (sev, check, r, field, msg) => I.push({sev, check, row: r ? r.row : null, pnr: r ? r.pnr : '', person: r ? [r.name, r.vorname].filter(Boolean).join(', ') : '', field, msg, sheet: r && r.sheet ? r.sheet : r && r.sg != null ? 'Studierende' : 'Personal'});
 
   S.missingCols.filter(c => !OPTIONAL_COLS.includes(c)).forEach(c => add(c === 'Laborbereich' || c === 'Organisationseinheit' || c === 'Deputat' ? 'W' : 'E', 'Spalte fehlt', null, c, `Spalte „${c}“ wurde im Personalblatt nicht gefunden.` + (c === 'Deputat' ? ' Die Ansicht Kapazität kann kein Lehrangebot berechnen.' : '')));
   if (S.raw.stud) STUD_FIELDS.filter(f => !(f[0] in S.raw.stud.map)).forEach(f => add(['cnw', 'pl'].includes(f[0]) ? 'W' : f[0] === 'art' ? 'I' : 'E', 'Spalte fehlt', null, f[1], `Spalte „${f[1]}“ wurde im Studierendenblatt nicht gefunden.` + (['cnw', 'pl'].includes(f[0]) ? ' Die erforderliche Kapazität ist nicht berechenbar.' : '')));
@@ -167,6 +168,69 @@ export function runChecks() {
     }
     // Ruhende Verträge ohne Vertretung
     recs.filter(r => r.ruht != null && inRestPeriod(r, S.today) && !r.vertreter.length).forEach(r => add('I', 'Ruhender Vertrag ohne Vertretung', r, 'ruht bis', `Vertrag ruht bis ${fmtD(r.ruht)}; es ist keine Vertretung eingetragen.`));
+  }
+
+  // LVVO (Fachhochschule): Zuordnung, Deputat gegen Lehrverpflichtung, Ermäßigungen
+  {
+    const F = lvvoFassung(T), nf = v => nf2.format(v);
+    const current = recs.filter(r => r.ende == null || r.ende >= T);   // ausgelaufene Verträge nicht mehr prüfen
+    const byPnr = new Map(); recs.forEach(r => { if (r.pnr && !byPnr.has(r.pnr)) byPnr.set(r.pnr, r); });
+    const qAnnahme = [];
+    for (const r of current) {
+      const gr = lvvoGruppe(r), g = F.gruppen[gr.key];
+      if (r.lvvoRaw && !r.lvvoSpalte) add('E', 'LVVO-Gruppe nicht erkannt', r, 'LVVO-Gruppe', `„${r.lvvoRaw}“ nicht erkannt – Gruppe wird aus dem Mitarbeiterkreis abgeleitet (${g.label}). Erwartet: Professur, LfbA 20, LfbA 24, WiMi, WiMi Qualifikation oder keine.`);
+      if (r.lvvoSpalte) {
+        const erwartet = {P: ['prof'], L: ['lfba20', 'lfba24'], W: ['wimi', 'wimiQ']}[grpOf(r)] || ['keine'];
+        if (!erwartet.includes(r.lvvoSpalte)) add('W', 'LVVO-Gruppe passt nicht zum Mitarbeiterkreis', r, 'LVVO-Gruppe', `LVVO-Gruppe „${g.label}“ bei Mitarbeiterkreis „${r.kreis}“ – bitte prüfen. Es zählt die LVVO-Gruppe.`);
+      }
+      if (gr.annahme && gr.key === 'wimiQ') qAnnahme.push(r);
+      else if (gr.annahme) add('I', 'LVVO-Gruppe angenommen', r, 'TrfGr', `${gr.annahme} (${g.ref}). Abweichungen in der Spalte „LVVO-Gruppe“ eintragen.`);
+      if (g.art === 'keine') continue;
+      const x = lvvo(r, T, {nominal: true});
+      if ('deputat' in S.colMap && x.deputat != null) {
+        if (g.art === 'regel' && x.deputat > 0 && Math.abs(x.deputat - x.soll) > 0.005) add('W', 'Deputat weicht von LVVO ab', r, 'Deputat',
+          `Deputat ${nf(x.deputat)} LVS, nach LVVO ${nf(x.soll)} LVS: ${g.label} ${g.lvs} LVS × ${nf(x.anteil)} VZÄ` + (x.ermSum ? ` − Ermäßigungen ${nf(x.ermSum)} LVS` : '') + ` (${g.ref}).`);
+        if (g.art === 'hoechst' && x.deputat > x.basis + 0.005) add('W', 'Deputat über der Höchstlehrverpflichtung', r, 'Deputat',
+          `Deputat ${nf(x.deputat)} LVS, Höchstlehrverpflichtung ${g.label} ${g.lvs} LVS × ${nf(x.anteil)} VZÄ = ${nf(x.basis)} LVS (${g.ref}).`);
+      }
+      if (x.ueberErmaessigt) add('W', 'Ermäßigungen größer als Lehrverpflichtung', r, 'Ermäßigungen', `Ermäßigungen ${nf(x.ermSum)} LVS übersteigen die Lehrverpflichtung von ${nf(x.basis)} LVS – es wird 0 gezählt.`);
+      // § 9 Satz 3: je Professur höchstens 4 LVS, für Forschung/Entwicklung/Transfer höchstens 9 LVS
+      if (gr.key === 'prof') {
+        const p9 = x.erm.filter(e => (F.gruende.find(q => q.key === e.grund) || {}).p9), sum = sumBy(p9, e => e.lvs);
+        const ohneF = sumBy(p9.filter(e => e.grund !== 'forschung'), e => e.lvs);
+        if (sum > F.p9.profMaxForschung + 0.005) add('W', 'Ermäßigung über der Höchstgrenze', r, 'Ermäßigungen', `Ermäßigungen nach § 9 zusammen ${nf(sum)} LVS – höchstens ${F.p9.profMaxForschung} LVS (${F.p9.ref}).`);
+        else if (ohneF > F.p9.profMax + 0.005) add('W', 'Ermäßigung über der Höchstgrenze', r, 'Ermäßigungen', `Ermäßigungen nach § 9 für Aufgaben und Funktionen ${nf(ohneF)} LVS – höchstens ${F.p9.profMax} LVS je Professur; nur für Forschung, Entwicklung und Transfer bis ${F.p9.profMaxForschung} LVS (${F.p9.ref}).`);
+      }
+    }
+    if (qAnnahme.length) add('I', 'LVVO-Gruppe angenommen', null, 'LVVO-Gruppe', `${qAnnahme.length} befristete WiMi: Beschäftigung auch zur Weiterqualifikation angenommen – Höchstlehrverpflichtung 4 statt 8 LVS (§ 5 Abs. 2 Nr. 2). Abweichungen in der Spalte „LVVO-Gruppe“ eintragen.`);
+    // Blatt „Ermäßigungen“
+    for (const e of S.reductions || []) {
+      const p = byPnr.get(e.pnr), ref = {row: e.row, pnr: e.pnr, name: p ? p.name : e.grundRaw, vorname: p ? p.vorname : '', sheet: 'Ermäßigungen'};
+      const G = F.gruende.find(q => q.key === e.grund);
+      if (!e.pnr) { add('E', 'Ermäßigung: Pflichtfeld leer', ref, 'Personalnummer', 'Personalnummer fehlt – Ermäßigung wird nicht berücksichtigt.'); continue; }
+      if (!p) { add('E', 'Ermäßigung: Person nicht gefunden', ref, 'Personalnummer', `Personalnummer ${e.pnr} kommt im Personalblatt nicht vor – Ermäßigung wird nicht berücksichtigt.`); continue; }
+      for (const [k, f] of [['lvsErr', 'LVS'], ['pctErr', 'Prozent'], ['vonErr', 'von'], ['bisErr', 'bis']])
+        if (e[k]) add('E', 'Ermäßigung: Wert nicht lesbar', ref, f, `${f} ist ${f === 'von' || f === 'bis' ? 'kein gültiges Datum' : 'keine Zahl'} – Ermäßigung wird nicht berücksichtigt.`);
+      if (e.lvs == null && e.pct == null && !e.lvsErr && !e.pctErr) add('E', 'Ermäßigung ohne Umfang', ref, 'LVS/Prozent', 'Weder LVS noch Prozent angegeben – Ermäßigung wird nicht berücksichtigt.');
+      if (e.lvs != null && e.pct != null) add('W', 'Ermäßigung doppelt angegeben', ref, 'LVS/Prozent', `LVS (${nf(e.lvs)}) und Prozent (${nf(e.pct)} %) angegeben – es zählen die LVS.`);
+      if (e.lvs != null && e.lvs <= 0) add('E', 'Wert außerhalb des Bereichs', ref, 'LVS', `Ermäßigung ${nf(e.lvs)} LVS muss größer als 0 sein.`);
+      if (e.lvs == null && e.pct != null && (e.pct <= 0 || e.pct > 100)) add('E', 'Wert außerhalb des Bereichs', ref, 'Prozent', `Ermäßigung ${nf(e.pct)} % liegt außerhalb von 0–100 %.`);
+      if (e.von != null && e.bis != null && e.von > e.bis) add('E', 'Ermäßigung: von nach bis', ref, 'von/bis', `Beginn ${fmtD(e.von)} liegt nach dem Ende ${fmtD(e.bis)} – Ermäßigung gilt nie.`);
+      if (!e.grund) add('W', 'Ermäßigungsgrund nicht erkannt', ref, 'Grund', `„${e.grundRaw || '(leer)'}“ keinem Grund der LVVO zugeordnet – wird angerechnet, aber ohne Prüfung der Höchstgrenzen.`);
+      const g = F.gruppen[lvvoGruppe(p).key];
+      if (g.art !== 'regel') { add('W', 'Ermäßigung ohne Regellehrverpflichtung', ref, 'Personalnummer', `${p.vorname} ${p.name} hat keine Regellehrverpflichtung (${g.label}) – Ermäßigung wird nicht berücksichtigt.`); continue; }
+      if ((e.von != null && p.ende != null && e.von > p.ende) || (e.bis != null && p.beginn != null && e.bis < p.beginn))
+        add('I', 'Ermäßigung außerhalb der Vertragslaufzeit', ref, 'von/bis', `Zeitraum ${fmtD(e.von)}–${fmtD(e.bis)} liegt außerhalb des Vertrags (${fmtD(p.beginn)}–${fmtD(p.ende)}).`);
+      if (G && G.maxPct && !e.lvsErr && !e.pctErr) {
+        const basis = r2(g.lvs * (p.vz || 0)), pctV = e.lvs != null ? (basis ? r2(e.lvs / basis * 100) : null) : e.pct;
+        if (pctV != null && pctV > G.maxPct + 0.005) add('W', 'Ermäßigung über der Höchstgrenze', ref, e.lvs != null ? 'LVS' : 'Prozent', `${G.label}: ${nf(pctV)} % der Lehrverpflichtung – höchstens ${G.maxPct} % (${G.ref}).`);
+      }
+      if (G && G.hinweisLvs && e.lvs != null && e.lvs > G.hinweisLvs) add('I', 'Ermäßigung: Hinweis', ref, 'LVS', `${G.label}: je Studiengang sollen nicht mehr als ${G.hinweisLvs} LVS gewährt werden (${G.ref}) – bei ${nf(e.lvs)} LVS also mehrere Studiengänge.`);
+    }
+    // § 9 Satz 2: Ermäßigungsquote (gilt für die ganze Hochschule – hier nur der Anteil der Fakultät)
+    const st = lvvoStats(recs, T);
+    if (st.p9Quote != null && st.p9Quote > st.p9Grenze + 0.005) add('I', 'Ermäßigungsquote § 9', null, 'Ermäßigungen',
+      `Ermäßigungen nach § 9 der Fakultät: ${nf(st.ermP9)} LVS = ${nf(st.p9Quote)} % der Regellehrverpflichtungen (${nf(st.regel)} LVS). Zulässig sind hochschulweit ${F.p9.quote} %, bis ${F.p9.quoteErweitert} % in dem Maß, in dem WiMi-Lehre erbracht wird (hier ${nf(st.p9Grenze)} %) – ${F.p9.ref}.`);
   }
 
   // Studierende

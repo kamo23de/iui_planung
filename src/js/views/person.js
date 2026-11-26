@@ -3,6 +3,7 @@ import {$, $$, esc, fmtD, nf1, semIdx, semLabel} from '../util.js';
 import {S} from '../state.js';
 import {clusterOf, kreisColor, kreisOf} from '../parse.js';
 import {effDep, effVz, inRestPeriod, isPartlyResting, isResting, restShare, restVz, used} from '../model.js';
+import {lvvo} from '../teaching.js';
 import {contractStatus, restJahre} from './detail.js';
 import {editPlanItem} from '../plan/form.js';
 import {planFind} from '../plan/scenario.js';
@@ -52,6 +53,10 @@ export function showPerson(rowNo) {
         ['VZÄ', r.vz == null ? '' : nf1.format(r.vz) + (r.vzDerived ? ' <span class="note">(aus ArbAnteil abgeleitet)</span>' : '')],
         ['Wirksame VZÄ heute', inRestPeriod(r, T) ? `<b>${nf1.format(effVz(r, T))}</b> <span class="note">(${nf1.format(restVz(r, T))} VZÄ ruhen)</span>` : ''],
         ['Lehrdeputat', r.deputat == null ? '' : `${nf1.format(r.deputat)} SWS je Semester` + (inRestPeriod(r, T) && r.deputat > 0 ? ` <span class="note">– wirksam heute ${nf1.format(effDep(r, T))} SWS</span>` : '') + (r.deputat === 0 ? ' <span class="note">(nur unterstützend in der Lehre)</span>' : '')],
+        ['Lehrverpflichtung (LVVO)', (() => { const x = lvvo(r, T); if (x.gruppe.art === 'keine') return x.quelle === 'Spalte' ? 'keine (Spalte „LVVO-Gruppe“)' : '';
+          const er = x.erm.map(e => `${esc((x.F.gruende.find(g => g.key === e.grund) || {kurz: e.e.grundRaw || 'Grund unbekannt'}).kurz)} ${nf1.format(e.lvs)}`).join(', ');
+          return `${esc(x.gruppe.label)}: ${x.gruppe.art === 'regel' ? `<b>${nf1.format(x.soll)} LVS</b> je Semester (${x.gruppe.lvs} LVS × ${nf1.format(x.anteil)} VZÄ` + (x.ermSum ? ` − Ermäßigungen ${nf1.format(x.ermSum)}: ${er}` : '') + ')'
+            : `höchstens ${nf1.format(x.basis)} LVS (${x.gruppe.lvs} LVS × ${nf1.format(x.anteil)} VZÄ)`} <span class="note">${x.gruppe.ref}${x.quelle === 'Spalte' ? ', Gruppe aus Spalte „LVVO-Gruppe“' : ''}${x.annahme ? ' – ' + esc(x.annahme) : ''}</span>`; })()],
       ])}</section>
       <section><h3>Herkunft</h3>${dl([
         ['Tabellenblatt', esc(P.sn)],

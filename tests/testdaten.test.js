@@ -26,11 +26,12 @@ test('Testdatei wird vollständig eingelesen', () => {
 test('Absichtlich eingebaute Fehler werden gefunden', () => {
   const {S} = load();
   const count = {E: 0, W: 0, I: 0}; S.issues.forEach(i => count[i.sev]++);
-  assert.deepEqual(count, {E: 14, W: 30, I: 79});
+  assert.deepEqual(count, {E: 18, W: 38, I: 81});
   const checks = new Set(S.issues.filter(i => i.sev === 'E').map(i => i.check));
   for (const c of ['Personalnummer mehrfach vergeben', 'Datum nicht lesbar', 'Beginn nach Vertragsende', 'Wert außerhalb des Bereichs',
     'Zahl nicht lesbar', 'Pflichtfeld leer', 'Befristet ohne Vertragsende', 'Doppelte Zeile', 'Vertretung: vertretene Person nicht gefunden',
-    'Studierende: CNW fehlt/unlesbar']) assert.ok(checks.has(c), c);
+    'Studierende: CNW fehlt/unlesbar', 'LVVO-Gruppe nicht erkannt', 'Ermäßigung: Person nicht gefunden', 'Ermäßigung ohne Umfang',
+    'Ermäßigung: von nach bis']) assert.ok(checks.has(c), c);
 });
 
 test('Referenzwerte Bestand heute und zum SS 2029', () => {
@@ -48,5 +49,13 @@ test('Referenzwerte Bestand heute und zum SS 2029', () => {
 test('Referenzwerte Lehrangebot heute', () => {
   const {get, S} = load();
   const c = get('capStats')(get('used')(), S.today);
-  assert.deepEqual({sws: c.sws, P: c.P, L: c.L, W: c.W, teach: c.teach, support: c.support}, {sws: 1285.5, P: 994.5, L: 215, W: 76, teach: 89, support: 66});
+  assert.deepEqual({sws: c.sws, P: c.P, L: c.L, W: c.W, teach: c.teach, support: c.support}, {sws: 1258.34, P: 968.34, L: 217, W: 73, teach: 91, support: 64});
+});
+
+test('Referenzwerte Lehrverpflichtung nach LVVO heute', () => {
+  const {get, S} = load();
+  const st = get('lvvoStats')(get('used')().filter(r => get('inContract')(r, S.today)), S.today);
+  assert.deepEqual({regel: st.regel, erm: st.erm, ermP9: st.ermP9, soll: st.soll, wimi: st.wimi, lehre: st.lehre, p9Quote: st.p9Quote},
+    {regel: 1261, erm: 29.16, ermP9: 24, soll: 1231.84, wimi: 73, lehre: 1304.84, p9Quote: 1.9});
+  assert.equal(S.reductions.length, 14);
 });

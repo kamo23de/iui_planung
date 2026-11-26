@@ -15,7 +15,7 @@ const path = require('path');
 const SRC = path.join(__dirname, '..', 'src', 'js');
 
 // Schichtenfolge – bestimmt nur die Reihenfolge der import-Zeilen; neue Module ohne Eintrag stehen am Ende.
-const LAYERS = ['util.js', 'state.js', 'parse.js', 'checks.js', 'model.js', 'teaching.js', 'charts.js', 'render.js', 'views/', 'plan/', 'search.js', 'main.js', 'app.js'];
+const LAYERS = ['util.js', 'state.js', 'lvvo.js', 'parse.js', 'checks.js', 'model.js', 'teaching.js', 'charts.js', 'render.js', 'views/', 'plan/', 'search.js', 'main.js', 'app.js'];
 const rank = f => { const i = LAYERS.findIndex(l => l.endsWith('/') ? f.startsWith(l) : f === l); return i < 0 ? LAYERS.length : i; };
 
 /** Alle Module unter src/js/ (ohne package.json), in Schichtenfolge. */
@@ -34,7 +34,47 @@ const DECL = /^(?:export\s+)?(?:async\s+)?(?:function\*?\s+([A-Za-z_$][\w$]*)|(?
 const IMPORT = /^import \{([^}]*)\} from '([^']+)';\s*$/;
 
 /** Kommentare entfernen (Strings bleiben: Template-Ausdrücke enthalten Code). */
-const stripComments = src => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:\\'"`])\/\/[^\n]*/g, '$1');
+/** Nur den Code behalten: Kommentare, Strings, Regex-Literale und der Textanteil von Template-Strings werden
+ *  durch Leerzeichen ersetzt (Zeilenumbrüche bleiben), Ausdrücke in ${…} bleiben erhalten. */
+function codeOnly(src) {
+  let out = '', i = 0;
+  const n = src.length, blank = t => t.replace(/[^\n]/g, ' ');
+  const stack = [];   // offene Template-Strings: Klammertiefe des jeweiligen ${…}
+  let prevSig = '';   // letztes bedeutsames Zeichen (für die Unterscheidung Regex / Division)
+  const regexAllowed = () => !prevSig || /[(,=:[!&|?{};+\-*%<>~^]$/.test(prevSig) || /\b(return|typeof|case|in|of|delete|void|throw|new)$/.test(prevSig);
+  const readTemplateText = () => {   // ab i (nach ` oder }) bis ` oder ${
+    let j = i;
+    while (j < n && src[j] !== '`' && !(src[j] === '$' && src[j + 1] === '{')) j += src[j] === '\\' ? 2 : 1;
+    out += blank(src.slice(i, j));
+    if (src[j] === '`') { out += ' '; i = j + 1; prevSig = 'x'; }
+    else { out += '  '; i = j + 2; stack.push(0); prevSig = '{'; }
+  };
+  while (i < n) {
+    const c = src[i], d = src[i + 1];
+    if (c === '/' && d === '/') { const j = src.indexOf('\n', i); const e = j < 0 ? n : j; out += blank(src.slice(i, e)); i = e; continue; }
+    if (c === '/' && d === '*') { const j = src.indexOf('*/', i + 2); const e = j < 0 ? n : j + 2; out += blank(src.slice(i, e)); i = e; continue; }
+    if (c === '"' || c === "'") {
+      let j = i + 1; while (j < n && src[j] !== c && src[j] !== '\n') j += src[j] === '\\' ? 2 : 1;
+      out += blank(src.slice(i, j + 1)); i = j + 1; prevSig = 'x'; continue;
+    }
+    if (c === '`') { out += ' '; i++; readTemplateText(); continue; }
+    if (stack.length && c === '{') { stack[stack.length - 1]++; out += c; i++; prevSig = c; continue; }
+    if (stack.length && c === '}') {
+      if (stack[stack.length - 1] === 0) { stack.pop(); out += ' '; i++; readTemplateText(); continue; }
+      stack[stack.length - 1]--; out += c; i++; prevSig = c; continue;
+    }
+    if (c === '/' && regexAllowed()) {
+      let j = i + 1, cls = false;
+      while (j < n && src[j] !== '\n' && (cls || src[j] !== '/')) { if (src[j] === '\\') j++; else if (src[j] === '[') cls = true; else if (src[j] === ']') cls = false; j++; }
+      j++; while (j < n && /[a-z]/.test(src[j])) j++;
+      out += blank(src.slice(i, j)); i = j; prevSig = 'x'; continue;
+    }
+    out += c;
+    if (!/\s/.test(c)) prevSig = /[\w$]/.test(c) ? (prevSig.match(/[\w$]*$/)[0] + c).slice(-8) : c;
+    i++;
+  }
+  return out;
+}
 const re = s => s.replace(/[$]/g, '\\$');
 // Davor weder ein Namenszeichen noch ein einzelner Punkt (obj.name ist eine Eigenschaft); „...name“ (Spread) ist eine Verwendung.
 const NOT_PROP = '(?<![\\w$])(?<!(?:^|[^.])\\.)';
@@ -97,7 +137,7 @@ function analyze() {
   const byFile = new Map(mods.map(m => [m.file, m]));
   const wanted = new Map();
   for (const m of mods) {
-    const code = stripComments(m.body).replace(/\$\{/g, ' {');   // „${“ in Template-Strings ist keine Verwendung von $
+    const code = codeOnly(m.body);
     const used = new Set(code.match(new RegExp(`${NOT_PROP}[A-Za-z_$][\\w$]*`, 'g')));
     // $ und $$ (DOM-Kurzformen) nur als Aufruf zählen – ein „$“ in Regex-Literalen (/…$/) ist ein Anker
     for (const n of ['$', '$$']) if (!new RegExp(`${NOT_PROP}${re(n)}\\s*\\(`).test(code)) used.delete(n);
@@ -143,9 +183,11 @@ function fixImports() {
     const block = [...need.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
       .map(o => `import {${need.get(o).sort((a, b) => a.localeCompare(b, 'en')).join(', ')}} from '${relPath(m.file, o)}';`);
     const lines = m.lines.filter(l => !IMPORT.test(l));
-    // Importblock nach der ersten Kommentarzeile (Modulbeschreibung) einsetzen
-    while (lines[1] === '') lines.splice(1, 1);
-    const out = [lines[0], ...block, ...(block.length ? [''] : []), ...lines.slice(1)];
+    // Importblock nach dem Kommentarblock am Dateianfang (Modulbeschreibung) einsetzen
+    let k = 0; while (k < lines.length && lines[k].startsWith('//')) k++;
+    while (lines[k] === '' && lines[k + 1] === '') lines.splice(k, 1);
+    const rest = lines.slice(k); if (rest[0] === '' && block.length) rest.shift();
+    const out = [...lines.slice(0, k), ...block, ...(block.length ? [''] : []), ...rest];
     const text = out.join('\n');
     if (text !== m.src) fs.writeFileSync(path.join(SRC, m.file), text);
   }

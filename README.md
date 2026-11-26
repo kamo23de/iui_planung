@@ -35,9 +35,11 @@ Zum Ausprobieren gibt es außerdem `testdaten/Testdaten_Personalplanung.xlsx`. D
 
 ## Erwarteter Aufbau der Excel-Datei
 
-**Blatt Personal:** Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich, optional „ruht bis“ (Vertrag ruht bis zu diesem Datum), „Ruheanteil“ (ruhender Stellenumfang in VZÄ) und „Ruhestand“ (voraussichtliches Ausscheiden bei unbefristeten Verträgen) sowie „Vertretung für“ (Personalnummer der vertretenen Person), Deputat (Lehrdeputat in SWS je Semester; 0 = nur unterstützend in der Lehre)
+**Blatt Personal:** Personalnummer, Name, Vorname, Mitarbeiterkreis, ArbAnteil, VZÄ, TrfGr, Vertragsart, Beginn, Vertragsende, kw, Cluster, Organisationseinheit, Laborbereich, optional „ruht bis“ (Vertrag ruht bis zu diesem Datum), „Ruheanteil“ (ruhender Stellenumfang in VZÄ) und „Ruhestand“ (voraussichtliches Ausscheiden bei unbefristeten Verträgen) sowie „Vertretung für“ (Personalnummer der vertretenen Person), Deputat (festgelegte Lehrverpflichtung in LVS bzw. SWS je Semester nach Ermäßigungen; 0 = nur unterstützend in der Lehre), optional „LVVO-Gruppe“ (Professur, LfbA 20, LfbA 24, WiMi, WiMi Qualifikation, keine – überschreibt die abgeleitete Gruppe)
 
 **Blatt Studierende:** Studiengang, Cluster, Art (Bachelor/Master), CNW (Curricularnormwert), Studienplätze (je neuer Studierendengruppe), Studierende (eingeschrieben)
+
+**Blatt Ermäßigungen (optional, für die LVVO):** Personalnummer, Grund, LVS oder Prozent, von, bis – eine Zeile je Ermäßigung der Lehrverpflichtung. Der Grund wird aus dem Text erkannt (z. B. Forschung, Laborleitung, Studienfachberatung, Schwerbehinderung, Vizepräsidentschaft). Prozent: „12 %“, 12 und 0,12 bedeuten dasselbe.
 
 Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blattnamen sind egal.
 
@@ -52,6 +54,7 @@ Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blatt
 | Betreuung & WiMi | Studierende je Professor/in (inkl. LfbA) und je WiMi; WiMi je Professur (ohne LfbA) je Cluster und Organisationseinheit |
 | Detailansicht | Auswahl nach Cluster, Laborbereich und Organisationseinheit (die Liste der Organisationseinheiten richtet sich nach Cluster und Laborbereich). Genaues Verhältnis Professur (inkl. LfbA) : WiMi : sonstige Mitarbeitende : Studierende (Köpfe und VZÄ; Studierende nur ohne Labor-/OE-Auswahl, da diesen nicht zugeordnet). Professuren und Mitarbeitende je Laborbereich mit Diagramm und Tabelle. Vollständige Personalliste, gegliedert nach Mitarbeiterkreis oder Laborbereich, mit Vertragsdaten, Restlaufzeit, kw und Status; sortierbar, durchsuchbar, als CSV speicherbar |
 | Kapazität | Lehrangebot (Summe Deputat) je Cluster und Organisationseinheit, nach Personalgruppe; erforderliche Kapazität (CNW × Studienplätze) je Studiengang neben den eingeschriebenen Studierenden; Bilanz und Auslastung für Fakultät und (vorläufig) je Cluster; Stichtag bis 20 Semester voraus |
+| Lehrverpflichtung | LVVO Niedersachsen für Fachhochschulen: Regellehrverpflichtung (Professuren, LfbA) bzw. Höchstlehrverpflichtung (WiMi) anteilig nach VZÄ, Ermäßigungen nach Grund mit Quote nach § 9, Soll je Cluster und je Person im Vergleich zum eingetragenen Deputat, Regelwerk mit Fundstellen; Stichtag bis 20 Semester voraus |
 
 ### Diagramme exportieren
 
@@ -90,6 +93,9 @@ Die Treffer erscheinen als Auswahlliste mit Personalnummer, Mitarbeiterkreis, Cl
 - **kw:** Stellen mit kw-Vermerk entfallen nach Vertragsende. Optional werden Stellen ohne kw als offene, nachzubesetzende Stellen weitergeführt (Schalter oben).
 - **Rundung:** Alle Berechnungen auf zwei Nachkommastellen. Kopfzahlen bleiben ganze Zahlen.
 - **Kapazität:** Lehrangebot je Jahr = 2 × Summe Deputat (SWS je Semester) der aktiven Verträge, wie in der Kapazitätsverordnung (Aufnahmekapazität = 2 × Lehrangebot je Semester / Curricularanteil). Erforderliche Kapazität = CNW × Studienplätze × Aufnahmen je Jahr. Nicht berücksichtigt: Deputatsermäßigungen, Lehraufträge, Dienstleistungsexport/-import, Schwund, offene Stellen.
+- **Lehrverpflichtung (LVVO):** Grundlage ist die LVVO Niedersachsen vom 3.9.2018, zuletzt geändert am 26.8.2024, Fall Fachhochschule (Regelwerk mit Fundstellen und Gültigkeitsdatum in `src/js/lvvo.js`). Regellehrverpflichtung je Semester: Professur 18 LVS, LfbA ab zweitem Einstiegsamt 20 LVS, darunter 24 LVS (§ 5 Abs. 1); Höchstlehrverpflichtung WiMi 8 LVS, befristet zur Weiterqualifikation 4 LVS (§ 5 Abs. 2). Teilzeit und ruhende Anteile anteilig (§ 2 Abs. 3). Soll = Regellehrverpflichtung − Ermäßigungen (mindestens 0); bei WiMi gilt das eingetragene Deputat als Soll, die Höchstlehrverpflichtung als Obergrenze.
+- **LVVO-Annahmen:** Die LVVO gilt unmittelbar nur für Beamtinnen und Beamte (§ 1); für Tarifbeschäftigte wird sie ebenso angewendet. LfbA ab E13/A13 gelten als zweites Einstiegsamt. Befristete WiMi gelten als „auch zur Weiterqualifikation beschäftigt“. Ermäßigungen in Prozent beziehen sich auf die anteilige Lehrverpflichtung der Person. Die zulässige Quote nach § 9 wird als 7 % plus Lehre der WiMi in Prozent der Regellehrverpflichtungen gelesen, höchstens 10 %; sie gilt hochschulweit, die App zeigt nur den Anteil der Fakultät. Alle Annahmen lassen sich je Person mit der Spalte „LVVO-Gruppe“ übersteuern.
+- **Datenprüfung zur LVVO:** Deputat weicht vom LVVO-Soll ab; WiMi-Deputat über der Höchstlehrverpflichtung; Ermäßigungen über den Höchstgrenzen (§ 7: Vizepräsidentschaft 75 %, Studienfachberatung 25 %, Schwerbehinderung 25 %, herausragende Lehrende 50 %; § 9: je Professur 4 LVS, für Forschung/Entwicklung/Transfer 9 LVS) oder über der Lehrverpflichtung; unbekannte Personalnummern, fehlender Umfang, unbekannter Grund, Zeitraum außerhalb des Vertrags; unbekannte oder unpassende LVVO-Gruppe.
 - **Betreuungsverhältnis:** LfbA zählen als Professor/innen. In der WiMi-je-Professur-Auswertung werden LfbA nicht berücksichtigt.
 - Die Zuordnung der Mitarbeiterkreise zu Professor/in, LfbA, WiMi und Sonstige wird aus den Bezeichnungen erraten und lässt sich im Reiter „Betreuung & WiMi“ ändern.
 
@@ -113,7 +119,8 @@ npm run build        # erzeugt Personalplanung_IuI.html
 | `src/js/parse.js` | Einlesen der Excel-Datei, Spaltenerkennung, Aufbau der Datensätze |
 | `src/js/checks.js` | Datenprüfung |
 | `src/js/model.js` | Rechenkern: aktive Verträge, Ruhen, Teilruhen, Vertretungen, Personalgruppen, Stichtagsbestand |
-| `src/js/teaching.js` | Lehre: Deputat und Lehrangebot (hier setzt die LVVO-Rechnung an) |
+| `src/js/lvvo.js` | LVVO Niedersachsen (Fachhochschule): Regelwerk mit Fundstellen und Gültigkeitsdatum, Erkennung von Gruppe und Ermäßigungsgrund |
+| `src/js/teaching.js` | Lehre: Lehrangebot (Kapazität) und Lehrverpflichtung nach LVVO |
 | `src/js/charts.js` | Diagramme und PNG-Export |
 | `src/js/render.js` | Neuzeichnen der aktiven Ansicht |
 | `src/js/views/*.js` | je Reiter eine Ansicht, dazu das Personenfenster |
@@ -148,6 +155,7 @@ Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:tes
 | `rechenkern.test.js` | Vertragslaufzeit, Ruhen und Teilruhen, Stichtagsbestand, offene Stellen, Vertragsstatus |
 | `pruefung.test.js` | Regeln der Datenprüfung |
 | `kapazitaet.test.js` | Lehrangebot aus Deputat |
+| `lvvo.test.js` | LVVO: Regelwerte, Zuordnung zur Gruppe, Lehrverpflichtung mit Teilzeit, Ruhen und Ermäßigungen, Quote nach § 9, Prüfregeln |
 | `planung.test.js` | Szenarien (Nachbesetzung, neue Stelle, Vertragsende) und Zielwerte |
 | `testdaten.test.js` | Gesamtlauf mit der Testdatei und festgehaltenen Referenzwerten (Stichtag 26.11.2026) |
 | `build.test.js` | `Personalplanung_IuI.html` ist aktuell; Content-Security-Policy ohne Netzwerkzugriff |

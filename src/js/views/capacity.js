@@ -2,7 +2,7 @@
 import {$, css, esc, fmtD, nf0, nf1, pct, r2, semIdx, semLabel, semStart, sumBy} from '../util.js';
 import {S} from '../state.js';
 import {catColor, clusterOf} from '../parse.js';
-import {clusterList, effDep, inRestPeriod, isActive, isPartlyResting, tot, used} from '../model.js';
+import {clusterList, effDep, inRestPeriod, isActive, isPartlyResting, used} from '../model.js';
 import {capStats} from '../teaching.js';
 import {axis, barDs, charts, endLabels, legendHtml, mkChart} from '../charts.js';
 import {labSort, oeOf} from './detail.js';

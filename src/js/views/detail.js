@@ -2,7 +2,7 @@
 import {$, $$, css, esc, fmtD, nf0, nf1, nf2, r2, sumBy} from '../util.js';
 import {S} from '../state.js';
 import {catColor, clusterOf, kreisColor, kreisOf} from '../parse.js';
-import {effDep, effVz, grpOf, inContract, inRestPeriod, isActive, isPartlyResting, isResting, restShare, restVz, status, used} from '../model.js';
+import {effDep, effVz, grpOf, inContract, inRestPeriod, isActive, isPartlyResting, isResting, restShare, restVz, used} from '../model.js';
 import {axis, barDs, legendHtml, mkChart} from '../charts.js';
 import {showPerson} from './person.js';
 import {fillClusterSelect} from './semester.js';

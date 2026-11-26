@@ -5,6 +5,7 @@ import {renderCapacity} from './views/capacity.js';
 import {renderCheck} from './views/check.js';
 import {renderDetail} from './views/detail.js';
 import {renderForecast} from './views/forecast.js';
+import {renderLvvo} from './views/lvvo.js';
 import {renderOverview} from './views/overview.js';
 import {renderRatio} from './views/ratio.js';
 import {renderSemester} from './views/semester.js';
@@ -20,5 +21,6 @@ export function renderAll() {
   if (t === 'ratio') renderRatio();
   if (t === 'detail') renderDetail();
   if (t === 'cap') renderCapacity();
+  if (t === 'lvvo') renderLvvo();
   if (t === 'plan') renderPlan();
 }

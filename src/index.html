@@ -53,6 +53,7 @@
   <button data-t="ratio">Betreuung &amp; WiMi</button>
   <button data-t="detail">Detailansicht</button>
   <button data-t="cap">Kapazität<span class="wip-tab" title="Work in Progress">WIP</span></button>
+  <button data-t="lvvo">Lehrverpflichtung<span class="wip-tab" title="Work in Progress">WIP</span></button>
   <button data-t="plan">Planung<span class="wip-tab" title="Work in Progress">WIP</span><span class="plan-tab" id="planTabBadge"></span></button>
 </nav>
 
@@ -93,7 +94,8 @@
           <tr><td>Organisationseinheit</td><td></td></tr>
           <tr><td>Laborbereich</td><td></td></tr>
           <tr><td>ruht bis</td><td>Vertrag ruht bis zu diesem Datum – Stelle und Deputat werden bis dahin nicht gezählt <span class="pill">optional</span></td></tr>
-          <tr><td>Deputat</td><td>Lehrdeputat in SWS je Semester; 0 = nur unterstützend in der Lehre <span class="pill">für Kapazität</span></td></tr>
+          <tr><td>Deputat</td><td>festgelegte Lehrverpflichtung in LVS (SWS) je Semester nach Ermäßigungen; 0 = nur unterstützend in der Lehre <span class="pill">für Kapazität und LVVO</span></td></tr>
+          <tr><td>LVVO-Gruppe</td><td>überschreibt die abgeleitete Gruppe: Professur, LfbA 20, LfbA 24, WiMi, WiMi Qualifikation oder keine <span class="pill">optional</span></td></tr>
         </table>
       </div>
       <div>
@@ -107,6 +109,13 @@
           <tr><td>Studierende</td><td>aktuell eingeschriebene Studierende</td></tr>
         </table>
         <p class="note">Spalten mit dem Vermerk <span class="pill">für Kapazität</span> werden nur für die Ansicht „Kapazität“ benötigt. Ältere Dateien ohne diese Spalten funktionieren in allen anderen Ansichten weiter.</p>
+        <h3 class="layout-h">Blatt 3 – Ermäßigungen <span class="note">(optional, eine Zeile je Ermäßigung der Lehrverpflichtung)</span></h3>
+        <table class="layout">
+          <tr><td>Personalnummer</td><td>Person, deren Lehrverpflichtung ermäßigt wird</td></tr>
+          <tr><td>Grund</td><td>z. B. Forschung, Laborleitung, Studienfachberatung, Schwerbehinderung, Vizepräsidentschaft</td></tr>
+          <tr><td>LVS oder Prozent</td><td>Umfang in LVS je Semester oder in Prozent der Lehrverpflichtung</td></tr>
+          <tr><td>von, bis</td><td>Zeitraum; leer = unbegrenzt</td></tr>
+        </table>
       </div>
     </div>
   </div>
@@ -444,6 +453,49 @@
     Es zählen nur aktive Verträge und nur nicht ruhende Stellenanteile: Ruhende Verträge (Spalte „ruht bis“) zählen bis zum Ende des Ruhens nicht mit, bei teilweise ruhenden Verträgen (Spalte „Ruheanteil“) nur der nicht ruhende Anteil des Deputats, ihre Vertretungen (Spalte „Vertretung für“) dagegen schon, solange deren Vertrag läuft.
     Nicht berücksichtigt sind Deputatsermäßigungen, Lehraufträge, Dienstleistungen für andere Lehreinheiten, Schwundfaktoren und offene Stellen.</p>
   </div>
+</section>
+
+<!-- ================= Lehrverpflichtung (LVVO) ================= -->
+<section class="view" id="v-lvvo">
+  <div class="wip-banner" role="note" aria-label="Work in Progress">
+    <div class="wip-logo" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="54" height="54"><path d="M32 5 L60 55 H4 Z" fill="#fab219" stroke="#0b0b0b" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="29" y="22" width="6" height="18" rx="2" fill="#0b0b0b"/><circle cx="32" cy="47" r="3.6" fill="#0b0b0b"/></svg>
+    </div>
+    <div class="wip-text">
+      <div class="wip-title">WORK IN PROGRESS</div>
+      <div class="wip-sub">Erster Entwurf auf Grundlage der LVVO Niedersachsen für Fachhochschulen. Die LVVO gilt unmittelbar für Beamtinnen und Beamte (§ 1); für Tarifbeschäftigte wird sie hier ebenso angewendet. Tatsächlich gehaltene Lehre und Zeitkonto (§ 11) sind noch nicht enthalten.</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="row">
+      <label class="ctl">Stichtag <select id="lvWhen"></select></label>
+      <label class="ctl">Cluster <select id="lvCluster"></select></label>
+    </div>
+    <p class="sub" id="lvSub" style="margin:0"></p>
+    <p class="note sev-W hidden" id="lvMissing" style="margin:8px 0 0"></p>
+  </div>
+  <div class="kpis" id="lvKpis"></div>
+  <div class="grid2 mb">
+    <div class="card">
+      <h2>Lehrverpflichtung je Cluster</h2>
+      <p class="sub">LVS je Semester am Stichtag: Soll der Professuren und LfbA (Regellehrverpflichtung nach Ermäßigungen), festgelegte Lehre der WiMi (Spalte „Deputat“) und die gewährten Ermäßigungen.</p>
+      <div class="legend" id="lgLvCl"></div>
+      <div class="chartbox" id="lvClBox" style="height:260px"><canvas id="cLvCl"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Ermäßigungen nach Grund</h2>
+      <p class="sub">Gewährte Ermäßigungen am Stichtag (Blatt „Ermäßigungen“), in LVS und in Prozent der Regellehrverpflichtungen.</p>
+      <div class="scroll" id="lvGrund"></div>
+    </div>
+  </div>
+  <div class="card"><h2>Lehrverpflichtung je Cluster – Tabelle</h2><div class="scroll" id="lvTable"></div></div>
+  <div class="card">
+    <h2>Lehrverpflichtung je Person</h2>
+    <p class="sub">Wirksame Werte am Stichtag (Teilzeit und ruhende Anteile berücksichtigt). „Abweichung“ vergleicht das wirksame Deputat aus der Tabelle mit dem Soll nach LVVO. Klick auf den Namen öffnet das Personenfenster.</p>
+    <div class="scroll" id="lvPersons" style="max-height:620px"></div>
+  </div>
+  <div class="card"><h2>Regelwerk</h2><div id="lvRules"></div></div>
 </section>
 </main>
 <div id="pdOverlay" class="pd-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pdTitle">

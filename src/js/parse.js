@@ -1,6 +1,7 @@
 // Einlesen der Excel-Datei: Spaltenerkennung, Datums-/Zahlenwerte, Aufbau der Datensätze
 import {css, fromDay, pct, r2, toDay} from './util.js';
 import {CATS, S} from './state.js';
+import {grundKey, parseLvvoGruppe} from './lvvo.js';
 
 export const FIELDS = [
   ['pnr', 'Personalnummer', ['personalnummer', 'persnr', 'personalnr', 'pnr']],
@@ -22,8 +23,20 @@ export const FIELDS = [
   ['ruheanteil', 'Ruheanteil', ['ruheanteil', 'ruhenderanteil', 'ruhendeanteil', 'ruhenderstellenanteil', 'ruhendesvzä']],
   ['vertretung', 'Vertretung für', ['vertretungfür', 'vertretungfuer', 'vertretung', 'vertrittpersonalnummer', 'vertritt']],
   ['deputat', 'Deputat', ['deputat', 'lehrdeputat', 'lehrverpflichtung', 'lvs', 'sws']],
+  ['lvvo', 'LVVO-Gruppe', ['lvvogruppe', 'lehrverpflichtungsgruppe', 'lvvo']],
 ];
-export const OPTIONAL_COLS = ['ruht bis', 'Ruheanteil', 'Ruhestand', 'Vertretung für'];
+export const OPTIONAL_COLS = ['ruht bis', 'Ruheanteil', 'Ruhestand', 'Vertretung für', 'LVVO-Gruppe'];
+/** Optionales Blatt „Ermäßigungen“ (LVVO): eine Zeile je Ermäßigung der Lehrverpflichtung. */
+export const ERM_FIELDS = [
+  ['pnr', 'Personalnummer', ['personalnummer', 'persnr', 'personalnr', 'pnr']],
+  ['grund', 'Grund', ['grund', 'ermässigungsgrund', 'ermäßigungsgrund', 'ermaessigungsgrund', 'anlass']],
+  ['lvs', 'LVS', ['lvs', 'ermässigunglvs', 'ermäßigunglvs', 'umfanglvs', 'sws']],
+  ['pct', 'Prozent', ['prozent', 'ermässigungprozent', 'ermäßigungprozent', 'anteilprozent']],
+  ['von', 'von', ['von', 'gültigab', 'gueltigab']],
+  ['bis', 'bis', ['bis', 'gültigbis', 'gueltigbis']],
+];
+/** Zahl der Tarif- bzw. Besoldungsgruppe (E13 → 13, A13 → 13, W2 → 2); null, wenn nicht erkennbar. */
+export const tarifNum = t => { const m = /^[EWA]?(\d+)/.exec(String(t || '').replace(/^TV-?L?/, '')); return m ? +m[1] : null; };
 export const normH = h => String(h ?? '').toLowerCase().replace(/ß/g, 'ss').replace(/[^a-z0-9äöü]/g, '');
 
 export function mapHeaders(row, fields) {
@@ -87,22 +100,26 @@ export const STUD_FIELDS = [
 ];
 export function readWorkbook(buf, fileName) {
   const wb = XLSX.read(buf, {type: 'array'});
-  let pers = null, stud = null;
+  let pers = null, stud = null, erm = null;
   for (const sn of wb.SheetNames) {
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header: 1, raw: true, defval: null, blankrows: false});
     if (!pers) { const t = findTable(rows, FIELDS, 6); if (t) { pers = {sn, rows, ...t}; continue; } }
     if (!stud) {
       const t = findTable(rows, STUD_FIELDS, 2);
-      if (t && 'sg' in t.map) stud = {sn, rows, ...t};
+      if (t && 'sg' in t.map) { stud = {sn, rows, ...t}; continue; }
+    }
+    if (!erm) {
+      const t = findTable(rows, ERM_FIELDS, 2);
+      if (t && 'pnr' in t.map && 'grund' in t.map) erm = {sn, rows, ...t};
     }
   }
   if (!pers) throw new Error('Kein Tabellenblatt mit Personaldaten gefunden. Erwartet werden Überschriften wie Personalnummer, Name, Mitarbeiterkreis, VZÄ, Vertragsende, Cluster …');
-  S.raw = {fileName, pers, stud, sheetNames: wb.SheetNames};
+  S.raw = {fileName, pers, stud, erm, sheetNames: wb.SheetNames};
   buildRecords();
 }
 
 export function buildRecords() {
-  const {pers, stud} = S.raw, M = pers.map;
+  const {pers, stud, erm} = S.raw, M = pers.map;
   S.colMap = M;
   S.missingCols = FIELDS.filter(f => !(f[0] in M)).map(f => f[1]);
   S.parseIssues = [];
@@ -145,6 +162,7 @@ export function buildRecords() {
     endC.sort((x, y) => x[0] - y[0]);
     r.ende = endC.length ? endC[0][0] : null; r.endType = endC.length ? endC[0][1] : null;
     r.fixedTerm = r.befr === true || (r.befr === null && r.vertragsende != null);   // Zeitvertrag
+    r.lvvoRaw = str(get(row, 'lvvo')); r.lvvoSpalte = parseLvvoGruppe(r.lvvoRaw);   // LVVO-Gruppe aus der Tabelle (überschreibt die Ableitung)
     S.recs.push(r);
   }
   // Studierende
@@ -160,6 +178,20 @@ export function buildRecords() {
       const art = isB ? 'Bachelor' : isM ? 'Master' : (artRaw ? 'Sonstige' : '');
       S.students.push({row: i + 1, sg: str(cell('sg')), clusterRaw: cell('cl') ?? '', cluster: str(cell('cl')), n: n.v, nErr: n.err,
         artRaw, art, cnw: cnw.v == null ? null : r2(cnw.v), cnwErr: cnw.err, pl: pl.v, plErr: pl.err});
+    }
+  }
+  // Ermäßigungen der Lehrverpflichtung (LVVO)
+  S.reductions = [];
+  if (erm) {
+    for (let i = erm.headerRow + 1; i < erm.rows.length; i++) {
+      const row = erm.rows[i]; if (!row || row.every(c => c == null || String(c).trim() === '')) continue;
+      const cell = k => erm.map[k] != null ? row[erm.map[k]] : null;
+      const lvs = parseNum(cell('lvs')), p = parseNum(cell('pct')), von = parseDate(cell('von')), bis = parseDate(cell('bis'));
+      const grundRaw = str(cell('grund'));
+      S.reductions.push({row: i + 1, pnr: str(cell('pnr')).replace(/\.0+$/, ''), grundRaw, grund: grundKey(grundRaw),
+        lvs: lvs.v == null ? null : r2(lvs.v), lvsErr: lvs.err,
+        pct: p.v == null ? null : r2(p.pct || p.v > 1 ? p.v : p.v * 100), pctErr: p.err,   // 0,25 und 25 % bedeuten beide 25 %
+        von: von.v, vonErr: von.err, bis: bis.v, bisErr: bis.err});
     }
   }
   normalizeCategories();

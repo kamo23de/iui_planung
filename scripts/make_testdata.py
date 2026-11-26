@@ -90,7 +90,7 @@ def deputat(r):
     pn, kreis, arb = r[0], r[3], r[4] or 0
     if kreis == "Professor/in": return round(18 * arb / 100, 2)
     if kreis == "LfbA": return round(20 * arb / 100, 2)
-    if kreis == "Wiss. Mitarbeiter/in": return 4 if pn % 3 == 0 else 0      # Deputat 0 = nur unterstützend
+    if kreis == "Wiss. Mitarbeiter/in": return round(4 * arb / 100, 2) if pn % 3 == 0 else 0   # Deputat 0 = nur unterstützend
     if kreis == "Technische/r Mitarbeiter/in": return 0
     return None                                                            # Verwaltung: keine Angabe
 for r in rows: r.append(deputat(r))
@@ -169,11 +169,44 @@ fehler[3][RUHEANTEIL] = 0.25                                         # Fehler: R
 halbe = next(r for r in fehler[10:] if r[5] == 0.5)
 halbe[RUHT], halbe[RUHEANTEIL] = d(2027, 9, 30), 0.8                 # Fehler: Ruheanteil größer als Stelle
 
+# ---- LVVO (Fachhochschule): Spalte „LVVO-Gruppe“ und Blatt „Ermäßigungen“ ----
+LVVO = len(rows[0])
+for r in rows: r.append(None)
+DEP = 14
+wimis = [r for i, r in enumerate(rows[:-8]) if i not in FEHLERZEILEN and r[3] == "Wiss. Mitarbeiter/in" and r[7] == "befristet"
+         and r[RUHT] is None and r[9] and r[9] > d(2027, 9, 1) and r[4] == 100]
+wimis[0][LVVO] = "WiMi"                                   # befristet, aber nicht zur Weiterqualifikation: höchstens 8 LVS
+wimis[0][DEP] = 6
+wimis[1][DEP] = 6                                         # Fehler: Deputat über der Höchstlehrverpflichtung (4 LVS)
+lfba = next(r for i, r in enumerate(rows[:-8]) if i not in FEHLERZEILEN and r[3] == "LfbA" and r[RUHT] is None and (r[9] is None or r[9] > d(2027, 9, 1)))
+lfba[6], lfba[LVVO], lfba[DEP] = "E12", "LfbA 24", round(24 * lfba[4] / 100, 2)   # gehobener Dienst: 24 LVS
+wimis[2][LVVO] = "Dozent"                                 # Fehler: LVVO-Gruppe nicht erkannt
+wimis[3][LVVO] = "Professur"                              # Fehler: LVVO-Gruppe passt nicht zum Mitarbeiterkreis
+frei = [r for r in profs if r is not dekan and r is not praesident and r[RUHT] is None]
+erm = []   # Personalnummer, Grund, LVS, Prozent, von, bis
+def ermaessigung(r, grund, lvs=None, pct=None, von=None, bis=None, deputat=None):
+    erm.append([r[0] if r else 999998, grund, lvs, pct, von, bis])
+    if r is not None and deputat is not None: r[DEP] = deputat
+ermaessigung(frei[0], "Forschung (Drittmittelprojekt)", 4, None, d(2026, 9, 1), d(2027, 8, 31), 14)
+ermaessigung(frei[1], "Laborleitung", 2, None, d(2024, 3, 1), None, 16)
+ermaessigung(frei[2], "Studienfachberatung Informatik B.Sc.", 2, None, d(2025, 9, 1), None, 16)
+ermaessigung(frei[3], "Schwerbehinderung (GdB 50)", None, "12 %", d(2023, 3, 1), None, 15.84)
+ermaessigung(frei[4], "Forschungsprojekt", 6, None, d(2026, 3, 1), d(2028, 2, 29), 8)
+ermaessigung(frei[4], "Leitung Rechenzentrum", 4, None, d(2025, 9, 1), None)          # Fehler: § 9 zusammen 10 > 9 LVS
+ermaessigung(frei[5], "Leitung Labor CAD", 5, None, d(2025, 9, 1), None, 13)          # Fehler: Funktion 5 > 4 LVS
+ermaessigung(frei[6], "Studienreform", 2, None, d(2024, 9, 1), d(2025, 8, 31))        # abgelaufen
+ermaessigung(frei[7], "Transferprojekt", 3, None, d(2026, 9, 1), d(2027, 8, 31))      # Fehler: Deputat nicht angepasst (18 statt 15)
+ermaessigung(None, "Forschung", 2, None, d(2026, 9, 1), None)                          # Fehler: Personalnummer unbekannt
+ermaessigung(frei[8], "Sonstiges", 1, None, d(2026, 9, 1), d(2027, 2, 28), 17)       # Grund nicht erkannt
+ermaessigung(frei[9], "Labor", None, None, d(2026, 9, 1), None)                        # Fehler: weder LVS noch Prozent
+ermaessigung(wimis[4], "Forschung", 1, None, d(2026, 9, 1), None)                      # Fehler: WiMi ohne Regellehrverpflichtung
+ermaessigung(frei[10], "Praktikantenbetreuung", 1, None, d(2027, 9, 1), d(2027, 3, 1))  # Fehler: von nach bis
+
 wb = Workbook()
 ws = wb.active; ws.title = "Personal"
 hdr = ["Personalnummer", "Name", "Vorname", "Mitarbeiterkreis", "ArbAnteil", "VZÄ", "TrfGr", "Vertragsart",
        "Beginn", "Vertragsende", "kw", "Cluster", "Organisationseinheit", "Laborbereich", "Deputat"]
-hdr.append("ruht bis"); hdr.append("Ruhestand"); hdr.append("Vertretung für"); hdr.append("Ruheanteil")
+hdr.append("ruht bis"); hdr.append("Ruhestand"); hdr.append("Vertretung für"); hdr.append("Ruheanteil"); hdr.append("LVVO-Gruppe")
 ws.append(hdr)
 for r in rows: ws.append(r)
 for c in ws[1]: c.font = Font(bold=True)
@@ -196,5 +229,12 @@ for r in [("Informatik B.Sc.", "Informatik", "Bachelor", 6.4, 90, 820),
           ("Robotik M.Sc.", "Mechatronik", "M.Sc.", None, 25, 60)]:   # Cluster ohne Personal, CNW fehlt
     ws2.append(list(r))
 for c in ws2[1]: c.font = Font(bold=True)
+
+ws3 = wb.create_sheet("Ermäßigungen")
+ws3.append(["Personalnummer", "Grund", "LVS", "Prozent", "von", "bis"])
+for r in erm: ws3.append(r)
+for c in ws3[1]: c.font = Font(bold=True)
+for col in "EF":
+    for cell in ws3[col][1:]: cell.number_format = "DD.MM.YYYY"
 wb.save("testdaten/Testdaten_Personalplanung.xlsx")
 print(len(rows), "Zeilen")
