@@ -48,8 +48,17 @@ test('Referenzwerte Bestand heute und zum SS 2029', () => {
 
 test('Referenzwerte Lehrangebot heute', () => {
   const {get, S} = load();
-  const c = get('capStats')(get('used')(), S.today);
-  assert.deepEqual({sws: c.sws, P: c.P, L: c.L, W: c.W, teach: c.teach, support: c.support}, {sws: 1258.34, P: 968.34, L: 217, W: 73, teach: 91, support: 64});
+  const pick = c => ({sws: c.sws, P: c.P, L: c.L, W: c.W, teach: c.teach, support: c.support, erm: c.erm});
+  assert.deepEqual(pick(get('capStats')(get('used')(), S.today)), {sws: 1304.84, P: 996.84, L: 217, W: 91, teach: 94, support: 62, erm: 29.16});
+  assert.deepEqual(pick(get('capStats')(get('used')(), S.today, 'deputat')), {sws: 1258.34, P: 968.34, L: 217, W: 73, teach: 91, support: 64, erm: 0});
+});
+
+test('Kapazität nach LVVO und Reiter „Lehrverpflichtung“ ergeben dasselbe Lehrangebot', () => {
+  const {get, S} = load();
+  for (const D of [S.today, get('toDay')(2027, 3, 1), get('toDay')(2029, 9, 1)]) {
+    const act = get('used')().filter(r => get('isActive')(r, D));
+    assert.equal(get('capStats')(act, D).sws, get('lvvoStats')(act, D).lehre, get('fmtD')(D));
+  }
 });
 
 test('Referenzwerte Lehrverpflichtung nach LVVO heute', () => {

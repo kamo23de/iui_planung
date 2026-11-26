@@ -73,3 +73,15 @@ test('Zielwerte: Studierende je Professur und WiMi je Professur mit Ampel und Fe
   assert.equal(g.lvlWimi, 'ok');
   assert.equal(g.needWimi, 0);
 });
+
+test('Kapazität mit Szenario: neue Professur zählt nach LVVO mit 18 LVS, neue WiMi-Stelle mit ihrem Deputat', () => {
+  const t = setup([{pnr: 1, ...PROF, deputat: 18}]);
+  const {get, S} = withScenario([{pnr: 1, ...PROF, deputat: 18}], [
+    {type: 'neu', kreis: 'Professor/in', cluster: 'Informatik', vz: 1, beginn: t.S.today, ende: null, kw: false, deputat: 10},
+    {type: 'neu', kreis: 'Wiss. Mitarbeiter/in', cluster: 'Informatik', vz: 0.5, beginn: t.S.today, ende: null, kw: false, deputat: 2},
+  ]);
+  const act = () => get('used')().filter(r => get('isActive')(r, S.today));
+  assert.equal(get('capStats')(act(), S.today).sws, 38);              // 18 + 18 (LVVO, nicht 10) + 2
+  assert.equal(get('capStats')(act(), S.today, 'deputat').sws, 30);   // 18 + 10 + 2
+  assert.equal(get('withPlan')(false, () => get('capStats')(act(), S.today).sws), 18);
+});

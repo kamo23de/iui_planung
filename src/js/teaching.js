@@ -5,15 +5,28 @@ import {lvvoFassung} from './lvvo.js';
 import {tarifNum} from './parse.js';
 import {effDep, effVz, grpOf, inContract} from './model.js';
 
-/* Lehrangebot einer Personenliste am Stichtag D: Summe des wirksamen Deputats (SWS je Semester,
-   nur nicht ruhende Anteile) je Personalgruppe; year = 2 × SWS (Jahreslehrangebot).
-   teach = Personen mit Deputat > 0, support = Deputat 0 (nur unterstützend), none = ohne Angabe. */
-export function capStats(list, D) {
-  const o = {sws: 0, P: 0, L: 0, W: 0, O: 0, teach: 0, support: 0, none: 0};
+/** Beitrag einer Person zum Lehrangebot am Stichtag D (LVS je Semester); null = keine Angabe.
+ *  quelle 'lvvo' (Standard): Professuren und LfbA mit dem Soll nach LVVO (Regellehrverpflichtung anteilig − Ermäßigungen),
+ *  WiMi und Personen ohne Lehrverpflichtung mit dem festgelegten Deputat (die LVVO nennt für sie kein Soll).
+ *  quelle 'deputat': wirksames Deputat aus der Tabelle (bisherige Rechnung).
+ *  nominal = true: voller vertraglicher Umfang ohne Laufzeit und Ruhen (für „nicht gezählt, da ruhend“). */
+export function capBeitrag(r, D, quelle = 'lvvo', nominal = false) {
+  const dep = r.deputatErr || r.deputat == null ? null : nominal ? r.deputat : effDep(r, D);
+  if (quelle !== 'lvvo') return dep;
+  const x = lvvo(r, D, {nominal});
+  return x.gruppe.art === 'regel' ? x.soll : dep;
+}
+
+/* Lehrangebot einer Personenliste am Stichtag D (LVS je Semester, nur nicht ruhende Anteile) je Personalgruppe,
+   Quelle wie bei capBeitrag; year = 2 × LVS je Semester (Jahreslehrangebot); erm = abgezogene Ermäßigungen (nur LVVO).
+   teach = Personen mit Beitrag > 0, support = Deputat 0 ohne Regellehrverpflichtung (nur unterstützend), none = ohne Angabe. */
+export function capStats(list, D, quelle = 'lvvo') {
+  const o = {sws: 0, P: 0, L: 0, W: 0, O: 0, teach: 0, support: 0, none: 0, erm: 0, quelle};
   for (const r of list) {
-    const dep = r.deputatErr ? null : effDep(r, D);   // nur der nicht ruhende Anteil
-    if (dep > 0) { const g = grpOf(r); o[g] = r2(o[g] + dep); o.sws = r2(o.sws + dep); o.teach++; }
-    else if (r.deputat === 0 && !r.deputatErr) o.support++;
+    const b = capBeitrag(r, D, quelle);
+    if (quelle === 'lvvo') { const x = lvvo(r, D); if (x.gruppe.art === 'regel') o.erm = r2(o.erm + x.ermSum); }
+    if (b > 0) { const g = grpOf(r); o[g] = r2(o[g] + b); o.sws = r2(o.sws + b); o.teach++; }
+    else if (r.deputat === 0 && !r.deputatErr && !(quelle === 'lvvo' && lvvo(r, D).gruppe.art === 'regel')) o.support++;
     else o.none++;
   }
   o.year = r2(2 * o.sws);

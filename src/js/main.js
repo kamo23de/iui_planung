@@ -105,7 +105,7 @@ export function init() {
   $('#dtCluster').onchange = renderDetail;
   $('#dtLab').onchange = renderDetail;
   $('#dtOE').onchange = renderDetail;
-  ['#capWhen', '#capCluster', '#capIntakes'].forEach(x => $(x).onchange = renderCapacity);
+  ['#capWhen', '#capCluster', '#capIntakes', '#capSource'].forEach(x => $(x).onchange = renderCapacity);
   ['#lvWhen', '#lvCluster', '#lvSem'].forEach(x => $(x).onchange = renderLvvo);
   $('#lvCsv').onclick = zeitkontoCsv;
   $$('#dtGroup button').forEach(b => b.onclick = () => { DT.group = b.dataset.v; $$('#dtGroup button').forEach(x => x.classList.toggle('on', x === b)); renderDetailList(); });

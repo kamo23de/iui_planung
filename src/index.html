@@ -415,6 +415,7 @@
   <div class="card">
     <div class="row">
       <label class="ctl">Stichtag <select id="capWhen"></select></label>
+      <label class="ctl" title="LVVO-Soll: Professuren und LfbA mit Regellehrverpflichtung abzüglich Ermäßigungen, WiMi mit Deputat. Deputat: Spalte „Deputat“ für alle.">Lehrangebot aus <select id="capSource"><option value="lvvo">LVVO-Soll</option><option value="deputat">Deputat (Tabelle)</option></select></label>
       <label class="ctl" title="Wie oft im Jahr nimmt ein Studiengang eine neue Studierendengruppe auf?">Aufnahmen je Jahr <select id="capIntakes"><option value="1">1 (jährlich)</option><option value="2">2 (jedes Semester)</option></select></label>
     </div>
     <p class="sub" id="capSub" style="margin:0"></p>
@@ -425,13 +426,13 @@
   <div class="grid2 mb">
     <div class="card">
       <h2>Verfügbare Kapazität je Cluster</h2>
-      <p class="sub">Summe des Lehrdeputats in SWS je Semester, nach Personalgruppe.</p>
+      <p class="sub">Lehrangebot in LVS je Semester (Quelle oben wählbar), nach Personalgruppe.</p>
       <div class="legend" id="lgCapCl"></div>
       <div class="chartbox" id="capClBox" style="height:260px"><canvas id="cCapCl"></canvas></div>
     </div>
     <div class="card">
       <h2>Verfügbar und erforderlich je Cluster <span class="pill sev-I">vorläufig</span></h2>
-      <p class="sub">Lehrangebot je Jahr (2 × SWS) gegenüber der erforderlichen Kapazität der Studiengänge, die im Studierendenblatt diesem Cluster zugeordnet sind. Lehrexport und -import zwischen Clustern sind noch nicht berücksichtigt.</p>
+      <p class="sub">Lehrangebot je Jahr (2 × LVS je Semester) gegenüber der erforderlichen Kapazität der Studiengänge, die im Studierendenblatt diesem Cluster zugeordnet sind. Lehrexport und -import zwischen Clustern sind noch nicht berücksichtigt.</p>
       <div class="legend" id="lgCapBal"></div>
       <div class="chartbox" id="capBalBox" style="height:260px"><canvas id="cCapBal"></canvas></div>
     </div>
@@ -439,7 +440,7 @@
   <div class="card"><h2>Kapazität je Cluster – Tabelle</h2><div class="scroll" id="capClTable"></div></div>
   <div class="card">
     <div class="row" style="justify-content:space-between"><h2 style="margin:0">Verfügbare Kapazität je Organisationseinheit</h2><label class="ctl">Cluster <select id="capCluster"></select></label></div>
-    <p class="sub">Lehrdeputat in SWS je Semester. Organisationseinheiten ohne Lehrende und ohne unterstützende Personen sind im Diagramm ausgeblendet.</p>
+    <p class="sub">Lehrangebot in LVS je Semester. Organisationseinheiten ohne Lehrende und ohne unterstützende Personen sind im Diagramm ausgeblendet.</p>
     <div class="legend" id="lgCapOe"></div>
     <div class="chartbox" id="capOeBox" style="height:300px"><canvas id="cCapOe"></canvas></div>
     <div class="scroll" id="capOeTable" style="margin-top:14px;max-height:620px"></div>
@@ -456,10 +457,10 @@
   </div>
   <div class="card">
     <h2>Berechnungsgrundlage</h2>
-    <p class="note" style="margin:0">Lehrangebot je Semester = Summe des Deputats (SWS) aller Personen mit aktivem Vertrag am Stichtag. Personen mit Deputat 0 sind nur unterstützend tätig und tragen nicht zum Lehrangebot bei.
+    <p class="note" style="margin:0">Lehrangebot je Semester mit der Quelle <b>LVVO-Soll</b> (Standard): Professuren und LfbA zählen mit ihrer Regellehrverpflichtung nach LVVO (18, 20 bzw. 24 LVS, anteilig nach VZÄ) abzüglich der Ermäßigungen aus dem Blatt „Ermäßigungen“ – das entspricht dem um Verminderungen bereinigten Lehrdeputat der Kapazitätsverordnung. WiMi und sonstiges Personal zählen mit der Spalte „Deputat“, da die LVVO für sie nur eine Höchstlehrverpflichtung nennt; Deputat 0 bedeutet nur unterstützend. Mit der Quelle <b>Deputat</b> zählt für alle die Spalte „Deputat“ (bisherige Rechnung).
     Wie in der Kapazitätsverordnung wird das Jahreslehrangebot als 2 × Lehrangebot je Semester angesetzt und der Summe aus CNW × Studienplätze gegenübergestellt.
-    Es zählen nur aktive Verträge und nur nicht ruhende Stellenanteile: Ruhende Verträge (Spalte „ruht bis“) zählen bis zum Ende des Ruhens nicht mit, bei teilweise ruhenden Verträgen (Spalte „Ruheanteil“) nur der nicht ruhende Anteil des Deputats, ihre Vertretungen (Spalte „Vertretung für“) dagegen schon, solange deren Vertrag läuft.
-    Nicht berücksichtigt sind Deputatsermäßigungen, Lehraufträge, Dienstleistungen für andere Lehreinheiten, Schwundfaktoren und offene Stellen.</p>
+    Es zählen nur aktive Verträge und nur nicht ruhende Stellenanteile: Ruhende Verträge (Spalte „ruht bis“) zählen bis zum Ende des Ruhens nicht mit, bei teilweise ruhenden Verträgen (Spalte „Ruheanteil“) nur der aktive Anteil.
+    Nicht berücksichtigt sind Lehraufträge, Dienstleistungen für andere Lehreinheiten, Schwundfaktoren und unbesetzte Stellen (die Kapazitätsverordnung rechnet mit Stellen, nicht mit Personen).</p>
   </div>
 </section>
 

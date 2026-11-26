@@ -35,7 +35,7 @@ export function openPlanForm(mode, ctx) {
       ${f('Beginn', dateIn('pfBeginn', it.beginn ?? pre.beginn ?? semStart(semIdx(S.today) + 1)))}
       ${f('Ende', dateIn('pfEnde', it.ende ?? pre.ende ?? null), 'leer = unbefristet')}
       ${f('Umfang (VZÄ)', `<input type="number" id="pfVz" min="0.05" max="1" step="0.05" value="${it.vz ?? pre.vz ?? 1}">`, pre.hint || '')}
-      ${'deputat' in S.colMap ? f('Deputat (SWS)', `<input type="number" id="pfDep" min="0" step="0.5" value="${it.deputat ?? ''}">`) : ''}
+      ${'deputat' in S.colMap ? f('Deputat (LVS)', `<input type="number" id="pfDep" min="0" step="0.5" value="${it.deputat ?? ''}"> <span class="note">für WiMi und sonstiges Personal; Professuren und LfbA zählen mit der Regellehrverpflichtung nach LVVO</span>`) : ''}
       ${f('kw-Vermerk', `<label class="ctl"><input type="checkbox" id="pfKw"${it.kw ? ' checked' : ''}> Stelle entfällt nach Vertragsende</label>`)}</div>`;
   } else if (mode === 'ende') {
     const r = ctx.prev, it = ctx.item;
