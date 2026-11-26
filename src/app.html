@@ -183,6 +183,57 @@ tr.vt-child td:nth-child(2){padding-left:22px}
 .gs-foot{font-size:11.5px;color:var(--text-secondary);padding:6px 8px 4px;border-top:1px solid var(--grid);margin-top:2px}
 tr.flash td{animation:flash 2.2s ease-out}
 @keyframes flash{0%,40%{background:color-mix(in srgb, var(--accent) 22%, transparent)}100%{background:transparent}}
+.plan-tab:not(:empty){display:inline-block;margin-left:6px;padding:0 6px;font-size:10px;font-weight:800;border-radius:4px;background:var(--s7);color:#fff}
+.plan-badge{background:var(--s7);color:#fff;font-weight:700;font-size:12px;padding:4px 10px;border-radius:6px}
+body.plan-on header{border-bottom:3px solid var(--s7)}
+.btnlike{font-size:13px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;background:var(--card)}
+input.num{width:70px;font:inherit;font-size:13px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary)}
+.tl-card{padding:0;overflow:auto;max-height:72vh}
+.tl{min-width:1150px;font-size:12.5px}
+.tl-head,.tl-row,.tl-grp{display:flex}
+.tl-head{position:sticky;top:0;z-index:3;background:var(--card);border-bottom:1px solid var(--axis)}
+.tl-lbl{flex:0 0 250px;padding:3px 8px;position:sticky;left:0;z-index:2;background:var(--card);border-right:1px solid var(--grid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-track{position:relative;flex:1;min-height:24px}
+.tl-head .tl-track{height:34px}
+.tl-sem{position:absolute;top:0;bottom:0;border-left:1px solid var(--grid);font-size:10.5px;color:var(--text-secondary);padding:2px 3px;white-space:nowrap;overflow:hidden}
+.tl-sem.cur{background:color-mix(in srgb, var(--accent) 8%, transparent);color:var(--text-primary);font-weight:600}
+.tl-grp{background:var(--neutral-mid);font-weight:600;font-size:12px}
+.tl-grp .tl-lbl{background:var(--neutral-mid)}
+.tl-row{border-bottom:1px solid var(--grid)}
+.tl-row:hover .tl-lbl,.tl-row:hover{background:color-mix(in srgb, var(--neutral-mid) 60%, transparent)}
+.tl-row.child .tl-lbl{padding-left:24px;color:var(--text-secondary)}
+.tl-row .tl-lbl .sw{margin-right:5px}
+.tl-lbl.click{cursor:pointer}
+.tl-grid{position:absolute;top:0;bottom:0;border-left:1px solid var(--grid);pointer-events:none}
+.tl-today{position:absolute;top:0;bottom:0;border-left:2px solid var(--accent);pointer-events:none;z-index:1}
+.tl-bar{position:absolute;top:5px;height:14px;border-radius:3px;cursor:pointer;font-size:10px;line-height:14px;color:#fff;padding:0 4px;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+.tl-bar.open-l{border-top-left-radius:0;border-bottom-left-radius:0}
+.tl-bar.open-r{border-top-right-radius:0;border-bottom-right-radius:0}
+.tl-bar.plan{background:repeating-linear-gradient(135deg,color-mix(in srgb, var(--s7) 35%, transparent) 0 6px,transparent 6px 10px)!important;border:2px dashed var(--s7);color:var(--text-primary);line-height:10px}
+.tl-bar.ext{background:repeating-linear-gradient(135deg,color-mix(in srgb, var(--s7) 35%, transparent) 0 6px,transparent 6px 10px)!important;border:2px dashed var(--s7);border-left:0}
+.tl-rest{position:absolute;top:5px;height:14px;pointer-events:none;background:repeating-linear-gradient(45deg,rgba(255,255,255,.75) 0 3px,transparent 3px 7px);border-radius:3px}
+.tl-rest.part{background:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 2px,transparent 2px 9px)}
+.tl-gap{position:absolute;top:6px;height:12px;border:2px dashed var(--critical);border-radius:3px;background:color-mix(in srgb, var(--critical) 10%, transparent);cursor:pointer;font-size:9.5px;line-height:8px;color:var(--critical);padding:0 4px;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+.tl-mark{position:absolute;top:3px;font-size:9px;font-weight:700;padding:0 3px;border-radius:3px;background:var(--card);border:1px solid;pointer-events:none;line-height:12px}
+.tl-mark.kw{border-color:var(--s2);color:var(--s2)}
+.tl-mark.rs{border-color:var(--s7);color:var(--s7)}
+.tl-menu{position:fixed;z-index:120;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.2);padding:4px;min-width:220px}
+.tl-menu .mh{font-size:12px;color:var(--text-secondary);padding:4px 8px 6px;border-bottom:1px solid var(--grid);margin-bottom:3px}
+.tl-menu button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:6px 8px;border-radius:5px}
+.tl-menu button:hover{background:var(--neutral-mid)}
+.pf{display:grid;grid-template-columns:170px 1fr;gap:8px 12px;align-items:center;font-size:13.5px}
+.pf input,.pf select{font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary)}
+.pf .hint{grid-column:2;font-size:12px;color:var(--text-secondary);margin-top:-4px}
+table.gm td,table.gm th{text-align:center;padding:4px 3px;font-size:12px}
+table.gm td:first-child,table.gm th:first-child{text-align:left;position:sticky;left:0;background:var(--card);white-space:nowrap}
+table.gm td.c{cursor:pointer;min-width:52px;border-radius:4px}
+table.gm td.c.sel{outline:2px solid var(--text-primary);outline-offset:-2px}
+td.g-ok{background:color-mix(in srgb, var(--good) 22%, transparent)}
+td.g-warn{background:color-mix(in srgb, var(--warning) 35%, transparent)}
+td.g-bad{background:color-mix(in srgb, var(--critical) 28%, transparent)}
+td.g-na{color:var(--muted)}
+.gm .ic{font-weight:800;margin-right:2px}
+  background:repeating-linear-gradient(-45deg,#fab219 0 18px,#0b0b0b 18px 36px);position:relative}
 .png-btn{position:absolute;top:-4px;right:0;z-index:2;font-size:11px;padding:1px 6px;border-radius:5px;border:1px solid var(--border);background:var(--card);color:var(--text-secondary);opacity:.55;cursor:pointer}
 .chartbox:hover .png-btn,.png-btn:focus{opacity:1}
 @media (hover:none){.png-btn{opacity:.85}}
@@ -212,6 +263,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
   <div class="ctl hidden" data-loaded title="Annahme für Prognosen: Stellen ohne kw-Vermerk bleiben nach Vertragsende erhalten und werden nachbesetzt. Ausgenommen sind Vertretungen.">
     <input type="checkbox" id="refill"><label for="refill">Nicht-kw-Stellen nach Vertragsende als offene Stellen weiterführen</label></div>
   <div class="ctl hidden" data-loaded style="margin-left:auto">
+    <span id="planBadge" class="plan-badge hidden" title="Das Szenario ist in allen Ansichten eingerechnet">PLAN</span>
     <span id="demoBadge" class="demo-badge hidden">DEMO · fiktive Daten</span>
     <button id="demoUnload" class="demo hidden">Demodaten entladen</button>
     <button id="reload">Andere Datei laden</button></div>
@@ -224,6 +276,7 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
   <button data-t="ratio">Betreuung &amp; WiMi</button>
   <button data-t="detail">Detailansicht</button>
   <button data-t="cap">Kapazität<span class="wip-tab" title="Work in Progress">WIP</span></button>
+  <button data-t="plan">Planung<span class="wip-tab" title="Work in Progress">WIP</span><span class="plan-tab" id="planTabBadge"></span></button>
 </nav>
 
 <div id="start">
@@ -433,6 +486,95 @@ tr.sel-row td{background:var(--neutral-mid);font-weight:600}
     <div class="card"><h2>Studierende je Studiengang</h2><div class="scroll" id="stTable"></div></div>
   </div>
 </section>
+<!-- ================= Planung ================= -->
+<section class="view" id="v-plan">
+  <div class="wip-banner" role="note" aria-label="Work in Progress">
+    <div class="wip-logo" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="54" height="54"><path d="M32 5 L60 55 H4 Z" fill="#fab219" stroke="#0b0b0b" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="29" y="22" width="6" height="18" rx="2" fill="#0b0b0b"/><circle cx="32" cy="47" r="3.6" fill="#0b0b0b"/></svg>
+    </div>
+    <div class="wip-text">
+      <div class="wip-title">WORK IN PROGRESS</div>
+      <div class="wip-sub">Diese Ansicht ist ein Entwurf und befindet sich noch im Aufbau. Planmaßnahmen werden nur im Arbeitsspeicher gehalten; das Speichern von Szenarien ist noch nicht verlässlich. Ergebnisse sind vorläufig und nicht für Entscheidungen bestimmt.</div>
+    </div>
+  </div>
+  <div class="card plan-head">
+    <div class="row" style="margin-bottom:6px">
+      <div class="seg" id="plSub"><button data-v="tl" class="on">Stellenplan (Zeitstrahl)</button><button data-v="goal">Zielwerte (Ampel)</button></div>
+      <label class="ctl">Szenario <input id="plName" type="text" value="Szenario 1" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text-primary);width:180px"></label>
+      <span class="note" id="plCount"></span>
+      <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+        <button id="plNew">+ Neue Stelle</button>
+        <button id="plSave" title="Szenario als Datei speichern (bleibt lokal)">Szenario speichern</button>
+        <label class="btnlike" title="Gespeichertes Szenario laden">Szenario laden<input type="file" id="plLoad" accept=".json,application/json" hidden></label>
+        <button id="plClear">Szenario leeren</button>
+      </span>
+    </div>
+    <label class="ctl"><input type="checkbox" id="plApply"> Szenario in <b>allen</b> Ansichten einrechnen (Mitarbeiterkreise, Semesterverlauf, Forecast, Betreuung, Detailansicht)</label>
+  </div>
+
+  <!-- ---------- Variante B: Zeitstrahl ---------- -->
+  <div id="plTl">
+    <div class="card">
+      <div class="row">
+        <label class="ctl">Cluster <select id="tlCluster"></select></label>
+        <label class="ctl">Gliedern nach <select id="tlGroup"><option value="oe">Organisationseinheit</option><option value="labor">Laborbereich</option><option value="kreis">Mitarbeiterkreis</option></select></label>
+        <label class="ctl">Mitarbeiterkreis <select id="tlKreis"></select></label>
+        <label class="ctl">Zeitraum bis <select id="tlRange"><option value="10">10 Semester</option><option value="20" selected>20 Semester</option></select></label>
+        <label class="ctl" title="Nur Stellen, die im Zeitraum enden und noch keine Nachfolge haben, sowie Planmaßnahmen"><input type="checkbox" id="tlNeed"> nur Handlungsbedarf</label>
+      </div>
+      <div class="legend" id="tlLegend"></div>
+      <p class="sub" style="margin:0">Klick auf einen Balken: Nachbesetzen, Vertragsende ändern oder Person anzeigen. Rot gestrichelt = Stelle nach Vertragsende unbesetzt (ohne kw). Gestrichelte Balken = Planmaßnahmen.</p>
+    </div>
+    <div class="card tl-card"><div id="tlBox"></div></div>
+    <div class="grid2 mb">
+      <div class="card">
+        <h2>Wirkung: Ist und Plan</h2>
+        <p class="sub" id="tlEffSub"></p>
+        <div class="legend" id="tlEffLg"></div>
+        <div class="chartbox" style="height:260px"><canvas id="cPlanEff"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Planmaßnahmen</h2>
+        <div class="scroll" id="plList" style="max-height:330px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- Variante C: Zielwerte ---------- -->
+  <div id="plGoal" class="hidden">
+    <div class="card">
+      <h2>Zielwerte</h2>
+      <div class="row">
+        <label class="ctl">höchstens <input type="number" id="gStud" min="1" step="1" value="40" class="num"> Studierende je Professur (inkl. LfbA)</label>
+        <label class="ctl">mindestens <input type="number" id="gWimi" min="0" step="0.05" value="0.75" class="num"> WiMi je Professur (ohne LfbA)</label>
+        <label class="ctl">Toleranz (gelb) <input type="number" id="gTol" min="0" max="50" step="1" value="10" class="num"> %</label>
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <label class="ctl">Kennzahl <select id="gKpi"><option value="both">beide (schlechterer Wert)</option><option value="stud">Studierende je Professur</option><option value="wimi">WiMi je Professur</option></select></label>
+        <label class="ctl"><input type="checkbox" id="gWithPlan" checked> mit Planmaßnahmen</label>
+        <span class="note">Basis: VZÄ mit aktivem, nicht ruhendem Anteil zu Semesterbeginn; Studierendenzahlen unverändert.</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Ampel je Cluster und Semester</h2>
+      <p class="sub">✓ Ziel erreicht · ! knapp (innerhalb der Toleranz) · ✕ verfehlt. Klick auf ein Feld zeigt den Fehlbedarf.</p>
+      <div class="scroll" id="gMatrix" style="max-height:none"></div>
+    </div>
+    <div class="card" id="gDetailCard"><h2 id="gDetailTitle">Fehlbedarf</h2><div id="gDetail" class="note">Bitte ein Feld in der Ampel wählen.</div></div>
+  </div>
+</section>
+
+<!-- Formular für Planmaßnahmen -->
+<div id="plOverlay" class="pd-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="plFormTitle">
+  <div class="pd-box" style="max-width:620px">
+    <div class="pd-head"><h2 id="plFormTitle"></h2><button id="plFormClose" aria-label="Schließen">✕</button></div>
+    <div id="plFormBody"></div>
+    <div class="row" style="justify-content:flex-end;margin:14px 0 0"><button id="plFormCancel">Abbrechen</button><button id="plFormOk" class="primary">Übernehmen</button></div>
+  </div>
+</div>
+<div id="tlMenu" class="tl-menu hidden"></div>
+
 <!-- ================= Detailansicht ================= -->
 <section class="view" id="v-detail">
   <div class="card">
@@ -977,7 +1119,11 @@ function runChecks() {
 }
 
 /* ============================== Kennzahlen ============================== */
-const used = () => S.recs.filter(r => !r.excluded);
+/* Datenbasis. Ist das Szenario aktiv (überall eingerechnet oder vorübergehend für die Planungssicht),
+   liefert used() die Ist-Verträge mit den Planänderungen plus die geplanten Stellen. */
+const usedBase = () => S.recs.filter(r => !r.excluded);
+const used = () => (!S.forceBase && (S.applyPlan || S.usePlan) && PLAN.items.length) ? planRecords() : usedBase();
+function withPlan(on, fn) { const a = S.usePlan, b = S.forceBase; S.usePlan = on; S.forceBase = !on; try { return fn(); } finally { S.usePlan = a; S.forceBase = b; } }
 const val = r => S.measure === 'vzae' ? (r.vz || 0) : 1;
 const fmtV = v => S.measure === 'vzae' ? nf1.format(r2(v)) : nf0.format(Math.round(v));
 const unit = () => S.measure === 'vzae' ? 'VZÄ' : 'Personen';
@@ -1141,6 +1287,7 @@ function renderAll() {
   if (t === 'ratio') renderRatio();
   if (t === 'detail') renderDetail();
   if (t === 'cap') renderCapacity();
+  if (t === 'plan') renderPlan();
 }
 
 /* ---------- Datenprüfung ---------- */
@@ -1824,7 +1971,8 @@ function renderCapacity() {
 
 /* ---------- Personen-Detailfenster ---------- */
 function showPerson(rowNo) {
-  const r = S.recs.find(x => x.row === rowNo); if (!r) return;
+  const r = S.recs.find(x => x.row === rowNo) || (rowNo < 0 ? planFind(rowNo) : null); if (!r) return;
+  if (r.plan) { closePerson(); showTab('plan'); editPlanItem(r.plan.id); return; }
   $('#pdOverlay').dataset.row = r.row;
   const T = S.today, st = contractStatus(r), rest = restJahre(r);
   const iss = S.issues.filter(i => i.sheet === 'Personal' && i.row === r.row);
@@ -1882,6 +2030,321 @@ function showPerson(rowNo) {
 function closePerson() {
   $('#pdOverlay').classList.add('hidden'); document.body.style.overflow = ''; $('#pdBody').innerHTML = '';
   if (GS.fromSearch) { GS.fromSearch = false; gsClear(); }   // aus der Suche geöffnet: Suchfeld beim Schließen leeren
+}
+
+/* ---------- Planung: Szenario ---------- */
+/* Ein Szenario besteht aus Planmaßnahmen über den Ist-Daten; die Excel-Datei bleibt unverändert.
+   nach = Nachbesetzung einer ausscheidenden Stelle, neu = neue Stelle, ende = Vertragsende ändern (Verlängerung/Verkürzung/Entfristung). */
+const PLAN = {name: 'Szenario 1', items: [], seq: 1, ver: 0, cache: null, cacheVer: -1};
+const GOALS = {stud: 40, wimi: 0.75, tol: 10};
+const planRow = it => -1000 - it.id;          // eindeutige (negative) Zeilennummer für geplante Stellen
+function planTouch() { PLAN.ver++; renderPlanBadge(); }
+function planRecords() {
+  if (PLAN.cache && PLAN.cacheVer === PLAN.ver + ':' + S.issues.length) return PLAN.cache;
+  const base = usedBase(), byRow = new Map(base.map(r => [r.row, r]));
+  const mods = new Map(PLAN.items.filter(i => i.type === 'ende').map(i => [i.row, i]));
+  const out = base.map(r => { const m = mods.get(r.row); if (!m) return r;
+    const c = Object.assign(Object.create(Object.getPrototypeOf(r)), r);
+    c.ende = m.ende; c.endType = m.ende == null ? null : (r.endType === 'Ruhestand' && m.ende === r.ruhestand ? 'Ruhestand' : 'Vertragsende');
+    c.fixedTerm = m.ende != null; c.planMod = m; c.origEnde = r.ende; return c; });
+  for (const it of PLAN.items) {
+    if (it.type === 'ende') continue;
+    const prev = it.type === 'nach' ? byRow.get(it.row) : null;
+    if (it.type === 'nach' && !prev) continue;
+    const kreis = prev ? prev.kreis : it.kreis;
+    out.push({row: planRow(it), rawRow: [], plan: it, planOf: prev || null, problems: [],
+      pnr: 'PLAN-' + it.id, name: it.label || (prev ? 'Nachbesetzung' : 'Neue Stelle'), vorname: prev ? `für ${[prev.vorname, prev.name].filter(Boolean).join(' ')}` : '(Plan)',
+      kreis, cluster: prev ? prev.cluster : it.cluster, oe: prev ? prev.oe : (it.oe || ''), labor: prev ? prev.labor : (it.labor || ''),
+      tarif: prev ? prev.tarif : '', vart: it.ende == null ? 'unbefristet' : 'befristet', befr: it.ende != null, fixedTerm: it.ende != null,
+      arb: r2(it.vz * 100), vz: it.vz, deputat: it.deputat ?? (prev && prev.deputat != null && prev.vz ? r2(prev.deputat * it.vz / prev.vz) : null),
+      beginn: it.beginn, ende: it.ende, vertragsende: it.ende, ruhestand: null, endType: it.ende == null ? null : 'Vertragsende',
+      kw: !!it.kw, kwRaw: it.kw ? 'x' : '', ruht: null, ruheVz: null, vertretungFuer: '', vertretene: null, vertreter: [], excluded: false});
+  }
+  PLAN.cache = out; PLAN.cacheVer = PLAN.ver + ':' + S.issues.length;
+  return out;
+}
+const planFind = row => planRecords().find(r => r.row === row);
+const nachFor = r => PLAN.items.filter(i => i.type === 'nach' && i.row === r.row);
+const modFor = r => PLAN.items.find(i => i.type === 'ende' && i.row === r.row);
+function renderPlanBadge() {
+  const n = PLAN.items.length;
+  $('#planTabBadge').textContent = n ? String(n) : '';
+  const on = S.applyPlan && n > 0;
+  document.body.classList.toggle('plan-on', on);
+  $('#planBadge').classList.toggle('hidden', !on);
+  $('#planBadge').textContent = 'PLAN · ' + PLAN.name;
+}
+function planDesc(it) {
+  const p = it.type !== 'neu' ? usedBase().find(r => r.row === it.row) : null, nm = p ? [p.name, p.vorname].filter(Boolean).join(', ') : '';
+  if (it.type === 'nach') return `Nachbesetzung für ${nm}: ${nf1.format(it.vz)} VZÄ ab ${fmtD(it.beginn)}${it.ende ? ' bis ' + fmtD(it.ende) : ', unbefristet'}`;
+  if (it.type === 'ende') return `${nm}: Vertragsende ${p ? fmtD(p.ende) : ''} → ${it.ende == null ? 'unbefristet (Entfristung)' : fmtD(it.ende)}`;
+  return `${it.label || 'Neue Stelle'} (${it.kreis}, ${it.cluster}${it.oe ? ', ' + it.oe : ''}): ${nf1.format(it.vz)} VZÄ ab ${fmtD(it.beginn)}${it.ende ? ' bis ' + fmtD(it.ende) : ', unbefristet'}`;
+}
+
+/* ---------- Planungsformular ---------- */
+let PF = null;
+function openPlanForm(mode, ctx) {
+  PF = {mode, ctx};
+  const f = (lbl, html, hint) => `<label>${lbl}</label><div>${html}</div>${hint ? `<div class="hint">${hint}</div>` : ''}`;
+  const dateIn = (id, d) => `<input type="date" id="${id}" value="${d == null ? '' : isoD(d)}">`;
+  let title = '', body = '';
+  if (mode === 'nach') {
+    const r = ctx.prev, it = ctx.item;
+    title = it ? 'Nachbesetzung bearbeiten' : 'Stelle nachbesetzen';
+    body = `<div class="pf">${f('Bisherige Stelle', `<b>${esc([r.vorname, r.name].filter(Boolean).join(' '))}</b> · ${esc(kreisOf(r))} · ${esc(clusterOf(r))}${r.oe ? ' · ' + esc(r.oe) : ''}<br><span class="note">${r.endType === 'Ruhestand' ? 'Ruhestand' : 'Vertragsende'} ${fmtD(r.ende)}</span>`)}
+      ${f('Beginn der Nachfolge', dateIn('pfBeginn', it ? it.beginn : r.ende + 1), 'Lücke oder Überlappung ergibt sich aus dem Datum.')}
+      ${f('Ende', dateIn('pfEnde', it ? it.ende : null), 'leer = unbefristet')}
+      ${f('Umfang (VZÄ)', `<input type="number" id="pfVz" min="0.05" max="1" step="0.05" value="${it ? it.vz : (r.vz || 1)}">`)}
+      ${f('Bezeichnung', `<input type="text" id="pfLabel" value="${esc(it ? it.label || '' : 'Nachbesetzung')}">`)}</div>`;
+  } else if (mode === 'neu') {
+    const it = ctx.item || {}, pre = ctx.pre || {};
+    title = it.id ? 'Neue Stelle bearbeiten' : 'Neue Stelle planen';
+    const kreisOpts = S.kreisOrder.filter(k => k !== '(ohne Angabe)').map(k => `<option${(it.kreis || pre.kreis) === k ? ' selected' : ''}>${esc(k)}</option>`).join('');
+    const clOpts = clusterList().filter(c => c !== '(ohne Cluster)').map(c => `<option${(it.cluster || pre.cluster || $('#tlCluster').value) === c ? ' selected' : ''}>${esc(c)}</option>`).join('');
+    const oes = [...new Set(usedBase().map(r => r.oe).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+    const labs = [...new Set(usedBase().map(r => r.labor).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+    body = `<div class="pf">${f('Bezeichnung', `<input type="text" id="pfLabel" value="${esc(it.label || pre.label || 'Neue Stelle')}">`)}
+      ${f('Mitarbeiterkreis', `<select id="pfKreis">${kreisOpts}</select>`)}
+      ${f('Cluster', `<select id="pfCluster">${clOpts}</select>`)}
+      ${f('Organisationseinheit', `<input type="text" id="pfOe" list="pfOeList" value="${esc(it.oe || pre.oe || '')}"><datalist id="pfOeList">${oes.map(o => `<option value="${esc(o)}">`).join('')}</datalist>`)}
+      ${f('Laborbereich', `<input type="text" id="pfLab" list="pfLabList" value="${esc(it.labor || '')}"><datalist id="pfLabList">${labs.map(o => `<option value="${esc(o)}">`).join('')}</datalist>`)}
+      ${f('Beginn', dateIn('pfBeginn', it.beginn ?? pre.beginn ?? semStart(semIdx(S.today) + 1)))}
+      ${f('Ende', dateIn('pfEnde', it.ende ?? pre.ende ?? null), 'leer = unbefristet')}
+      ${f('Umfang (VZÄ)', `<input type="number" id="pfVz" min="0.05" max="1" step="0.05" value="${it.vz ?? pre.vz ?? 1}">`, pre.hint || '')}
+      ${'deputat' in S.colMap ? f('Deputat (SWS)', `<input type="number" id="pfDep" min="0" step="0.5" value="${it.deputat ?? ''}">`) : ''}
+      ${f('kw-Vermerk', `<label class="ctl"><input type="checkbox" id="pfKw"${it.kw ? ' checked' : ''}> Stelle entfällt nach Vertragsende</label>`)}</div>`;
+  } else if (mode === 'ende') {
+    const r = ctx.prev, it = ctx.item;
+    title = 'Vertragsende ändern';
+    body = `<div class="pf">${f('Vertrag', `<b>${esc([r.vorname, r.name].filter(Boolean).join(' '))}</b> · ${esc(kreisOf(r))} · ${esc(clusterOf(r))}`)}
+      ${f('Bisheriges Ende', r.ende == null ? 'unbefristet' : `${fmtD(r.ende)} <span class="note">(${r.endType})</span>`)}
+      ${f('Neues Ende', dateIn('pfEnde', it ? it.ende : r.ende), 'Später = Verlängerung, früher = Verkürzung')}
+      ${f('', `<label class="ctl"><input type="checkbox" id="pfUnbef"${it && it.ende == null ? ' checked' : ''}> unbefristet (Entfristung)</label>`)}</div>`;
+  }
+  $('#plFormTitle').textContent = title; $('#plFormBody').innerHTML = body;
+  $('#plOverlay').classList.remove('hidden');
+}
+function closePlanForm() { $('#plOverlay').classList.add('hidden'); $('#plFormBody').innerHTML = ''; PF = null; }
+function submitPlanForm() {
+  if (!PF) return;
+  const d = id => parseIso(($('#' + id) || {}).value || ''), num = id => { const v = parseFloat((($('#' + id) || {}).value || '').replace(',', '.')); return isFinite(v) ? v : null; };
+  const {mode, ctx} = PF;
+  let it = ctx.item ? ctx.item : {id: PLAN.seq++, type: mode};
+  if (mode === 'nach') {
+    const b = d('pfBeginn'); if (b == null) return alert('Bitte einen Beginn angeben.');
+    Object.assign(it, {row: ctx.prev.row, beginn: b, ende: d('pfEnde'), vz: r2(num('pfVz') || ctx.prev.vz || 1), label: $('#pfLabel').value.trim()});
+    if (it.ende != null && it.ende < it.beginn) return alert('Das Ende liegt vor dem Beginn.');
+  } else if (mode === 'neu') {
+    const b = d('pfBeginn'); if (b == null) return alert('Bitte einen Beginn angeben.');
+    Object.assign(it, {label: $('#pfLabel').value.trim() || 'Neue Stelle', kreis: $('#pfKreis').value, cluster: $('#pfCluster').value, oe: $('#pfOe').value.trim(), labor: $('#pfLab').value.trim(),
+      beginn: b, ende: d('pfEnde'), vz: r2(num('pfVz') || 1), deputat: $('#pfDep') ? num('pfDep') : null, kw: $('#pfKw').checked});
+    if (it.ende != null && it.ende < it.beginn) return alert('Das Ende liegt vor dem Beginn.');
+  } else if (mode === 'ende') {
+    const unbef = $('#pfUnbef').checked, e = d('pfEnde');
+    if (!unbef && e == null) return alert('Bitte ein Datum angeben oder „unbefristet“ wählen.');
+    Object.assign(it, {row: ctx.prev.row, ende: unbef ? null : e});
+    PLAN.items = PLAN.items.filter(x => !(x.type === 'ende' && x.row === it.row && x !== it));
+  }
+  if (!PLAN.items.includes(it)) PLAN.items.push(it);
+  closePlanForm(); planTouch(); renderAll();
+}
+function deletePlanItem(id) { PLAN.items = PLAN.items.filter(i => i.id !== id); planTouch(); renderAll(); }
+function editPlanItem(id) {
+  const it = PLAN.items.find(i => i.id === id); if (!it) return;
+  const prev = it.row != null ? usedBase().find(r => r.row === it.row) : null;
+  openPlanForm(it.type, {item: it, prev});
+}
+
+/* ---------- Planung: Rendering ---------- */
+let PL_SUB = 'tl';
+function renderPlan() {
+  $('#plName').value = PLAN.name;
+  $('#plCount').textContent = PLAN.items.length ? `${PLAN.items.length} Planmaßnahme${PLAN.items.length === 1 ? '' : 'n'}` : 'noch keine Planmaßnahmen';
+  $('#plTl').classList.toggle('hidden', PL_SUB !== 'tl'); $('#plGoal').classList.toggle('hidden', PL_SUB !== 'goal');
+  if (PL_SUB === 'tl') renderTimeline(); else renderGoals();
+}
+
+/* ===== Variante B: Stellenplan-Zeitstrahl ===== */
+function renderTimeline() {
+  const sel = $('#tlCluster'), cur0 = sel.value;
+  const cls = clusterList();
+  sel.innerHTML = '<option value="">Alle Cluster</option>' + cls.map(c => `<option>${esc(c)}</option>`).join('');
+  sel.value = cls.includes(cur0) ? cur0 : (cur0 === '' && sel.dataset.init ? '' : (cls[0] || '')); sel.dataset.init = '1';
+  const ks = $('#tlKreis'), k0 = ks.value;
+  ks.innerHTML = '<option value="">Alle</option>' + S.kreisOrder.map(k => `<option>${esc(k)}</option>`).join(''); ks.value = S.kreisOrder.includes(k0) ? k0 : '';
+  const cf = sel.value || null, kf = ks.value || null, grp = $('#tlGroup').value, need = $('#tlNeed').checked;
+  const cur = semIdx(S.today), s0 = cur - 2, s1 = cur + +$('#tlRange').value, A = semStart(s0), B = semEnd(s1);
+  const X = d => Math.max(0, Math.min(100, (d - A) / (B - A + 1) * 100));
+  const recs = withPlan(true, () => used());
+  const inRange = r => (r.beginn == null || r.beginn <= B) && (r.ende == null || r.ende >= A);
+  // Handlungsbedarf: Stelle endet im Zeitraum, ohne kw, keine Vertretung, noch keine Nachbesetzung geplant
+  const openEnd = r => !r.plan && r.ende != null && r.ende >= S.today && r.ende <= B && !r.kw && !isVertretung(r) && !nachFor(r).length;
+  let rows = recs.filter(r => inRange(r) && (!cf || clusterOf(r) === cf) && (!kf || kreisOf(r) === kf));
+  const isChildRow = r => (r.vertretene && rows.includes(r.vertretene)) || (r.plan && r.plan.type === 'nach' && r.planOf && rows.some(x => x.row === r.planOf.row));
+  if (need) rows = rows.filter(r => openEnd(r) || r.plan || r.planMod || nachFor(r).length);
+  const top = rows.filter(r => !isChildRow(r));
+  const kids = r => rows.filter(x => (x.vertretene === r) || (x.plan && x.plan.type === 'nach' && x.planOf && x.planOf.row === r.row)).sort((a, b) => (a.beginn ?? 0) - (b.beginn ?? 0));
+  const gKey = r => grp === 'oe' ? (r.oe || '(ohne Organisationseinheit)') : grp === 'labor' ? (r.labor || '(ohne Laborbereich)') : kreisOf(r);
+  const gk = [...new Set(top.map(r => (cf ? '' : clusterOf(r) + ' › ') + gKey(r)))].sort((a, b) => (a.includes('(ohne') - b.includes('(ohne')) || a.localeCompare(b, 'de'));
+  const sems = []; for (let i = s0; i <= s1; i++) sems.push(i);
+  const head = `<div class="tl-head"><div class="tl-lbl"><b>${rows.length} Verträge/Stellen</b></div><div class="tl-track">${sems.map(i => `<div class="tl-sem${i === cur ? ' cur' : ''}" style="left:${X(semStart(i))}%;width:${X(semEnd(i) + 1) - X(semStart(i))}%" title="${semLabel(i)}: ${fmtD(semStart(i))} – ${fmtD(semEnd(i))}">${(i % 2 ? 'WS ' : 'SS ') + pad(Math.floor(i / 2) % 100)}</div>`).join('')}<div class="tl-today" style="left:${X(S.today)}%" title="heute"></div></div></div>`;
+  const gridLines = sems.map(i => `<div class="tl-grid" style="left:${X(semStart(i))}%"></div>`).join('') + `<div class="tl-today" style="left:${X(S.today)}%"></div>`;
+  const bar = r => {
+    const b = r.beginn == null ? A : Math.max(A, r.beginn), e = r.ende == null ? B : Math.min(B, r.ende);
+    if (e < A || b > B) return '';
+    const col = kreisColor(kreisOf(r)), L = X(b), W = Math.max(0.6, X(e + 1) - L);
+    const cls2 = ['tl-bar', r.plan ? 'plan' : '', (r.beginn == null || r.beginn < A) ? 'open-l' : '', (r.ende == null || r.ende > B) ? 'open-r' : ''].join(' ');
+    const lab = r.plan ? 'PLAN' : '';
+    let h = '';
+    if (r.planMod && r.origEnde != null && r.ende != null && r.ende > r.origEnde) {   // Verlängerung: Ist-Teil + Planverlängerung
+      const m = Math.min(B, r.origEnde);
+      h += `<div class="${cls2} open-r" data-row="${r.row}" style="left:${L}%;width:${Math.max(0.6, X(m + 1) - L)}%;background:${col}" title="${esc(tipOf(r))}"></div>`;
+      h += `<div class="tl-bar ext ${r.ende > B ? 'open-r' : ''}" data-row="${r.row}" style="left:${X(m + 1)}%;width:${Math.max(0.6, X(e + 1) - X(m + 1))}%" title="Plan: verlängert bis ${fmtD(r.ende)}"></div>`;
+    } else if (r.planMod && r.origEnde != null && r.ende == null) {                       // Entfristung
+      const m = Math.min(B, r.origEnde);
+      h += `<div class="${cls2} open-r" data-row="${r.row}" style="left:${L}%;width:${Math.max(0.6, X(m + 1) - L)}%;background:${col}" title="${esc(tipOf(r))}"></div>`;
+      if (m < B) h += `<div class="tl-bar ext open-r" data-row="${r.row}" style="left:${X(m + 1)}%;width:${100 - X(m + 1)}%" title="Plan: entfristet"></div>`;
+    } else h += `<div class="${cls2}" data-row="${r.row}" style="left:${L}%;width:${W}%;${r.plan ? '' : 'background:' + col}" title="${esc(tipOf(r))}">${lab}</div>`;
+    // Ruhe (ganz oder teilweise), schraffiert
+    if (r.ruht != null && r.ruht >= A) { const rb = b, re = Math.min(e, r.ruht); if (re >= rb) h += `<div class="tl-rest${restShare(r) < 0.9999 ? ' part' : ''}" style="left:${X(rb)}%;width:${X(re + 1) - X(rb)}%" title="ruht${restShare(r) < 0.9999 ? ' teilweise (' + nf1.format(restVz(r, S.today)) + ' VZÄ)' : ''} bis ${fmtD(r.ruht)}"></div>`; }
+    // Ende-Marken
+    if (r.ende != null && r.ende <= B && r.ende >= A) {
+      if (r.kw) h += `<span class="tl-mark kw" style="left:calc(${X(r.ende + 1)}% + 2px)">kw</span>`;
+      else if (r.endType === 'Ruhestand') h += `<span class="tl-mark rs" style="left:calc(${X(r.ende + 1)}% + 2px)">RS</span>`;
+    }
+    // Unbesetzte Stelle nach Vertragsende (ohne kw, keine Vertretung): bis zur geplanten Nachfolge oder bis Zeitraumende
+    if (!r.plan && r.ende != null && r.ende < B && r.ende >= S.today - 1 && !r.kw && !isVertretung(r)) {
+      const nf = nachFor(r).map(i => i.beginn).sort((a, b) => a - b)[0];
+      const ge = nf != null ? Math.min(B, nf - 1) : B;
+      if (ge > r.ende) h += `<div class="tl-gap" data-gap="${r.row}" style="padding-left:${r.kw || r.endType === 'Ruhestand' ? 22 : 4}px;left:${X(r.ende + 1)}%;width:${Math.max(0.8, X(ge + 1) - X(r.ende + 1))}%" title="${nf != null ? 'Lücke bis zur geplanten Nachbesetzung' : 'Stelle unbesetzt – Klick zum Nachbesetzen'}">${nf != null ? 'Lücke' : 'offen'}</div>`;
+    }
+    return h;
+  };
+  const lbl = r => `<span class="sw" style="background:${kreisColor(kreisOf(r))}"></span>${r.plan ? '<b>PLAN</b> ' : ''}${esc([r.name, r.vorname].filter(Boolean).join(', '))} <span class="note">${nf1.format(r.vz || 0)}</span>`;
+  const rowHtml = (r, child) => `<div class="tl-row${child ? ' child' : ''}"><div class="tl-lbl${r.plan ? '' : ' click'}" data-person="${r.plan ? '' : r.row}" title="${esc(kreisOf(r) + ' · ' + clusterOf(r) + (r.oe ? ' · ' + r.oe : '') + (r.labor ? ' · ' + r.labor : ''))}">${child ? '↳ ' : ''}${lbl(r)}</div><div class="tl-track">${gridLines}${bar(r)}</div></div>`;
+  $('#tlBox').innerHTML = `<div class="tl">${head}` + (gk.length ? gk.map(g => {
+    const list = top.filter(r => (cf ? '' : clusterOf(r) + ' › ') + gKey(r) === g).sort((a, b) => S.kreisOrder.indexOf(kreisOf(a)) - S.kreisOrder.indexOf(kreisOf(b)) || a.name.localeCompare(b.name, 'de'));
+    return `<div class="tl-grp"><div class="tl-lbl">${esc(g)} <span class="note">(${list.length})</span></div><div class="tl-track"></div></div>` + list.map(r => rowHtml(r, false) + kids(r).map(k => rowHtml(k, true)).join('')).join('');
+  }).join('') : '<p class="note" style="padding:12px">Keine Verträge für diese Auswahl.</p>') + '</div>';
+  $('#tlLegend').innerHTML = legendHtml(S.kreisOrder.filter(k => rows.some(r => kreisOf(r) === k)).map(k => [kreisColor(k), k])) +
+    '<span><i style="background:repeating-linear-gradient(45deg,#999 0 3px,transparent 3px 6px)"></i>ruht</span><span><i style="border:2px dashed var(--critical);background:transparent"></i>unbesetzt</span><span><i style="border:2px dashed var(--s7);background:transparent"></i>Plan</span><span><i style="background:var(--accent);width:2px"></i>heute</span>';
+  $$('#tlBox .tl-lbl[data-person]').forEach(el => { if (el.dataset.person) el.onclick = () => showPerson(+el.dataset.person); });
+  $$('#tlBox .tl-bar, #tlBox .tl-gap').forEach(el => el.onclick = e => tlMenu(e, el.dataset.row ? +el.dataset.row : +el.dataset.gap));
+  renderPlanEffect(cf); renderPlanList();
+}
+function tipOf(r) {
+  return `${[r.vorname, r.name].filter(Boolean).join(' ')} · ${kreisOf(r)} · ${nf1.format(r.vz || 0)} VZÄ · ${r.beginn != null ? fmtD(r.beginn) : '…'} – ${r.ende != null ? fmtD(r.ende) + (r.endType === 'Ruhestand' ? ' (Ruhestand)' : '') : 'unbefristet'}${r.kw ? ' · kw' : ''}${r.vertretene ? ' · Vertretung für ' + r.vertretene.name : ''}${r.ruht != null ? ' · ruht bis ' + fmtD(r.ruht) : ''}`;
+}
+function tlMenu(e, row) {
+  e.stopPropagation();
+  const r = withPlan(true, () => planFind(row)) || usedBase().find(x => x.row === row); if (!r) return;
+  const m = $('#tlMenu'), btn = (act, txt) => `<button data-act="${act}">${txt}</button>`;
+  let h = `<div class="mh">${esc(tipOf(r))}</div>`;
+  if (r.plan) h += btn('edit', 'Planmaßnahme bearbeiten …') + btn('del', 'Planmaßnahme löschen');
+  else {
+    h += btn('person', 'Person anzeigen');
+    if (r.ende != null && !r.kw && !isVertretung(r)) h += btn('nach', nachFor(r).length ? 'Weitere Nachbesetzung planen …' : 'Nachbesetzen …');
+    h += btn('ende', modFor(r) ? 'Geplantes Vertragsende bearbeiten …' : 'Vertragsende ändern (Verlängerung/Entfristung) …');
+    if (modFor(r)) h += btn('delmod', 'Geplante Änderung des Vertragsendes löschen');
+  }
+  m.innerHTML = h; m.classList.remove('hidden');
+  const W = m.offsetWidth, x = Math.max(8, Math.min(e.clientX, innerWidth - W - 12)), y = Math.max(8, Math.min(e.clientY + 6, innerHeight - m.offsetHeight - 8));
+  m.style.left = x + 'px'; m.style.top = y + 'px';
+  $$('#tlMenu button').forEach(b => b.onclick = () => { m.classList.add('hidden'); const base = usedBase().find(x => x.row === (r.planMod ? r.row : row));
+    if (b.dataset.act === 'person') showPerson(row);
+    if (b.dataset.act === 'nach') openPlanForm('nach', {prev: base});
+    if (b.dataset.act === 'ende') openPlanForm('ende', {prev: base, item: modFor(base)});
+    if (b.dataset.act === 'delmod') deletePlanItem(modFor(base).id);
+    if (b.dataset.act === 'edit') editPlanItem(r.plan.id);
+    if (b.dataset.act === 'del') deletePlanItem(r.plan.id); });
+}
+function renderPlanEffect(cf) {
+  const cur = semIdx(S.today), sems = []; for (let i = cur; i <= cur + 20; i++) sems.push(i);
+  const v = (on) => withPlan(on, () => sems.map(i => snapshot(semStart(i), cf).b));
+  const ist = v(false), pl = v(true);
+  $('#tlEffSub').textContent = `${unit()} mit aktivem Vertrag zu Semesterbeginn${cf ? ' · Cluster ' + cf : ' · Fakultät'}. Ist = nur bestehende Verträge, Plan = mit allen Planmaßnahmen.`;
+  $('#tlEffLg').innerHTML = legendHtml([[css('--muted'), 'Ist'], [css('--s7'), 'Plan']]);
+  mkChart('cPlanEff', {type: 'line', data: {labels: sems.map(semLabel), datasets: [
+      {label: 'Ist', data: ist, borderColor: css('--muted'), backgroundColor: css('--muted'), borderWidth: 2, pointRadius: 2, tension: 0},
+      {label: 'Plan', data: pl, borderColor: css('--s7'), backgroundColor: css('--s7'), borderWidth: 2, borderDash: [6, 4], pointRadius: 3, tension: 0}]},
+    options: {interaction: {mode: 'index', intersect: false}, scales: {x: axis({grid: {display: false}, ticks: {maxRotation: 60, autoSkip: true}}), y: axis({beginAtZero: false, title: {display: true, text: unit()}})},
+      plugins: {tooltip: {callbacks: {label: c => ` ${c.dataset.label}: ${fmtV(c.raw)}`, footer: it => { const d = r2(it[1].raw - it[0].raw); return d ? `Plan − Ist: ${d > 0 ? '+' : '−'}${fmtV(Math.abs(d))}` : ''; }}}}}});
+}
+function renderPlanList() {
+  $('#plList').innerHTML = PLAN.items.length ? `<table>${[...PLAN.items].sort((a, b) => (a.beginn ?? a.ende ?? 0) - (b.beginn ?? b.ende ?? 0)).map(it => `<tr><td><span class="pill" style="border-color:var(--s7)">${it.type === 'nach' ? 'Nachbesetzung' : it.type === 'neu' ? 'Neue Stelle' : 'Vertragsende'}</span></td><td>${esc(planDesc(it))}</td><td style="white-space:nowrap"><button data-edit="${it.id}">Bearbeiten</button> <button data-del="${it.id}" title="Löschen">✕</button></td></tr>`).join('')}</table>`
+    : '<p class="note">Noch keine Planmaßnahmen. Klicken Sie im Zeitstrahl auf einen Balken oder eine rot gestrichelte offene Stelle, nutzen Sie „+ Neue Stelle“ oder übernehmen Sie einen Fehlbedarf aus der Ampel.</p>';
+  $$('#plList [data-edit]').forEach(b => b.onclick = () => editPlanItem(+b.dataset.edit));
+  $$('#plList [data-del]').forEach(b => b.onclick = () => deletePlanItem(+b.dataset.del));
+}
+
+/* ===== Variante C: Zielwerte mit Ampel ===== */
+let G_SEL = null;
+function goalEval(cl, D) {
+  const stud = S.students.filter(s => s.n > 0 && s.cluster === cl).reduce((t, s) => t + s.n, 0);
+  let P = 0, L = 0, W = 0;
+  for (const r of used()) { if (clusterOf(r) !== cl || !isActive(r, D)) continue; const g = grpOf(r), v = effVz(r, D); if (g === 'P') P = r2(P + v); else if (g === 'L') L = r2(L + v); else if (g === 'W') W = r2(W + v); }
+  const PL = r2(P + L);
+  const studRatio = stud && PL ? r2(stud / PL) : null, wimiRatio = P ? r2(W / P) : null;
+  const needProf = stud ? Math.max(0, r2(stud / GOALS.stud - PL)) : 0;
+  const needWimi = Math.max(0, r2(GOALS.wimi * P - W));
+  const tol = GOALS.tol / 100;
+  const lvlStud = !stud ? 'na' : studRatio == null ? 'bad' : studRatio <= GOALS.stud ? 'ok' : studRatio <= GOALS.stud * (1 + tol) ? 'warn' : 'bad';
+  const lvlWimi = !P ? 'na' : wimiRatio >= GOALS.wimi ? 'ok' : wimiRatio >= GOALS.wimi * (1 - tol) ? 'warn' : 'bad';
+  return {stud, P, L, PL, W, studRatio, wimiRatio, needProf, needWimi, lvlStud, lvlWimi};
+}
+function renderGoals() {
+  GOALS.stud = Math.max(1, +$('#gStud').value || 40); GOALS.wimi = Math.max(0, +$('#gWimi').value || 0); GOALS.tol = Math.max(0, +$('#gTol').value || 0);
+  const kpi = $('#gKpi').value, withP = $('#gWithPlan').checked;
+  const cur = semIdx(S.today), sems = []; for (let i = cur; i <= cur + 20; i++) sems.push(i);
+  const cls = clusterList().filter(c => c !== '(ohne Cluster)' && S.students.some(s => s.cluster === c && s.n > 0));
+  const ord = {ok: 0, na: 0, warn: 1, bad: 2}, ic = {ok: '✓', warn: '!', bad: '✕', na: '–'};
+  const res = withPlan(withP, () => Object.fromEntries(cls.map(c => [c, sems.map(i => goalEval(c, semStart(i)))])));
+  const cell = (c, j) => { const e = res[c][j]; const lv = kpi === 'stud' ? e.lvlStud : kpi === 'wimi' ? e.lvlWimi : (ord[e.lvlStud] >= ord[e.lvlWimi] ? e.lvlStud : e.lvlWimi);
+    const txt = kpi === 'wimi' ? (e.wimiRatio == null ? '–' : nf1.format(e.wimiRatio)) : kpi === 'stud' ? (e.studRatio == null ? '–' : nf0.format(e.studRatio)) : '';
+    const sel = G_SEL && G_SEL.c === c && G_SEL.j === j;
+    return `<td class="c g-${lv}${sel ? ' sel' : ''}" data-c="${esc(c)}" data-j="${j}" title="${semLabel(sems[j])}: ${e.studRatio == null ? '–' : nf1.format(e.studRatio)} Stud./Prof. · ${e.wimiRatio == null ? '–' : nf1.format(e.wimiRatio)} WiMi/Prof."><span class="ic">${ic[lv]}</span>${txt}</td>`; };
+  const firstMiss = c => { const j = res[c].findIndex(e => (kpi !== 'wimi' && e.lvlStud === 'bad') || (kpi !== 'stud' && e.lvlWimi === 'bad')); return j < 0 ? '<span class="note">–</span>' : semLabel(sems[j]); };
+  $('#gMatrix').innerHTML = `<table class="gm"><tr><th>Cluster</th>${sems.map(i => `<th${i === cur ? ' style="color:var(--text-primary)"' : ''}>${semLabel(i).replace(' ', '<br>')}</th>`).join('')}<th>erstmals verfehlt</th></tr>` +
+    cls.map(c => `<tr><td><b>${esc(c)}</b></td>${sems.map((_, j) => cell(c, j)).join('')}<td>${firstMiss(c)}</td></tr>`).join('') + '</table>' +
+    (cls.length ? '' : '<p class="note">Keine Cluster mit Studierenden – im Studierendenblatt fehlen Daten.</p>');
+  $$('#gMatrix td.c').forEach(td => td.onclick = () => { G_SEL = {c: td.dataset.c, j: +td.dataset.j}; renderGoals(); });
+  if (G_SEL && res[G_SEL.c]) {
+    const e = res[G_SEL.c][G_SEL.j], sem = sems[G_SEL.j];
+    $('#gDetailTitle').textContent = `Fehlbedarf – ${G_SEL.c}, ${semLabel(sem)} (Stand ${fmtD(semStart(sem))})${withP ? ' · mit Planmaßnahmen' : ''}`;
+    const profK = S.kreisOrder.find(k => S.catMap[k] === 'Professor/in'), wimiK = S.kreisOrder.find(k => S.catMap[k] === 'WiMi');
+    const rnd = v => Math.ceil(v * 2 - 1e-9) / 2;   // auf halbe Stellen aufrunden
+    $('#gDetail').innerHTML = `<table><tr><th></th><th class="n">Ist-Wert</th><th class="n">Ziel</th><th>Bewertung</th><th class="n">Fehlbedarf</th><th></th></tr>
+      <tr><td>Studierende je Professur (inkl. LfbA)</td><td class="n">${e.studRatio == null ? '–' : nf1.format(e.studRatio)}<div class="note">${nf0.format(e.stud)} Stud. / ${nf1.format(e.PL)} VZÄ</div></td><td class="n">≤ ${nf0.format(GOALS.stud)}</td><td>${ic[e.lvlStud]} ${{ok: 'erreicht', warn: 'knapp', bad: 'verfehlt', na: '–'}[e.lvlStud]}</td>
+        <td class="n">${e.needProf > 0 ? `<b>${nf1.format(e.needProf)} VZÄ Professur</b>` : '–'}</td><td>${e.needProf > 0 && profK ? `<button data-take="prof">Als Planmaßnahme übernehmen …</button>` : ''}</td></tr>
+      <tr><td>WiMi je Professur (ohne LfbA)</td><td class="n">${e.wimiRatio == null ? '–' : nf1.format(e.wimiRatio)}<div class="note">${nf1.format(e.W)} / ${nf1.format(e.P)} VZÄ</div></td><td class="n">≥ ${nf1.format(GOALS.wimi)}</td><td>${ic[e.lvlWimi]} ${{ok: 'erreicht', warn: 'knapp', bad: 'verfehlt', na: '–'}[e.lvlWimi]}</td>
+        <td class="n">${e.needWimi > 0 ? `<b>${nf1.format(e.needWimi)} VZÄ WiMi</b>` : '–'}</td><td>${e.needWimi > 0 && wimiK ? `<button data-take="wimi">Als Planmaßnahme übernehmen …</button>` : ''}</td></tr></table>
+      <p class="note">Der Fehlbedarf ist die Menge an VZÄ, die zu Semesterbeginn zusätzlich nötig wäre, um den Zielwert genau zu erreichen. Beim Übernehmen wird er auf halbe Stellen aufgerundet; Sie können Umfang, Beginn und Ende im Formular anpassen.</p>`;
+    $$('#gDetail [data-take]').forEach(b => b.onclick = () => { const prof = b.dataset.take === 'prof', need = prof ? e.needProf : e.needWimi;
+      const beg = Math.max(semStart(sem), S.today + 1);
+      openPlanForm('neu', {pre: {kreis: prof ? profK : wimiK, cluster: G_SEL.c, beginn: beg, ende: prof ? null : beg + 3 * 365 - 1, vz: Math.min(1, rnd(need)), label: prof ? 'Neue Professur' : 'Neue WiMi-Stelle',
+        hint: `Fehlbedarf ${nf1.format(need)} VZÄ${rnd(need) > 1 ? ' – für mehr als eine Stelle bitte mehrfach übernehmen' : ''}.`}}); });
+  }
+}
+function savePlan() {
+  const data = {format: 'Personalplanung IuI – Szenario', version: 1, name: PLAN.name, created: new Date().toISOString(), goals: GOALS,
+    items: PLAN.items.map(it => ({...it, beginn: it.beginn == null ? null : isoD(it.beginn), ende: it.ende == null ? null : isoD(it.ende),
+      ref: it.row != null ? (r => r ? {pnr: r.pnr, name: r.name, vorname: r.vorname} : null)(usedBase().find(x => x.row === it.row)) : null}))};
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'}));
+  a.download = (/^szenario/i.test(PLAN.name) ? PLAN.name : 'Szenario_' + PLAN.name).replace(/[^\wäöüÄÖÜß-]+/g, '_') + '.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+async function loadPlan(file) {
+  try {
+    const d = JSON.parse(await file.text()); if (!Array.isArray(d.items)) throw new Error('Keine Planmaßnahmen in der Datei.');
+    const base = usedBase(); let missing = 0;
+    const items = d.items.map(it => { const x = {...it, beginn: it.beginn ? parseIso(it.beginn) : null, ende: it.ende ? parseIso(it.ende) : null};
+      if (x.type !== 'neu') { const r = (it.ref && base.find(b => b.pnr === it.ref.pnr && b.name === it.ref.name)) || base.find(b => b.row === it.row); if (!r) { missing++; return null; } x.row = r.row; }
+      return x; }).filter(Boolean);
+    PLAN.items = items; PLAN.name = d.name || 'Szenario'; PLAN.seq = Math.max(0, ...items.map(i => i.id)) + 1;
+    if (d.goals) { Object.assign(GOALS, d.goals); $('#gStud').value = GOALS.stud; $('#gWimi').value = GOALS.wimi; $('#gTol').value = GOALS.tol; }
+    planTouch(); renderAll();
+    if (missing) alert(`${missing} Planmaßnahme(n) bezogen sich auf Verträge, die in der geladenen Tabelle nicht mehr vorkommen, und wurden übersprungen.`);
+  } catch (e) { alert('Das Szenario konnte nicht geladen werden:\n' + e.message); }
 }
 
 /* ---------- Globale Personensuche ---------- */
@@ -1982,7 +2445,8 @@ function loadDemo() {
 /* Alle geladenen Daten aus dem Speicher entfernen und zur Startseite zurückkehren */
 function unloadData() {
   Object.keys(charts).forEach(id => { charts[id].destroy(); delete charts[id]; });
-  Object.assign(S, {raw: null, recs: [], students: [], issues: [], colMap: {}, missingCols: [], catMap: {}, kreisOrder: [], kreisCounts: {}, checkFilter: null, isDemo: false});
+  Object.assign(S, {raw: null, recs: [], students: [], issues: [], colMap: {}, missingCols: [], catMap: {}, kreisOrder: [], kreisCounts: {}, checkFilter: null, isDemo: false, applyPlan: false});
+  Object.assign(PLAN, {name: 'Szenario 1', items: [], seq: 1, cache: null}); G_SEL = null; $('#plApply').checked = false; planTouch();
   ['#issueTable', '#issueSummary', '#dtLists', '#fcOut', '#fcIn', '#semDetailTable', '#ovTable', '#semTable', '#raTable', '#wmTable', '#stTable', '#dtRatioTable', '#dtLabTable', '#fcDelta', '#multiples'].forEach(x => { const el = $(x); if (el) el.innerHTML = ''; });
   $('#dtSearch').value = '';
   $('#gsInput').value = ''; gsClose();
@@ -1993,6 +2457,7 @@ function unloadData() {
   document.body.classList.remove('is-demo'); document.title = 'Personalplanung Fakultät IuI';
 }
 function loadBuffer(buf, name, isDemo) {
+    PLAN.items = []; PLAN.cache = null; G_SEL = null; planTouch();
     S.catMap = {};
     readWorkbook(buf, name);
     S.isDemo = isDemo;
@@ -2050,6 +2515,19 @@ function init() {
   $('#dtCsv').onclick = detailCsv;
   $('#dtExpand').onclick = () => { DT.expanded = !DT.expanded; renderDetailList(); };
   $('#pdClose').onclick = closePerson;
+  $$('#plSub button').forEach(b => b.onclick = () => { PL_SUB = b.dataset.v; $$('#plSub button').forEach(x => x.classList.toggle('on', x === b)); renderPlan(); });
+  ['#tlCluster', '#tlGroup', '#tlKreis', '#tlRange', '#tlNeed'].forEach(x => $(x).onchange = renderTimeline);
+  ['#gStud', '#gWimi', '#gTol', '#gKpi', '#gWithPlan'].forEach(x => $(x).onchange = renderGoals);
+  $('#plName').onchange = () => { PLAN.name = $('#plName').value.trim() || 'Szenario'; renderPlanBadge(); };
+  $('#plNew').onclick = () => openPlanForm('neu', {});
+  $('#plSave').onclick = savePlan;
+  $('#plLoad').onchange = e => { if (e.target.files[0]) loadPlan(e.target.files[0]); e.target.value = ''; };
+  $('#plClear').onclick = () => { if (!PLAN.items.length || confirm('Alle Planmaßnahmen dieses Szenarios löschen?')) { PLAN.items = []; planTouch(); renderAll(); } };
+  $('#plApply').onchange = e => { S.applyPlan = e.target.checked; planTouch(); renderAll(); };
+  $('#plFormClose').onclick = closePlanForm; $('#plFormCancel').onclick = closePlanForm; $('#plFormOk').onclick = submitPlanForm;
+  $('#plOverlay').onclick = e => { if (e.target.id === 'plOverlay') closePlanForm(); };
+  document.addEventListener('click', e => { if (!e.target.closest('#tlMenu')) $('#tlMenu').classList.add('hidden'); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('#tlMenu').classList.add('hidden'); if (!$('#plOverlay').classList.contains('hidden')) closePlanForm(); } });
   $('#pdToList').onclick = () => showInDetail(+$('#pdOverlay').dataset.row);
   $('#gsInput').oninput = () => { GS.sel = -1; gsRender(); };
   $('#gsInput').onfocus = () => { if ($('#gsInput').value.trim()) gsRender(); };

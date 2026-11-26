@@ -56,6 +56,20 @@ Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blatt
 
 Jedes Diagramm hat oben rechts den Button **⤓ PNG**. Er speichert das Diagramm als Bild in hoher Auflösung, mit Titel, Legende und einer Quellenzeile (Stichtag, Maßeinheit, gewählte Filter, ggf. DEMO/PLAN, Erstellungsdatum). Ganze Seiten lassen sich über den Druckdialog des Browsers als PDF speichern.
 
+### Planung (Entwurf)
+
+Der Reiter **Planung** legt ein **Szenario** aus Planmaßnahmen über die Ist-Daten; die Excel-Datei bleibt unverändert.
+Planmaßnahmen: **Nachbesetzung** einer ausscheidenden Stelle, **neue Stelle**, **Vertragsende ändern** (Verlängerung, Verkürzung, Entfristung).
+Nachbesetzungen übernehmen das Deputat der bisherigen Stelle (anteilig zum Stellenumfang), bei neuen Stellen lässt es sich eintragen; ist das Szenario eingerechnet, zählt es auch in der Ansicht **Kapazität** mit.
+Szenarien werden als JSON-Datei gespeichert und wieder geladen (lokal, ohne Upload). Auf Wunsch wird das Szenario in **allen** Ansichten eingerechnet; die Kopfzeile zeigt dann „PLAN“.
+
+- **Stellenplan (Zeitstrahl):** je Vertrag ein Balken über bis zu 20 Semester, gegliedert nach Organisationseinheit, Laborbereich oder Mitarbeiterkreis. Ruhephasen schraffiert, Vertretungen und Nachbesetzungen eingerückt darunter, kw- und Ruhestands-Marken, rot gestrichelt die Zeit, in der eine Stelle nach Vertragsende unbesetzt ist. Klick auf Balken oder offene Stelle: nachbesetzen, Vertragsende ändern, Person anzeigen. Darunter die Wirkung Ist gegenüber Plan und die Liste der Planmaßnahmen.
+- **Zielwerte (Ampel):** Zielwerte für Studierende je Professur (inkl. LfbA) und WiMi je Professur (ohne LfbA) mit Toleranz. Ampel je Cluster und Semester (✓ / ! / ✕), erstes Semester mit Zielverfehlung, Fehlbedarf in VZÄ je Feld; der Fehlbedarf lässt sich als neue Stelle in das Szenario übernehmen.
+
+### Diagramme exportieren
+
+Jedes Diagramm hat oben rechts den Button **⤓ PNG**. Er speichert das Diagramm als Bild in hoher Auflösung, mit Titel, Legende und einer Quellenzeile (Stichtag, Maßeinheit, gewählte Filter, ggf. DEMO/PLAN, Erstellungsdatum). Ganze Seiten lassen sich über den Druckdialog des Browsers als PDF speichern.
+
 ### Personensuche
 
 Das Suchfeld oben in der Kopfzeile steht auf allen Seiten zur Verfügung (Tastenkürzel **/** oder **Strg/⌘ + K**).
