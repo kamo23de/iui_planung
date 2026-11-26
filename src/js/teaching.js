@@ -53,7 +53,7 @@ export function lvvoGruppe(r) {
 }
 
 /** Gültige Ermäßigungen einer Person am Tag D (Blatt „Ermäßigungen“). */
-export const ermaessigungenAm = (r, D) => (S.reductions || []).filter(e => e.pnr && e.pnr === r.pnr && !e.lvsErr && !e.pctErr && !e.vonErr && !e.bisErr &&
+export const ermaessigungenAm = (r, D) => (S.reductions || []).filter(e => e.pk && e.pk === r.pk && !e.lvsErr && !e.pctErr && !e.vonErr && !e.bisErr &&
   (e.lvs != null || e.pct != null) && (e.von == null || e.von <= D) && (e.bis == null || e.bis >= D));
 
 /** Lehrverpflichtung einer Person am Tag D nach LVVO.
@@ -101,7 +101,7 @@ export function lvvoStats(list, D) {
 /* ---------- Gehaltene Lehre und Zeitkonto (§ 11, § 15) ---------- */
 
 /** Lehre einer Person (Blatt „Lehre“), nur gültige Zeilen. */
-export const lehreVon = r => (S.teaching || []).filter(t => t.ok && t.pnr === r.pnr);
+export const lehreVon = r => (S.teaching || []).filter(t => t.ok && t.pk === r.pk);
 
 /** Gehaltene LVS einer Person in Semester s: Summe der angerechneten LVS, Betreuung von Abschlussarbeiten
  *  höchstens betreuungMax (§ 15); Übertrag-Zeilen zählen nicht als Lehre, sondern zum Kontostand. */

@@ -109,27 +109,108 @@ export const STUD_FIELDS = [
   ['pl', 'Studienplätze', ['studienplätze', 'studienplaetze', 'aufnahmekapazität', 'zulassungszahl', 'plätze']],
   ['n', 'Studierende', ['studierende', 'anzahl', 'studierendenzahl', 'eingeschriebene']],
 ];
+/** Vergleichsschlüssel einer Personalnummer: ohne Leerzeichen und ohne „.0“; rein numerisch ohne führende Nullen
+ *  („00123“ und 123 sind dieselbe Person). Die Anzeige verwendet weiter die Schreibweise der Tabelle. */
+export const pnrKey = v => { const t = String(v ?? '').replace(/\s+/g, '').replace(/\.0+$/, ''); return /^\d+$/.test(t) ? t.replace(/^0+(?=\d)/, '') : t.toLowerCase(); };
+
+/** Blattart nach dem Blattnamen (nur als Hinweis): 'erm', 'lehre', 'stud', 'pers' oder null. */
+export function sheetHint(sn) {
+  const s = normH(sn).replace(/[äöü]/g, c => ({ä: 'a', ö: 'o', ü: 'u'}[c]));
+  if (/ermassig|ermaessig|reduktion|entlastung/.test(s)) return 'erm';
+  if (/^lehre|lehrveranstalt|lehrleistung|lehrdeputatsnachweis|gehaltenelehre/.test(s)) return 'lehre';
+  if (/studier|studieng/.test(s)) return 'stud';
+  if (/personal|mitarbeit|beschaftigt/.test(s)) return 'pers';
+  return null;
+}
+
+/* Spalten des Blatts „Ermäßigungen“ nach Inhalt der Überschrift erkennen (robuster als feste Namen).
+   Reihenfolge der Prüfung je Überschrift: Personalnummer, von, bis, Prozent, Umfang (LVS), Grund. */
+const fold = h => normH(h).replace(/[äöü]/g, c => ({ä: 'a', ö: 'o', ü: 'u'}[c]));
+const ERM_RULES = [
+  ['pnr', h => /personalnummer|personalnr|persnr|^pnr$|^pernr$/.test(h)],
+  ['von', h => /^(von|ab|beginn|start|anfang|vondatum|beginndatum)$/.test(h) || /(gultig|gueltig|zeitraum|ermassigung|ermaessigung)(ab|von)$/.test(h)],
+  ['bis', h => /^(bis|ende|enddatum|bisdatum)$/.test(h) || /(gultig|gueltig|zeitraum|ermassigung|ermaessigung)bis$/.test(h)],
+  ['pct', (h, raw) => /prozent/.test(h) || String(raw ?? '').includes('%')],
+  ['lvs', h => /lvs|sws|stunden|umfang/.test(h)],
+  ['grund', h => /grund|anlass|tatbestand|bezeichnung|aufgabe|funktion|^art|art$/.test(h)],
+];
+const isNumCell = v => typeof v === 'number' || /^\s*\d+([.,]\d+)?\s*%?\s*$/.test(String(v ?? ''));
+export function mapErmHeaders(row, dataRows = []) {
+  const map = {}, used = new Set();
+  (row || []).forEach((raw, j) => {
+    const h = fold(raw); if (!h) return;
+    for (const [key, test] of ERM_RULES) if (!(key in map) && test(h, raw)) { map[key] = j; used.add(j); return; }
+  });
+  // „Ermäßigung“ ohne weiteren Hinweis: nach dem Inhalt entscheiden (Text → Grund, Zahl → Umfang)
+  (row || []).forEach((raw, j) => {
+    if (used.has(j) || !/ermassig|ermaessig/.test(fold(raw))) return;
+    const vals = dataRows.map(r => r && r[j]).filter(v => v != null && String(v).trim() !== '');
+    const numeric = vals.length && vals.filter(isNumCell).length >= vals.length / 2;
+    if (numeric && !('lvs' in map) && !('pct' in map)) { map.lvs = j; used.add(j); }
+    else if (!numeric && !('grund' in map)) { map.grund = j; used.add(j); }
+  });
+  return map;
+}
+
+/** Kopfzeile in den ersten 15 Zeilen suchen: erste Zeile, die alle Pflichtspalten enthält und mindestens minHits
+ *  Spalten erkennt. Fehlende Spalten werden aus bis zu zwei Zeilen darüber ergänzt, sofern die Kopfzeile dort leer ist
+ *  (zweizeilige Köpfe wie „Zeitraum“ über „von“/„bis“). mapper(row, dataRows) liefert {Schlüssel: Spalte}. */
+export function findTableBy(rows, mapper, {required = [], minHits = 1} = {}) {
+  for (let r = 0; r < Math.min(rows.length, 15); r++) {
+    const map = mapper(rows[r] || [], rows.slice(r + 1, r + 21));
+    if (!required.every(k => k in map) || Object.keys(map).length < minHits) continue;
+    for (let up = 1; up <= 2 && r - up >= 0; up++) {
+      const extra = mapper(rows[r - up] || [], rows.slice(r + 1, r + 21));
+      for (const [k, j] of Object.entries(extra)) {
+        const cell = (rows[r] || [])[j];
+        if (!(k in map) && !Object.values(map).includes(j) && (cell == null || String(cell).trim() === '')) map[k] = j;
+      }
+    }
+    return {headerRow: r, map};
+  }
+  return null;
+}
+/** Überschriften der wahrscheinlichsten Kopfzeile (für Hinweise bei nicht erkannten Blättern). */
+export function headerGuess(rows) {
+  let best = null;
+  for (let r = 0; r < Math.min(rows.length, 15); r++) {
+    const cells = (rows[r] || []).filter(c => typeof c === 'string' && c.trim());
+    if (cells.length >= 2 && (!best || cells.length > best.length)) best = cells;
+  }
+  return (best || []).map(c => c.trim()).slice(0, 12);
+}
+const CONTRACT_COLS = ['vz', 'arb', 'beginn', 'ende', 'vart'];
+
 export function readWorkbook(buf, fileName) {
   const wb = XLSX.read(buf, {type: 'array'});
-  let pers = null, stud = null, erm = null, lehre = null;
-  for (const sn of wb.SheetNames) {
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header: 1, raw: true, defval: null, blankrows: false});
-    if (!pers) { const t = findTable(rows, FIELDS, 6); if (t) { pers = {sn, rows, ...t}; continue; } }
-    if (!stud) {
-      const t = findTable(rows, STUD_FIELDS, 2);
-      if (t && 'sg' in t.map) { stud = {sn, rows, ...t}; continue; }
+  const sheets = wb.SheetNames.map(sn => ({sn, hint: sheetHint(sn), rows: XLSX.utils.sheet_to_json(wb.Sheets[sn], {header: 1, raw: true, defval: null, blankrows: false})}));
+  // Personalblatt: mindestens sechs bekannte Spalten, darunter eine Vertragsspalte; Blätter, deren Name auf
+  // Ermäßigungen, Lehre oder Studierende deutet, nur wenn kein anderes passt
+  const persOf = s => { const t = findTable(s.rows, FIELDS, 6); return t && CONTRACT_COLS.some(k => k in t.map) ? t : null; };
+  let pers = null;
+  for (const pass of [s => !['erm', 'lehre', 'stud'].includes(s.hint), () => true]) {
+    for (const s of sheets) { if (pers || !pass(s)) continue; const t = persOf(s); if (t) { pers = {sn: s.sn, rows: s.rows, ...t}; s.kind = 'pers'; } }
+    if (pers) break;
+  }
+  let stud = null, erm = null, lehre = null;
+  for (const s of sheets) {
+    if (s.kind) continue;
+    if (!stud && s.hint !== 'erm' && s.hint !== 'lehre') {
+      const t = findTableBy(s.rows, row => mapHeaders(row, STUD_FIELDS), {required: ['sg'], minHits: 2});
+      if (t) { stud = {sn: s.sn, rows: s.rows, ...t}; s.kind = 'stud'; continue; }
     }
-    if (!erm) {
-      const t = findTable(rows, ERM_FIELDS, 2);
-      if (t && 'pnr' in t.map && 'grund' in t.map) { erm = {sn, rows, ...t}; continue; }
+    if (!erm && s.hint !== 'lehre') {
+      const t = findTableBy(s.rows, mapErmHeaders, {required: s.hint === 'erm' ? ['pnr'] : ['pnr', 'grund'], minHits: 2});
+      if (t) { erm = {sn: s.sn, rows: s.rows, ...t}; s.kind = 'erm'; continue; }
     }
-    if (!lehre) {
-      const t = findTable(rows, LEHRE_FIELDS, 3);
-      if (t && 'pnr' in t.map && 'sem' in t.map) lehre = {sn, rows, ...t};
+    if (!lehre && s.hint !== 'erm') {
+      const t = findTableBy(s.rows, row => mapHeaders(row, LEHRE_FIELDS), {required: s.hint === 'lehre' ? ['pnr'] : ['pnr', 'sem'], minHits: 3});
+      if (t) { lehre = {sn: s.sn, rows: s.rows, ...t}; s.kind = 'lehre'; }
     }
   }
   if (!pers) throw new Error('Kein Tabellenblatt mit Personaldaten gefunden. Erwartet werden Überschriften wie Personalnummer, Name, Mitarbeiterkreis, VZÄ, Vertragsende, Cluster …');
-  S.raw = {fileName, pers, stud, erm, lehre, sheetNames: wb.SheetNames};
+  const sheetInfo = sheets.map(s => ({sn: s.sn, hint: s.hint, kind: s.kind || null, headers: s.kind ? [] : headerGuess(s.rows)}));
+  S.raw = {fileName, pers, stud, erm, lehre, sheetNames: wb.SheetNames, sheetInfo};
   buildRecords();
 }
 
@@ -144,8 +225,8 @@ export function buildRecords() {
     const row = pers.rows[i];
     if (!row || row.every(c => c == null || String(c).trim() === '')) continue;
     const r = {row: i + 1, rawRow: row, problems: []};
-    r.pnr = str(get(row, 'pnr')).replace(/\.0+$/, '');
-    r.vertretungFuer = str(get(row, 'vertretung')).replace(/\.0+$/, ''); r.name = str(get(row, 'name')); r.vorname = str(get(row, 'vorname'));
+    r.pnr = str(get(row, 'pnr')).replace(/\.0+$/, ''); r.pk = pnrKey(r.pnr);
+    r.vertretungFuer = str(get(row, 'vertretung')).replace(/\.0+$/, ''); r.vertretungPk = pnrKey(r.vertretungFuer); r.name = str(get(row, 'name')); r.vorname = str(get(row, 'vorname'));
     r.kreisRaw = get(row, 'kreis'); r.kreis = str(r.kreisRaw);
     r.tarif = str(get(row, 'tarif')).toUpperCase().replace(/\s/g, '');
     r.vart = str(get(row, 'vart'));
@@ -203,7 +284,7 @@ export function buildRecords() {
       const cell = k => erm.map[k] != null ? row[erm.map[k]] : null;
       const lvs = parseNum(cell('lvs')), p = parseNum(cell('pct')), von = parseDate(cell('von')), bis = parseDate(cell('bis'));
       const grundRaw = str(cell('grund'));
-      S.reductions.push({row: i + 1, pnr: str(cell('pnr')).replace(/\.0+$/, ''), grundRaw, grund: grundKey(grundRaw),
+      S.reductions.push({row: i + 1, pnr: str(cell('pnr')).replace(/\.0+$/, ''), pk: pnrKey(cell('pnr')), grundRaw, grund: grundKey(grundRaw),
         lvs: lvs.v == null ? null : r2(lvs.v), lvsErr: lvs.err,
         pct: p.v == null ? null : r2(p.pct || p.v > 1 ? p.v : p.v * 100), pctErr: p.err,   // 0,25 und 25 % bedeuten beide 25 %
         von: von.v, vonErr: von.err, bis: bis.v, bisErr: bis.err});
@@ -218,7 +299,7 @@ export function buildRecords() {
       const cell = k => lehre.map[k] != null ? row[lehre.map[k]] : null;
       const sws = parseNum(cell('sws')), an = parseNum(cell('anteil')), cnt = parseNum(cell('anzahl')), lv = parseNum(cell('lvs'));
       const semRaw = str(cell('sem')), artRaw = str(cell('art')), art = lehrartKey(artRaw), A = F.lehrarten.find(a => a.key === art);
-      const t = {row: i + 1, pnr: str(cell('pnr')).replace(/\.0+$/, ''), semRaw, sem: parseSemester(semRaw), titel: str(cell('titel')), artRaw, art,
+      const t = {row: i + 1, pnr: str(cell('pnr')).replace(/\.0+$/, ''), pk: pnrKey(cell('pnr')), semRaw, sem: parseSemester(semRaw), titel: str(cell('titel')), artRaw, art,
         sws: sws.v, swsErr: sws.err, anteil: an.v == null ? 1 : (an.pct || an.v > 1 ? an.v / 100 : an.v), anteilErr: an.err,
         anzahl: cnt.v == null ? 1 : cnt.v, anzahlErr: cnt.err, lvsEin: lv.v, lvsErr: lv.err};
       // Faktor der Art (unbekannte Art: 1), bei fehlender ständiger Anwesenheit drei Zehntel (§ 14 Abs. 2)

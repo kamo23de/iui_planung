@@ -2,7 +2,7 @@
 import {fmtD, fromDay, nf2, r2, semEnd, semLabel, semStart, sumBy} from './util.js';
 import {S} from './state.js';
 import {lvvoFassung} from './lvvo.js';
-import {clusterOf, kreisOf, OPTIONAL_COLS, str, STUD_FIELDS, tarifNum} from './parse.js';
+import {clusterOf, kreisOf, OPTIONAL_COLS, pnrKey, str, STUD_FIELDS, tarifNum} from './parse.js';
 import {effVz, grpOf, inContract, inRestPeriod, isActive, restShare, restVz} from './model.js';
 import {lvvo, lvvoGruppe, lvvoStats, zeitkonto} from './teaching.js';
 
@@ -17,11 +17,25 @@ export function lev(a, b) {
 
 export function runChecks() {
   const I = [], T = S.today;
-  const add = (sev, check, r, field, msg) => I.push({sev, check, row: r ? r.row : null, pnr: r ? r.pnr : '', person: r ? [r.name, r.vorname].filter(Boolean).join(', ') : '', field, msg, sheet: r && r.sheet ? r.sheet : r && r.sg != null ? 'Studierende' : 'Personal'});
+  const add = (sev, check, r, field, msg) => I.push({sev, check, row: r ? r.row : null, pnr: r ? r.pnr : '', pk: r ? (r.pk ?? pnrKey(r.pnr)) : '', person: r ? [r.name, r.vorname].filter(Boolean).join(', ') : '', field, msg, sheet: r && r.sheet ? r.sheet : r && r.sg != null ? 'Studierende' : 'Personal'});
 
   S.missingCols.filter(c => !OPTIONAL_COLS.includes(c)).forEach(c => add(c === 'Laborbereich' || c === 'Organisationseinheit' || c === 'Deputat' ? 'W' : 'E', 'Spalte fehlt', null, c, `Spalte „${c}“ wurde im Personalblatt nicht gefunden.` + (c === 'Deputat' ? ' Die Ansicht Kapazität kann kein Lehrangebot berechnen.' : '')));
   if (S.raw.stud) STUD_FIELDS.filter(f => !(f[0] in S.raw.stud.map)).forEach(f => add(['cnw', 'pl'].includes(f[0]) ? 'W' : f[0] === 'art' ? 'I' : 'E', 'Spalte fehlt', null, f[1], `Spalte „${f[1]}“ wurde im Studierendenblatt nicht gefunden.` + (['cnw', 'pl'].includes(f[0]) ? ' Die erforderliche Kapazität ist nicht berechenbar.' : '')));
   if (!S.raw.stud) add('E', 'Studierendenblatt fehlt', null, '', 'Kein Tabellenblatt mit Studiengang/Cluster/Studierende gefunden – Betreuungsverhältnis nicht berechenbar.');
+
+  // Blätter: nicht erkannte Blätter melden, fehlende Spalten der LVVO-Blätter
+  for (const sh of S.raw.sheetInfo || []) {
+    if (sh.kind) continue;
+    const ref = {row: null, pnr: '', name: '', vorname: '', sheet: sh.sn}, seen = sh.headers.length ? ` Gelesene Überschriften: ${sh.headers.map(h => `„${h}“`).join(', ')}.` : ' Es wurden keine Überschriften gefunden.';
+    if (sh.hint === 'erm') add('W', 'Blatt nicht erkannt', ref, 'Blatt', `Blatt „${sh.sn}“ sieht nach Ermäßigungen aus, wurde aber nicht erkannt. Benötigt wird eine Spalte „Personalnummer“, dazu „Grund“ und „LVS“ oder „Prozent“, optional „von“ und „bis“.${seen}`);
+    else if (sh.hint === 'lehre') add('W', 'Blatt nicht erkannt', ref, 'Blatt', `Blatt „${sh.sn}“ sieht nach gehaltener Lehre aus, wurde aber nicht erkannt. Benötigt werden „Personalnummer“ und „Semester“, dazu „SWS“ oder „LVS“.${seen}`);
+    else add('I', 'Blatt nicht ausgewertet', ref, 'Blatt', `Blatt „${sh.sn}“ wurde keiner Tabelle zugeordnet (Personal, Studierende, Ermäßigungen, Lehre) und wird nicht ausgewertet.${seen}`);
+  }
+  if (S.raw.erm) {
+    const m = S.raw.erm.map, ref = {row: S.raw.erm.headerRow + 1, pnr: '', name: '', vorname: '', sheet: S.raw.erm.sn};
+    if (!('grund' in m)) add('W', 'Spalte fehlt', ref, 'Grund', `Im Blatt „${S.raw.erm.sn}“ wurde keine Spalte für den Grund der Ermäßigung erkannt (z. B. „Grund“, „Anlass“, „Art der Ermäßigung“) – Höchstgrenzen können nicht geprüft werden.`);
+    if (!('lvs' in m) && !('pct' in m)) add('E', 'Spalte fehlt', ref, 'LVS/Prozent', `Im Blatt „${S.raw.erm.sn}“ wurde keine Spalte für den Umfang erkannt (z. B. „LVS“, „SWS“, „Stunden“ oder „Prozent“) – keine Ermäßigung kann angerechnet werden.`);
+  }
 
   // exakte Duplikate
   const seen = new Map();
@@ -145,13 +159,13 @@ export function runChecks() {
   // Vertretungen: „Vertretung für“ enthält die Personalnummer der vertretenen Person
   S.recs.forEach(r => { r.vertretene = null; r.vertreter = []; });
   if ('vertretung' in S.colMap) {
-    const byPnr = {}; recs.forEach(r => { if (r.pnr) (byPnr[r.pnr] = byPnr[r.pnr] || []).push(r); });
+    const byPnr = {}; recs.forEach(r => { if (r.pk) (byPnr[r.pk] = byPnr[r.pk] || []).push(r); });
     const nm = v => [v.vorname, v.name].filter(Boolean).join(' ') || 'Person';
     const days = (a, b) => Math.abs(a - b);
     for (const r of recs) {
       const vp = r.vertretungFuer; if (!vp) continue;
-      if (vp === r.pnr) { add('E', 'Vertretung: ungültige Angabe', r, 'Vertretung für', 'Person vertritt sich selbst.'); continue; }
-      const cands = byPnr[vp];
+      if (r.vertretungPk === r.pk) { add('E', 'Vertretung: ungültige Angabe', r, 'Vertretung für', 'Person vertritt sich selbst.'); continue; }
+      const cands = byPnr[r.vertretungPk];
       if (!cands) { add('E', 'Vertretung: vertretene Person nicht gefunden', r, 'Vertretung für', `Personalnummer ${vp} kommt im Personalblatt nicht vor.`); continue; }
       const v = cands.find(x => x.ruht != null) || cands[0];
       r.vertretene = v; v.vertreter.push(r);
@@ -174,7 +188,7 @@ export function runChecks() {
   {
     const F = lvvoFassung(T), nf = v => nf2.format(v);
     const current = recs.filter(r => r.ende == null || r.ende >= T);   // ausgelaufene Verträge nicht mehr prüfen
-    const byPnr = new Map(); recs.forEach(r => { if (r.pnr && !byPnr.has(r.pnr)) byPnr.set(r.pnr, r); });
+    const byPnr = new Map(); recs.forEach(r => { if (r.pk && !byPnr.has(r.pk)) byPnr.set(r.pk, r); });   // Schlüssel: Personalnummer ohne führende Nullen
     const qAnnahme = [];
     for (const r of current) {
       const gr = lvvoGruppe(r), g = F.gruppen[gr.key];
@@ -205,7 +219,7 @@ export function runChecks() {
     if (qAnnahme.length) add('I', 'LVVO-Gruppe angenommen', null, 'LVVO-Gruppe', `${qAnnahme.length} befristete WiMi: Beschäftigung auch zur Weiterqualifikation angenommen – Höchstlehrverpflichtung 4 statt 8 LVS (§ 5 Abs. 2 Nr. 2). Abweichungen in der Spalte „LVVO-Gruppe“ eintragen.`);
     // Blatt „Ermäßigungen“
     for (const e of S.reductions || []) {
-      const p = byPnr.get(e.pnr), ref = {row: e.row, pnr: e.pnr, name: p ? p.name : e.grundRaw, vorname: p ? p.vorname : '', sheet: 'Ermäßigungen'};
+      const p = byPnr.get(e.pk), ref = {row: e.row, pnr: e.pnr, pk: e.pk, name: p ? p.name : e.grundRaw, vorname: p ? p.vorname : '', sheet: 'Ermäßigungen'};
       const G = F.gruende.find(q => q.key === e.grund);
       if (!e.pnr) { add('E', 'Ermäßigung: Pflichtfeld leer', ref, 'Personalnummer', 'Personalnummer fehlt – Ermäßigung wird nicht berücksichtigt.'); continue; }
       if (!p) { add('E', 'Ermäßigung: Person nicht gefunden', ref, 'Personalnummer', `Personalnummer ${e.pnr} kommt im Personalblatt nicht vor – Ermäßigung wird nicht berücksichtigt.`); continue; }
@@ -230,7 +244,7 @@ export function runChecks() {
     // Blatt „Lehre“: Zeilen
     const nfL = v => nf2.format(v);
     for (const t of S.teaching || []) {
-      const p = byPnr.get(t.pnr), ref = {row: t.row, pnr: t.pnr, name: p ? p.name : t.titel, vorname: p ? p.vorname : '', sheet: 'Lehre'};
+      const p = byPnr.get(t.pk), ref = {row: t.row, pnr: t.pnr, pk: t.pk, name: p ? p.name : t.titel, vorname: p ? p.vorname : '', sheet: 'Lehre'};
       if (!t.pnr) { add('E', 'Lehre: Pflichtfeld leer', ref, 'Personalnummer', 'Personalnummer fehlt – Zeile wird nicht berücksichtigt.'); continue; }
       if (!p) { add('E', 'Lehre: Person nicht gefunden', ref, 'Personalnummer', `Personalnummer ${t.pnr} kommt im Personalblatt nicht vor – Zeile wird nicht berücksichtigt.`); continue; }
       if (t.sem == null) add('E', 'Lehre: Semester nicht erkannt', ref, 'Semester', `„${t.semRaw || '(leer)'}“ ist keine Semesterangabe (erwartet z. B. „WS 2026/27“ oder „SS 2027“) – Zeile wird nicht berücksichtigt.`);
@@ -247,9 +261,9 @@ export function runChecks() {
     }
     // Zeitkonto je Person (§ 11, § 15)
     if (S.raw.lehre) {
-      const mitLehre = new Set((S.teaching || []).filter(t => t.ok).map(t => t.pnr));
+      const mitLehre = new Set((S.teaching || []).filter(t => t.ok).map(t => t.pk));
       for (const r of recs) {
-        if (!mitLehre.has(r.pnr) || byPnr.get(r.pnr) !== r) continue;   // je Personalnummer einmal
+        if (!mitLehre.has(r.pk) || byPnr.get(r.pk) !== r) continue;   // je Personalnummer einmal
         const k = zeitkonto(r);
         for (const e of k.semester) {
           const sl = semLabel(e.sem);
@@ -260,7 +274,7 @@ export function runChecks() {
           if (e.verfallen > 0) add('I', 'Zeitkonto: Guthaben verfallen', r, 'Lehre', `Ende ${sl}: ${nfL(e.verfallen)} LVS verfallen – Guthaben höchstens ${nfL(e.kappung)} LVS (Zweifaches der Regellehrverpflichtung, § 11 Abs. 3 Satz 3).`);
         }
       }
-      const ohne = current.filter(r => F.gruppen[lvvoGruppe(r).key].art === 'regel' && isActive(r, T) && !mitLehre.has(r.pnr));
+      const ohne = current.filter(r => F.gruppen[lvvoGruppe(r).key].art === 'regel' && isActive(r, T) && !mitLehre.has(r.pk));
       if (ohne.length) add('I', 'Lehre nicht erfasst', null, 'Lehre', `${ohne.length} Professuren und LfbA mit aktivem Vertrag haben keine Einträge im Blatt „Lehre“ – für sie wird kein Zeitkonto geführt.`);
     }
     // § 9 Satz 2: Ermäßigungsquote (gilt für die ganze Hochschule – hier nur der Anteil der Fakultät)

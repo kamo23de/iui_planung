@@ -32,14 +32,14 @@ export function dokuDaten(w, {cluster = null} = {}) {
   const sems = [w, w + 1], von = semStart(w), bis = semEnd(w + 1);
   const F = lvvoFassung(von);
   const overlaps = (a, b, x, y) => (a == null || a <= y) && (b == null || b >= x);
-  const mitLehre = new Set((S.teaching || []).filter(t => t.ok && sems.includes(t.sem)).map(t => t.pnr));
+  const mitLehre = new Set((S.teaching || []).filter(t => t.ok && sems.includes(t.sem)).map(t => t.pk));
   const gesehen = new Set(), personen = [];
   for (const r of usedBase()) {
     if (cluster && clusterOf(r) !== cluster) continue;
     if (!overlaps(r.beginn, r.ende, von, bis)) continue;
     const gr = lvvoGruppe(r), g = F.gruppen[gr.key];
-    if (g.art === 'keine' && !mitLehre.has(r.pnr)) continue;
-    const zweit = gesehen.has(r.pnr); gesehen.add(r.pnr);
+    if (g.art === 'keine' && !mitLehre.has(r.pk)) continue;
+    const zweit = gesehen.has(r.pk); gesehen.add(r.pk);
     const k = zweit ? null : zeitkonto(r);   // Lehre und Konto gehören zur Personalnummer: nur beim ersten Vertrag zeigen
     const semester = sems.map(s => {
       const D = semStart(s), imVertrag = overlaps(r.beginn, r.ende, D, semEnd(s));
@@ -57,9 +57,9 @@ export function dokuDaten(w, {cluster = null} = {}) {
       return {sem: s, label: semLabel(s), imVertrag, x, soll, L, konto: e, hinweise,
         saldo: r2(L.ist - soll)};
     });
-    const ermaessigungen = (S.reductions || []).filter(e => e.pnr === r.pnr && !e.lvsErr && !e.pctErr && !e.vonErr && !e.bisErr && (e.lvs != null || e.pct != null) && overlaps(e.von, e.bis, von, bis))
+    const ermaessigungen = (S.reductions || []).filter(e => e.pk === r.pk && !e.lvsErr && !e.pctErr && !e.vonErr && !e.bisErr && (e.lvs != null || e.pct != null) && overlaps(e.von, e.bis, von, bis))
       .map(e => ({e, grund: F.gruende.find(q => q.key === e.grund) || null}));
-    const befunde = zweit ? [] : S.issues.filter(i => i.pnr === r.pnr && BEFUND.test(i.check));
+    const befunde = zweit ? [] : S.issues.filter(i => i.pk === r.pk && BEFUND.test(i.check));
     personen.push({r, gruppe: g, gruppeQuelle: gr.quelle, annahme: gr.annahme, cluster: clusterOf(r), semester, ermaessigungen, befunde, weitererVertrag: zweit,
       soll: sumBy(semester, q => q.soll), ist: sumBy(semester, q => q.L.ist), saldo: sumBy(semester, q => q.saldo),
       kontoEnde: semester[1].konto ? semester[1].konto.ende : semester[0].konto ? semester[0].konto.ende : null,

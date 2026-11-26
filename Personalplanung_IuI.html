@@ -1099,39 +1099,126 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
     ["pl", "Studienplätze", ["studienplätze", "studienplaetze", "aufnahmekapazität", "zulassungszahl", "plätze"]],
     ["n", "Studierende", ["studierende", "anzahl", "studierendenzahl", "eingeschriebene"]]
   ];
+  var pnrKey = (v) => {
+    const t = String(v ?? "").replace(/\s+/g, "").replace(/\.0+$/, "");
+    return /^\d+$/.test(t) ? t.replace(/^0+(?=\d)/, "") : t.toLowerCase();
+  };
+  function sheetHint(sn) {
+    const s = normH(sn).replace(/[äöü]/g, (c) => ({ ä: "a", ö: "o", ü: "u" })[c]);
+    if (/ermassig|ermaessig|reduktion|entlastung/.test(s)) return "erm";
+    if (/^lehre|lehrveranstalt|lehrleistung|lehrdeputatsnachweis|gehaltenelehre/.test(s)) return "lehre";
+    if (/studier|studieng/.test(s)) return "stud";
+    if (/personal|mitarbeit|beschaftigt/.test(s)) return "pers";
+    return null;
+  }
+  var fold = (h) => normH(h).replace(/[äöü]/g, (c) => ({ ä: "a", ö: "o", ü: "u" })[c]);
+  var ERM_RULES = [
+    ["pnr", (h) => /personalnummer|personalnr|persnr|^pnr$|^pernr$/.test(h)],
+    ["von", (h) => /^(von|ab|beginn|start|anfang|vondatum|beginndatum)$/.test(h) || /(gultig|gueltig|zeitraum|ermassigung|ermaessigung)(ab|von)$/.test(h)],
+    ["bis", (h) => /^(bis|ende|enddatum|bisdatum)$/.test(h) || /(gultig|gueltig|zeitraum|ermassigung|ermaessigung)bis$/.test(h)],
+    ["pct", (h, raw) => /prozent/.test(h) || String(raw ?? "").includes("%")],
+    ["lvs", (h) => /lvs|sws|stunden|umfang/.test(h)],
+    ["grund", (h) => /grund|anlass|tatbestand|bezeichnung|aufgabe|funktion|^art|art$/.test(h)]
+  ];
+  var isNumCell = (v) => typeof v === "number" || /^\s*\d+([.,]\d+)?\s*%?\s*$/.test(String(v ?? ""));
+  function mapErmHeaders(row, dataRows = []) {
+    const map = {}, used2 = /* @__PURE__ */ new Set();
+    (row || []).forEach((raw, j) => {
+      const h = fold(raw);
+      if (!h) return;
+      for (const [key, test] of ERM_RULES) if (!(key in map) && test(h, raw)) {
+        map[key] = j;
+        used2.add(j);
+        return;
+      }
+    });
+    (row || []).forEach((raw, j) => {
+      if (used2.has(j) || !/ermassig|ermaessig/.test(fold(raw))) return;
+      const vals = dataRows.map((r) => r && r[j]).filter((v) => v != null && String(v).trim() !== "");
+      const numeric = vals.length && vals.filter(isNumCell).length >= vals.length / 2;
+      if (numeric && !("lvs" in map) && !("pct" in map)) {
+        map.lvs = j;
+        used2.add(j);
+      } else if (!numeric && !("grund" in map)) {
+        map.grund = j;
+        used2.add(j);
+      }
+    });
+    return map;
+  }
+  function findTableBy(rows, mapper, { required = [], minHits = 1 } = {}) {
+    for (let r = 0; r < Math.min(rows.length, 15); r++) {
+      const map = mapper(rows[r] || [], rows.slice(r + 1, r + 21));
+      if (!required.every((k) => k in map) || Object.keys(map).length < minHits) continue;
+      for (let up = 1; up <= 2 && r - up >= 0; up++) {
+        const extra = mapper(rows[r - up] || [], rows.slice(r + 1, r + 21));
+        for (const [k, j] of Object.entries(extra)) {
+          const cell = (rows[r] || [])[j];
+          if (!(k in map) && !Object.values(map).includes(j) && (cell == null || String(cell).trim() === "")) map[k] = j;
+        }
+      }
+      return { headerRow: r, map };
+    }
+    return null;
+  }
+  function headerGuess(rows) {
+    let best = null;
+    for (let r = 0; r < Math.min(rows.length, 15); r++) {
+      const cells = (rows[r] || []).filter((c) => typeof c === "string" && c.trim());
+      if (cells.length >= 2 && (!best || cells.length > best.length)) best = cells;
+    }
+    return (best || []).map((c) => c.trim()).slice(0, 12);
+  }
+  var CONTRACT_COLS = ["vz", "arb", "beginn", "ende", "vart"];
   function readWorkbook(buf, fileName) {
     const wb = XLSX.read(buf, { type: "array" });
-    let pers = null, stud = null, erm = null, lehre = null;
-    for (const sn of wb.SheetNames) {
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: null, blankrows: false });
-      if (!pers) {
-        const t = findTable(rows, FIELDS, 6);
+    const sheets = wb.SheetNames.map((sn) => ({ sn, hint: sheetHint(sn), rows: XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: null, blankrows: false }) }));
+    const persOf = (s) => {
+      const t = findTable(s.rows, FIELDS, 6);
+      return t && CONTRACT_COLS.some((k) => k in t.map) ? t : null;
+    };
+    let pers = null;
+    for (const pass of [(s) => !["erm", "lehre", "stud"].includes(s.hint), () => true]) {
+      for (const s of sheets) {
+        if (pers || !pass(s)) continue;
+        const t = persOf(s);
         if (t) {
-          pers = { sn, rows, ...t };
+          pers = { sn: s.sn, rows: s.rows, ...t };
+          s.kind = "pers";
+        }
+      }
+      if (pers) break;
+    }
+    let stud = null, erm = null, lehre = null;
+    for (const s of sheets) {
+      if (s.kind) continue;
+      if (!stud && s.hint !== "erm" && s.hint !== "lehre") {
+        const t = findTableBy(s.rows, (row) => mapHeaders(row, STUD_FIELDS), { required: ["sg"], minHits: 2 });
+        if (t) {
+          stud = { sn: s.sn, rows: s.rows, ...t };
+          s.kind = "stud";
           continue;
         }
       }
-      if (!stud) {
-        const t = findTable(rows, STUD_FIELDS, 2);
-        if (t && "sg" in t.map) {
-          stud = { sn, rows, ...t };
+      if (!erm && s.hint !== "lehre") {
+        const t = findTableBy(s.rows, mapErmHeaders, { required: s.hint === "erm" ? ["pnr"] : ["pnr", "grund"], minHits: 2 });
+        if (t) {
+          erm = { sn: s.sn, rows: s.rows, ...t };
+          s.kind = "erm";
           continue;
         }
       }
-      if (!erm) {
-        const t = findTable(rows, ERM_FIELDS, 2);
-        if (t && "pnr" in t.map && "grund" in t.map) {
-          erm = { sn, rows, ...t };
-          continue;
+      if (!lehre && s.hint !== "erm") {
+        const t = findTableBy(s.rows, (row) => mapHeaders(row, LEHRE_FIELDS), { required: s.hint === "lehre" ? ["pnr"] : ["pnr", "sem"], minHits: 3 });
+        if (t) {
+          lehre = { sn: s.sn, rows: s.rows, ...t };
+          s.kind = "lehre";
         }
-      }
-      if (!lehre) {
-        const t = findTable(rows, LEHRE_FIELDS, 3);
-        if (t && "pnr" in t.map && "sem" in t.map) lehre = { sn, rows, ...t };
       }
     }
     if (!pers) throw new Error("Kein Tabellenblatt mit Personaldaten gefunden. Erwartet werden Überschriften wie Personalnummer, Name, Mitarbeiterkreis, VZÄ, Vertragsende, Cluster …");
-    S.raw = { fileName, pers, stud, erm, lehre, sheetNames: wb.SheetNames };
+    const sheetInfo = sheets.map((s) => ({ sn: s.sn, hint: s.hint, kind: s.kind || null, headers: s.kind ? [] : headerGuess(s.rows) }));
+    S.raw = { fileName, pers, stud, erm, lehre, sheetNames: wb.SheetNames, sheetInfo };
     buildRecords();
   }
   function buildRecords() {
@@ -1146,7 +1233,9 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
       if (!row || row.every((c) => c == null || String(c).trim() === "")) continue;
       const r = { row: i + 1, rawRow: row, problems: [] };
       r.pnr = str(get(row, "pnr")).replace(/\.0+$/, "");
+      r.pk = pnrKey(r.pnr);
       r.vertretungFuer = str(get(row, "vertretung")).replace(/\.0+$/, "");
+      r.vertretungPk = pnrKey(r.vertretungFuer);
       r.name = str(get(row, "name"));
       r.vorname = str(get(row, "vorname"));
       r.kreisRaw = get(row, "kreis");
@@ -1251,6 +1340,7 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
         S.reductions.push({
           row: i + 1,
           pnr: str(cell("pnr")).replace(/\.0+$/, ""),
+          pk: pnrKey(cell("pnr")),
           grundRaw,
           grund: grundKey(grundRaw),
           lvs: lvs.v == null ? null : r2(lvs.v),
@@ -1277,6 +1367,7 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
         const t = {
           row: i + 1,
           pnr: str(cell("pnr")).replace(/\.0+$/, ""),
+          pk: pnrKey(cell("pnr")),
           semRaw,
           sem: parseSemester(semRaw),
           titel: str(cell("titel")),
@@ -1718,7 +1809,7 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
     if (g === "W") return r.fixedTerm ? { key: "wimiQ", quelle: "abgeleitet", annahme: "befristet – Beschäftigung auch zur Weiterqualifikation angenommen" } : { key: "wimi", quelle: "abgeleitet", annahme: null };
     return { key: "keine", quelle: "abgeleitet", annahme: null };
   }
-  var ermaessigungenAm = (r, D) => (S.reductions || []).filter((e) => e.pnr && e.pnr === r.pnr && !e.lvsErr && !e.pctErr && !e.vonErr && !e.bisErr && (e.lvs != null || e.pct != null) && (e.von == null || e.von <= D) && (e.bis == null || e.bis >= D));
+  var ermaessigungenAm = (r, D) => (S.reductions || []).filter((e) => e.pk && e.pk === r.pk && !e.lvsErr && !e.pctErr && !e.vonErr && !e.bisErr && (e.lvs != null || e.pct != null) && (e.von == null || e.von <= D) && (e.bis == null || e.bis >= D));
   function lvvo(r, D, { nominal = false } = {}) {
     const F = lvvoFassung(D), gr = lvvoGruppe(r), g = F.gruppen[gr.key];
     const anteil = nominal ? r2(r.vz || 0) : effVz(r, D);
@@ -1760,7 +1851,7 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
     o.p9Grenze = o.regel ? r2(Math.min(F.p9.quoteErweitert, F.p9.quote + o.wimi / o.regel * 100)) : F.p9.quote;
     return o;
   }
-  var lehreVon = (r) => (S.teaching || []).filter((t) => t.ok && t.pnr === r.pnr);
+  var lehreVon = (r) => (S.teaching || []).filter((t) => t.ok && t.pk === r.pk);
   function lehreIst(r, s, rows = lehreVon(r)) {
     const F = lvvoFassung(semStart(s)), art = (k) => F.lehrarten.find((a) => a.key === k) || {};
     const im = rows.filter((t) => t.sem === s);
@@ -1849,10 +1940,22 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
   }
   function runChecks() {
     const I = [], T = S.today;
-    const add = (sev, check, r, field, msg) => I.push({ sev, check, row: r ? r.row : null, pnr: r ? r.pnr : "", person: r ? [r.name, r.vorname].filter(Boolean).join(", ") : "", field, msg, sheet: r && r.sheet ? r.sheet : r && r.sg != null ? "Studierende" : "Personal" });
+    const add = (sev, check, r, field, msg) => I.push({ sev, check, row: r ? r.row : null, pnr: r ? r.pnr : "", pk: r ? r.pk ?? pnrKey(r.pnr) : "", person: r ? [r.name, r.vorname].filter(Boolean).join(", ") : "", field, msg, sheet: r && r.sheet ? r.sheet : r && r.sg != null ? "Studierende" : "Personal" });
     S.missingCols.filter((c) => !OPTIONAL_COLS.includes(c)).forEach((c) => add(c === "Laborbereich" || c === "Organisationseinheit" || c === "Deputat" ? "W" : "E", "Spalte fehlt", null, c, `Spalte „${c}“ wurde im Personalblatt nicht gefunden.` + (c === "Deputat" ? " Die Ansicht Kapazität kann kein Lehrangebot berechnen." : "")));
     if (S.raw.stud) STUD_FIELDS.filter((f) => !(f[0] in S.raw.stud.map)).forEach((f) => add(["cnw", "pl"].includes(f[0]) ? "W" : f[0] === "art" ? "I" : "E", "Spalte fehlt", null, f[1], `Spalte „${f[1]}“ wurde im Studierendenblatt nicht gefunden.` + (["cnw", "pl"].includes(f[0]) ? " Die erforderliche Kapazität ist nicht berechenbar." : "")));
     if (!S.raw.stud) add("E", "Studierendenblatt fehlt", null, "", "Kein Tabellenblatt mit Studiengang/Cluster/Studierende gefunden – Betreuungsverhältnis nicht berechenbar.");
+    for (const sh of S.raw.sheetInfo || []) {
+      if (sh.kind) continue;
+      const ref = { row: null, pnr: "", name: "", vorname: "", sheet: sh.sn }, seen2 = sh.headers.length ? ` Gelesene Überschriften: ${sh.headers.map((h) => `„${h}“`).join(", ")}.` : " Es wurden keine Überschriften gefunden.";
+      if (sh.hint === "erm") add("W", "Blatt nicht erkannt", ref, "Blatt", `Blatt „${sh.sn}“ sieht nach Ermäßigungen aus, wurde aber nicht erkannt. Benötigt wird eine Spalte „Personalnummer“, dazu „Grund“ und „LVS“ oder „Prozent“, optional „von“ und „bis“.${seen2}`);
+      else if (sh.hint === "lehre") add("W", "Blatt nicht erkannt", ref, "Blatt", `Blatt „${sh.sn}“ sieht nach gehaltener Lehre aus, wurde aber nicht erkannt. Benötigt werden „Personalnummer“ und „Semester“, dazu „SWS“ oder „LVS“.${seen2}`);
+      else add("I", "Blatt nicht ausgewertet", ref, "Blatt", `Blatt „${sh.sn}“ wurde keiner Tabelle zugeordnet (Personal, Studierende, Ermäßigungen, Lehre) und wird nicht ausgewertet.${seen2}`);
+    }
+    if (S.raw.erm) {
+      const m = S.raw.erm.map, ref = { row: S.raw.erm.headerRow + 1, pnr: "", name: "", vorname: "", sheet: S.raw.erm.sn };
+      if (!("grund" in m)) add("W", "Spalte fehlt", ref, "Grund", `Im Blatt „${S.raw.erm.sn}“ wurde keine Spalte für den Grund der Ermäßigung erkannt (z. B. „Grund“, „Anlass“, „Art der Ermäßigung“) – Höchstgrenzen können nicht geprüft werden.`);
+      if (!("lvs" in m) && !("pct" in m)) add("E", "Spalte fehlt", ref, "LVS/Prozent", `Im Blatt „${S.raw.erm.sn}“ wurde keine Spalte für den Umfang erkannt (z. B. „LVS“, „SWS“, „Stunden“ oder „Prozent“) – keine Ermäßigung kann angerechnet werden.`);
+    }
     const seen = /* @__PURE__ */ new Map();
     S.recs.forEach((r) => {
       r.excluded = false;
@@ -1993,18 +2096,18 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
     if ("vertretung" in S.colMap) {
       const byPnr = {};
       recs.forEach((r) => {
-        if (r.pnr) (byPnr[r.pnr] = byPnr[r.pnr] || []).push(r);
+        if (r.pk) (byPnr[r.pk] = byPnr[r.pk] || []).push(r);
       });
       const nm = (v) => [v.vorname, v.name].filter(Boolean).join(" ") || "Person";
       const days = (a, b) => Math.abs(a - b);
       for (const r of recs) {
         const vp = r.vertretungFuer;
         if (!vp) continue;
-        if (vp === r.pnr) {
+        if (r.vertretungPk === r.pk) {
           add("E", "Vertretung: ungültige Angabe", r, "Vertretung für", "Person vertritt sich selbst.");
           continue;
         }
-        const cands = byPnr[vp];
+        const cands = byPnr[r.vertretungPk];
         if (!cands) {
           add("E", "Vertretung: vertretene Person nicht gefunden", r, "Vertretung für", `Personalnummer ${vp} kommt im Personalblatt nicht vor.`);
           continue;
@@ -2031,7 +2134,7 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
       const current = recs.filter((r) => r.ende == null || r.ende >= T);
       const byPnr = /* @__PURE__ */ new Map();
       recs.forEach((r) => {
-        if (r.pnr && !byPnr.has(r.pnr)) byPnr.set(r.pnr, r);
+        if (r.pk && !byPnr.has(r.pk)) byPnr.set(r.pk, r);
       });
       const qAnnahme = [];
       for (const r of current) {
@@ -2071,7 +2174,7 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
       }
       if (qAnnahme.length) add("I", "LVVO-Gruppe angenommen", null, "LVVO-Gruppe", `${qAnnahme.length} befristete WiMi: Beschäftigung auch zur Weiterqualifikation angenommen – Höchstlehrverpflichtung 4 statt 8 LVS (§ 5 Abs. 2 Nr. 2). Abweichungen in der Spalte „LVVO-Gruppe“ eintragen.`);
       for (const e of S.reductions || []) {
-        const p = byPnr.get(e.pnr), ref = { row: e.row, pnr: e.pnr, name: p ? p.name : e.grundRaw, vorname: p ? p.vorname : "", sheet: "Ermäßigungen" };
+        const p = byPnr.get(e.pk), ref = { row: e.row, pnr: e.pnr, pk: e.pk, name: p ? p.name : e.grundRaw, vorname: p ? p.vorname : "", sheet: "Ermäßigungen" };
         const G = F.gruende.find((q) => q.key === e.grund);
         if (!e.pnr) {
           add("E", "Ermäßigung: Pflichtfeld leer", ref, "Personalnummer", "Personalnummer fehlt – Ermäßigung wird nicht berücksichtigt.");
@@ -2104,7 +2207,7 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
       }
       const nfL = (v) => nf2.format(v);
       for (const t of S.teaching || []) {
-        const p = byPnr.get(t.pnr), ref = { row: t.row, pnr: t.pnr, name: p ? p.name : t.titel, vorname: p ? p.vorname : "", sheet: "Lehre" };
+        const p = byPnr.get(t.pk), ref = { row: t.row, pnr: t.pnr, pk: t.pk, name: p ? p.name : t.titel, vorname: p ? p.vorname : "", sheet: "Lehre" };
         if (!t.pnr) {
           add("E", "Lehre: Pflichtfeld leer", ref, "Personalnummer", "Personalnummer fehlt – Zeile wird nicht berücksichtigt.");
           continue;
@@ -2126,9 +2229,9 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
         if (t.ok && !(inContract(p, semStart(t.sem)) || inContract(p, semEnd(t.sem)))) add("W", "Lehre außerhalb der Vertragslaufzeit", ref, "Semester", `${semLabel(t.sem)} liegt außerhalb des Vertrags (${fmtD(p.beginn)}–${fmtD(p.ende)}).`);
       }
       if (S.raw.lehre) {
-        const mitLehre = new Set((S.teaching || []).filter((t) => t.ok).map((t) => t.pnr));
+        const mitLehre = new Set((S.teaching || []).filter((t) => t.ok).map((t) => t.pk));
         for (const r of recs) {
-          if (!mitLehre.has(r.pnr) || byPnr.get(r.pnr) !== r) continue;
+          if (!mitLehre.has(r.pk) || byPnr.get(r.pk) !== r) continue;
           const k = zeitkonto(r);
           for (const e of k.semester) {
             const sl = semLabel(e.sem);
@@ -2139,7 +2242,7 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
             if (e.verfallen > 0) add("I", "Zeitkonto: Guthaben verfallen", r, "Lehre", `Ende ${sl}: ${nfL(e.verfallen)} LVS verfallen – Guthaben höchstens ${nfL(e.kappung)} LVS (Zweifaches der Regellehrverpflichtung, § 11 Abs. 3 Satz 3).`);
           }
         }
-        const ohne = current.filter((r) => F.gruppen[lvvoGruppe(r).key].art === "regel" && isActive(r, T) && !mitLehre.has(r.pnr));
+        const ohne = current.filter((r) => F.gruppen[lvvoGruppe(r).key].art === "regel" && isActive(r, T) && !mitLehre.has(r.pk));
         if (ohne.length) add("I", "Lehre nicht erfasst", null, "Lehre", `${ohne.length} Professuren und LfbA mit aktivem Vertrag haben keine Einträge im Blatt „Lehre“ – für sie wird kein Zeitkonto geführt.`);
       }
       const st = lvvoStats(recs, T);
@@ -3193,7 +3296,10 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
       ["ℹ Hinweise", nf0.format(n("I")), "informativ"]
     ].map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
     const P = S.raw.pers;
-    $("#colInfo").innerHTML = `Personalblatt: <b>${esc(P.sn)}</b> (Überschriften in Zeile ${P.headerRow + 1}) · Studierendenblatt: <b>${S.raw.stud ? esc(S.raw.stud.sn) : "— nicht gefunden"}</b>` + (S.missingCols.filter((c) => !OPTIONAL_COLS.includes(c)).length ? ` · <span class="sev-E">Nicht gefundene Spalten: ${S.missingCols.filter((c) => !OPTIONAL_COLS.includes(c)).map(esc).join(", ")}</span>` : ` · alle ${FIELDS.length - S.missingCols.length} Spalten erkannt`) + S.missingCols.filter((c) => OPTIONAL_COLS.includes(c)).map((c) => ` · ohne Spalte „${c}“ (optional)`).join("");
+    $("#colInfo").innerHTML = `Personalblatt: <b>${esc(P.sn)}</b> (Überschriften in Zeile ${P.headerRow + 1}) · Studierendenblatt: <b>${S.raw.stud ? esc(S.raw.stud.sn) : "— nicht gefunden"}</b>` + (S.missingCols.filter((c) => !OPTIONAL_COLS.includes(c)).length ? ` · <span class="sev-E">Nicht gefundene Spalten: ${S.missingCols.filter((c) => !OPTIONAL_COLS.includes(c)).map(esc).join(", ")}</span>` : ` · alle ${FIELDS.length - S.missingCols.length} Spalten erkannt`) + S.missingCols.filter((c) => OPTIONAL_COLS.includes(c)).map((c) => ` · ohne Spalte „${c}“ (optional)`).join("") + [["erm", "Ermäßigungen", ERM_FIELDS], ["lehre", "Lehre", LEHRE_FIELDS]].map(([k, lbl, fields]) => {
+      const t = S.raw[k];
+      return t ? `<br>${lbl}: <b>${esc(t.sn)}</b> (Überschriften in Zeile ${t.headerRow + 1}; erkannt: ${fields.filter((f) => f[0] in t.map).map((f) => esc(f[1])).join(", ")})` : "";
+    }).join("");
     const groups = {};
     I.forEach((i) => {
       const k = i.sev + "\0" + i.check;
@@ -3315,15 +3421,15 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
     const sems = [w, w + 1], von = semStart(w), bis = semEnd(w + 1);
     const F = lvvoFassung(von);
     const overlaps = (a, b, x, y) => (a == null || a <= y) && (b == null || b >= x);
-    const mitLehre = new Set((S.teaching || []).filter((t) => t.ok && sems.includes(t.sem)).map((t) => t.pnr));
+    const mitLehre = new Set((S.teaching || []).filter((t) => t.ok && sems.includes(t.sem)).map((t) => t.pk));
     const gesehen = /* @__PURE__ */ new Set(), personen = [];
     for (const r of usedBase()) {
       if (cluster && clusterOf(r) !== cluster) continue;
       if (!overlaps(r.beginn, r.ende, von, bis)) continue;
       const gr = lvvoGruppe(r), g = F.gruppen[gr.key];
-      if (g.art === "keine" && !mitLehre.has(r.pnr)) continue;
-      const zweit = gesehen.has(r.pnr);
-      gesehen.add(r.pnr);
+      if (g.art === "keine" && !mitLehre.has(r.pk)) continue;
+      const zweit = gesehen.has(r.pk);
+      gesehen.add(r.pk);
       const k = zweit ? null : zeitkonto(r);
       const semester = sems.map((s) => {
         const D = semStart(s), imVertrag = overlaps(r.beginn, r.ende, D, semEnd(s));
@@ -3350,8 +3456,8 @@ format_cell:tn,sheet_new:nn,sheet_add_aoa:sn,sheet_add_json:Wk,sheet_add_dom:Cg,
           saldo: r2(L.ist - soll)
         };
       });
-      const ermaessigungen = (S.reductions || []).filter((e) => e.pnr === r.pnr && !e.lvsErr && !e.pctErr && !e.vonErr && !e.bisErr && (e.lvs != null || e.pct != null) && overlaps(e.von, e.bis, von, bis)).map((e) => ({ e, grund: F.gruende.find((q) => q.key === e.grund) || null }));
-      const befunde = zweit ? [] : S.issues.filter((i) => i.pnr === r.pnr && BEFUND.test(i.check));
+      const ermaessigungen = (S.reductions || []).filter((e) => e.pk === r.pk && !e.lvsErr && !e.pctErr && !e.vonErr && !e.bisErr && (e.lvs != null || e.pct != null) && overlaps(e.von, e.bis, von, bis)).map((e) => ({ e, grund: F.gruende.find((q) => q.key === e.grund) || null }));
+      const befunde = zweit ? [] : S.issues.filter((i) => i.pk === r.pk && BEFUND.test(i.check));
       personen.push({
         r,
         gruppe: g,

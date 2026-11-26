@@ -1,7 +1,7 @@
 // Ansicht Datenprüfung
 import {$, $$, esc, nf0} from '../util.js';
 import {S} from '../state.js';
-import {FIELDS, OPTIONAL_COLS} from '../parse.js';
+import {ERM_FIELDS, FIELDS, LEHRE_FIELDS, OPTIONAL_COLS} from '../parse.js';
 import {used} from '../model.js';
 
 export function renderCheck() {
@@ -18,7 +18,9 @@ export function renderCheck() {
   const P = S.raw.pers;
   $('#colInfo').innerHTML = `Personalblatt: <b>${esc(P.sn)}</b> (Überschriften in Zeile ${P.headerRow + 1}) · Studierendenblatt: <b>${S.raw.stud ? esc(S.raw.stud.sn) : '— nicht gefunden'}</b>` +
     (S.missingCols.filter(c => !OPTIONAL_COLS.includes(c)).length ? ` · <span class="sev-E">Nicht gefundene Spalten: ${S.missingCols.filter(c => !OPTIONAL_COLS.includes(c)).map(esc).join(', ')}</span>` : ` · alle ${FIELDS.length - S.missingCols.length} Spalten erkannt`) +
-    S.missingCols.filter(c => OPTIONAL_COLS.includes(c)).map(c => ` · ohne Spalte „${c}“ (optional)`).join('');
+    S.missingCols.filter(c => OPTIONAL_COLS.includes(c)).map(c => ` · ohne Spalte „${c}“ (optional)`).join('') +
+    [['erm', 'Ermäßigungen', ERM_FIELDS], ['lehre', 'Lehre', LEHRE_FIELDS]].map(([k, lbl, fields]) => { const t = S.raw[k];
+      return t ? `<br>${lbl}: <b>${esc(t.sn)}</b> (Überschriften in Zeile ${t.headerRow + 1}; erkannt: ${fields.filter(f => f[0] in t.map).map(f => esc(f[1])).join(', ')})` : ''; }).join('');
   // Zusammenfassung je Prüfung
   const groups = {};
   I.forEach(i => { const k = i.sev + '\u0000' + i.check; groups[k] = groups[k] || {sev: i.sev, check: i.check, n: 0}; groups[k].n++; });
