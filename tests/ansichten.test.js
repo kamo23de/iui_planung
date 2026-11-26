@@ -60,8 +60,20 @@ test('Jede Ansicht lässt sich mit den Testdaten zeichnen (Köpfe, VZÄ, mit Sze
     // Personenfenster, auch mit Zeitkonto (Blatt „Lehre“)
     const {showPerson} = await mod('views/person.js');
     const mitLehre = new Set(S.teaching.filter(t => t.ok).map(t => t.pnr));
-    for (const p of [usedBase().find(x => mitLehre.has(x.pnr)), usedBase().find(x => !mitLehre.has(x.pnr))]) {
-      try { showPerson(p.row); } catch (e) { assert.fail(`Personenfenster: ${e.name}: ${e.message}`); }
+    for (const wip of [false, true]) {
+      S.showWip = wip;
+      for (const p of [usedBase().find(x => mitLehre.has(x.pnr)), usedBase().find(x => !mitLehre.has(x.pnr))]) {
+        try { showPerson(p.row); } catch (e) { assert.fail(`Personenfenster (WIP ${wip}): ${e.name}: ${e.message}`); }
+      }
+    }
+    // Suche: Treffer aller Gruppen und Sprung in die Detailansicht
+    const {gsMatches, gsOpen} = await mod('search.js');
+    for (const q of ['a', 'labor', 'technik']) {
+      const m = gsMatches(q);
+      for (const type of ['person', 'labor', 'oe']) {
+        const it = m.find(x => x.type === type); if (!it) continue;
+        try { gsOpen(it); } catch (e) { assert.fail(`Suche „${q}“, ${type}: ${e.name}: ${e.message}`); }
+      }
     }
   } finally {
     for (const [k, d] of Object.entries(saved)) { if (d) Object.defineProperty(globalThis, k, d); else delete globalThis[k]; }

@@ -19,6 +19,17 @@ import {renderTimeline} from './plan/timeline.js';
 import {renderPlan, setPlSub} from './plan/view.js';
 import {GS, gsClose, gsKey, gsRender, showInDetail} from './search.js';
 
+/* WIP-Bereiche ein-/ausblenden. Beim Ausblenden wird ein eingerechnetes Szenario abgeschaltet und ein WIP-Reiter verlassen. */
+const WIP_KEY = 'iui_planung.showWip';
+export function setWip(on, persist = true) {
+  S.showWip = on;
+  document.body.classList.toggle('show-wip', on);
+  $('#wipToggle').checked = on;
+  if (persist) try { localStorage.setItem(WIP_KEY, on ? '1' : '0'); } catch (e) { /* Speicher nicht verfügbar */ }
+  if (!on && S.applyPlan) { S.applyPlan = false; $('#plApply').checked = false; planTouch(); }
+  if (!S.raw) return;
+  if (!on && document.querySelector(`#tabs button[data-t="${S.tab}"][data-wip]`)) showTab('check'); else renderAll();
+}
 export function showTab(t) {
   S.tab = t;
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
@@ -123,6 +134,9 @@ export function init() {
   $('#plLoad').onchange = e => { if (e.target.files[0]) loadPlan(e.target.files[0]); e.target.value = ''; };
   $('#plClear').onclick = () => { if (!PLAN.items.length || confirm('Alle Planmaßnahmen dieses Szenarios löschen?')) { PLAN.items = []; planTouch(); renderAll(); } };
   $('#plApply').onchange = e => { S.applyPlan = e.target.checked; planTouch(); renderAll(); };
+  $('#wipToggle').onchange = e => setWip(e.target.checked);
+  let wip = false; try { wip = localStorage.getItem(WIP_KEY) === '1'; } catch (e) { /* Speicher nicht verfügbar */ }
+  setWip(wip, false);
   $('#plFormClose').onclick = closePlanForm; $('#plFormCancel').onclick = closePlanForm; $('#plFormOk').onclick = submitPlanForm;
   $('#plOverlay').onclick = e => { if (e.target.id === 'plOverlay') closePlanForm(); };
   document.addEventListener('click', e => { if (!e.target.closest('#tlMenu')) $('#tlMenu').classList.add('hidden'); });
