@@ -66,7 +66,7 @@ export function renderLvvo() {
     `<p class="note">${F.p9.ref}: Ermäßigungen nach § 9 hochschulweit höchstens ${F.p9.quote} % der Regellehrverpflichtungen, bis ${F.p9.quoteErweitert} % in dem Maß, in dem WiMi Lehre nach § 5 Abs. 2 erbringen (Auslegung: ${F.p9.quote} % + Lehre der WiMi in % der Regellehrverpflichtungen).</p>`;
 
   // ---- je Person (sortierbar) ----
-  LV_LIST = {people: act.map(r => ({r, x: lvvo(r, D)})).filter(o => o.x.gruppe.art !== 'keine' && o.x.anteil > 0), F};
+  LV_LIST = {people: act.map(r => ({r, x: lvvo(r, D)})).filter(o => lvPflicht(o.x) > 0.005), F, cf};
   drawLvPersons();
 
   renderLehre(cf);
@@ -168,7 +168,6 @@ export function saveDoku() {
 const lvDiff = x => x.deputat == null ? null : x.gruppe.art === 'regel' ? r2(x.deputat - x.soll) : x.gruppe.art === 'hoechst' && x.deputat > x.basis + 0.005 ? r2(x.deputat - x.basis) : null;
 const LV_COLS = [
   ['name', 'Name', o => [o.r.name, o.r.vorname].filter(Boolean).join(', ')],
-  ['cluster', 'Cluster', o => clusterOf(o.r)],
   ['gruppe', 'LVVO-Gruppe', o => o.x.gruppe.label],
   ['vz', 'VZÄ', o => o.x.anteil, true],
   ['basis', 'Regel / Höchst', o => o.x.basis, true],
@@ -177,7 +176,10 @@ const LV_COLS = [
   ['deputat', 'Deputat', o => o.x.deputat, true],
   ['abw', 'Abweichung', o => lvDiff(o.x), true],
 ];
-let LV_LIST = {people: [], F: null};
+let LV_LIST = {people: [], F: null, cf: null};
+/** Lehrverpflichtung vor Ermäßigungen: Professuren/LfbA Regellehrverpflichtung (anteilig), WiMi und Sonstige das Deputat. */
+export const lvPflicht = x => x.gruppe.art === 'regel' ? x.basis : x.gruppe.art === 'keine' ? 0 : (x.deputat ?? 0);
+const LV_OPEN = new Map();   // Cluster → aufgeklappt? (bleibt beim Neuzeichnen erhalten)
 export const LV_SORT = {key: null, dir: 1};   // key null: Grundordnung (Cluster, Gruppe, Name)
 export function setLvSort(k) { toggleSort(LV_SORT, k); }
 /** Sortierte Kopie einer Liste nach Spalte key (cols: [Schlüssel, Überschrift, Wert, Zahl?]): auf- (dir 1) oder
@@ -203,20 +205,37 @@ export function sortLvPeople(people, F, key = LV_SORT.key, dir = LV_SORT.dir) {
   return sortByCols(people, LV_COLS, key, dir, base);
 }
 function drawLvPersons() {
-  const {people, F} = LV_LIST, nf = v => nf1.format(v);
+  const {people, F, cf} = LV_LIST, nf = v => nf1.format(v);
   if (!people.length) { $('#lvPersons').innerHTML = '<p class="note">Keine Personen mit Lehrverpflichtung am Stichtag.</p>'; return; }
+  const abw = x => { if (x.deputat == null || x.gruppe.art !== 'regel') return x.gruppe.art === 'hoechst' && x.deputat > x.basis + 0.005; return Math.abs(x.deputat - x.soll) >= 0.005; };
   const diffTxt = x => {
-    if (x.deputat == null) return x.gruppe.art === 'hoechst' ? '<span class="note">kein Deputat</span>' : '';
+    if (x.deputat == null) return '';
     if (x.gruppe.art === 'hoechst') return x.deputat > x.basis + 0.005 ? '<span class="pill sev-W">über Höchstwert</span>' : '';
     const d = r2(x.deputat - x.soll);
     return Math.abs(d) < 0.005 ? '<span class="note">✓</span>' : `<span class="pill sev-W">${d > 0 ? '+' : '−'}${nf(Math.abs(d))}</span>`;
   };
-  $('#lvPersons').innerHTML = `<table>${sortHead(LV_COLS, LV_SORT)}` +
-    sortLvPeople(people, F).map(({r, x}) => `<tr><td><a href="#" data-row="${r.row}">${esc([r.name, r.vorname].filter(Boolean).join(', '))}</a></td><td>${esc(clusterOf(r))}</td>` +
-      `<td>${esc(x.gruppe.label)}${x.quelle === 'Spalte' ? ' <span class="pill" title="aus Spalte „LVVO-Gruppe“">Tabelle</span>' : ''}${x.annahme ? ` <span class="pill sev-I" title="${esc(x.annahme)}">angenommen</span>` : ''}</td>` +
-      `<td class="n">${nf2.format(x.anteil)}</td><td class="n">${nf(x.basis)}${x.gruppe.art === 'hoechst' ? ' <span class="note">max.</span>' : ''}</td>` +
-      `<td>${x.erm.map(e => `<span title="${esc([e.e.grundRaw, e.e.text].filter(Boolean).join(' – '))}">${esc((F.gruende.find(g => g.key === e.grund) || {kurz: e.e.grundRaw || 'unbekannt'}).kurz)}: ${nf(e.lvs)}</span>${e.e.text ? ` <span class="note">${esc(e.e.text)}</span>` : ''}`).join('<br>')}</td>` +
-      `<td class="n">${x.soll == null ? '–' : nf(x.soll)}</td><td class="n">${x.deputat == null ? '–' : nf(x.deputat)}</td><td>${diffTxt(x)}</td></tr>`).join('') + '</table>';
+  const arrow = k => LV_SORT.key === k ? (LV_SORT.dir > 0 ? ' ▲' : ' ▼') : '';
+  const head = `<tr>${LV_COLS.map(([k, l, , num]) => `<th class="sortable${num ? ' n' : ''}" data-k="${k}" title="Sortieren – erneuter Klick kehrt die Richtung um">${l}${arrow(k)}</th>`).join('')}</tr>`;
+  const zeile = ({r, x}) => `<tr><td><a href="#" data-row="${r.row}">${esc([r.name, r.vorname].filter(Boolean).join(', '))}</a></td>` +
+    `<td>${esc(x.gruppe.label)}${x.quelle === 'Spalte' ? ' <span class="pill" title="aus Spalte „LVVO-Gruppe“">Tabelle</span>' : ''}${x.annahme ? ` <span class="pill sev-I" title="${esc(x.annahme)}">angenommen</span>` : ''}</td>` +
+    `<td class="n">${nf2.format(x.anteil)}</td><td class="n">${nf(x.basis)}${x.gruppe.art === 'hoechst' ? ' <span class="note">max.</span>' : ''}</td>` +
+    `<td>${x.erm.map(e => `<span title="${esc([e.e.grundRaw, e.e.text].filter(Boolean).join(' – '))}">${esc((F.gruende.find(g => g.key === e.grund) || {kurz: e.e.grundRaw || 'unbekannt'}).kurz)}: ${nf(e.lvs)}</span>${e.e.text ? ` <span class="note">${esc(e.e.text)}</span>` : ''}`).join('<br>')}</td>` +
+    `<td class="n">${x.soll == null ? '–' : nf(x.soll)}</td><td class="n">${x.deputat == null ? '–' : nf(x.deputat)}</td><td>${diffTxt(x)}</td></tr>`;
+  const cls = [...new Set(people.map(o => clusterOf(o.r)))].sort((a, b) => (a.startsWith('(') - b.startsWith('(')) || a.localeCompare(b, 'de'));
+  const sorted = sortLvPeople(people, F);
+  const offen = c => LV_OPEN.has(c) ? LV_OPEN.get(c) : cls.length === 1 || !!cf;
+  $('#lvPersons').innerHTML = `<div class="row" style="margin-bottom:8px"><button data-lv-all="1">Alle aufklappen</button><button data-lv-all="0">Alle zuklappen</button>` +
+    `<span class="note">${people.length} Personen mit Lehrverpflichtung in ${cls.length} ${cls.length === 1 ? 'Cluster' : 'Clustern'}</span></div>` +
+    cls.map(c => {
+      const l = sorted.filter(o => clusterOf(o.r) === c), regel = l.filter(o => o.x.gruppe.art === 'regel');
+      const k = l.filter(o => abw(o.x)).length;
+      return `<details class="kreis" data-cluster="${esc(c)}"${offen(c) ? ' open' : ''}><summary><b>${esc(c)}</b>` +
+        `<span class="ksum">${l.length} ${l.length === 1 ? 'Person' : 'Personen'} · Lehrverpflichtung ${nf(sumBy(l, o => lvPflicht(o.x)))} LVS · Ermäßigungen ${nf(sumBy(regel, o => o.x.ermSum))} · Soll ${nf(sumBy(l, o => o.x.soll || 0))} LVS` +
+        `${k ? ` · <span class="pill sev-W">${k} ${k === 1 ? 'Abweichung' : 'Abweichungen'}</span>` : ''}</span></summary>` +
+        `<div style="overflow-x:auto"><table>${head}${l.map(zeile).join('')}</table></div></details>`;
+    }).join('');
+  $$('#lvPersons details[data-cluster]').forEach(d => d.addEventListener('toggle', () => LV_OPEN.set(d.dataset.cluster, d.open)));
+  $$('#lvPersons button[data-lv-all]').forEach(btn => btn.onclick = () => { const on = btn.dataset.lvAll === '1'; cls.forEach(c => LV_OPEN.set(c, on)); drawLvPersons(); });
   $$('#lvPersons th.sortable').forEach(th => th.onclick = () => { setLvSort(th.dataset.k); drawLvPersons(); });
   $$('#lvPersons a[data-row]').forEach(a => a.onclick = e => { e.preventDefault(); showPerson(+a.dataset.row); });
 }

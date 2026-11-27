@@ -207,3 +207,17 @@ test('Liste je Person: Sortierung auf- und absteigend, leere Werte am Ende, Umsc
   set('soll'); assert.equal(L.dir, 1);
   set('name'); assert.deepEqual([L.key, L.dir], ['name', 1]);
 });
+
+test('Liste je Person: nur Lehrverpflichtung > 0 vor Ermäßigungen (Professur/LfbA nach LVVO, WiMi nach Deputat)', () => {
+  const {get, rec, S} = setup([
+    {pnr: 1, ...PROF},                                   // ohne Deputat: 18 LVS nach LVVO → erscheint
+    {pnr: 2, ...PROF},                                   // voll ermäßigt → erscheint trotzdem (vor Ermäßigungen)
+    {pnr: 3, deputat: 0},                                // WiMi nur unterstützend → nicht
+    {pnr: 4},                                            // WiMi ohne Deputat → nicht
+    {pnr: 5, deputat: 2},                                // WiMi mit Lehre → erscheint
+    {pnr: 6, kreis: 'Verwaltung', tarif: 'E9', deputat: 2},   // keine Lehrverpflichtung nach LVVO → nicht
+    {pnr: 7, ...PROF, ruht: '31.03.2027'},              // ruht ganz → am Stichtag 0 → nicht
+  ], {reductions: [{pnr: 2, grund: 'Befreiung Überangebot', lvs: 18}]});
+  const p = n => get('lvPflicht')(get('lvvo')(rec(n), S.today));
+  assert.deepEqual([1, 2, 3, 4, 5, 6, 7].map(p), [18, 18, 0, 0, 2, 0, 0]);
+});
