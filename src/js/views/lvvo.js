@@ -106,19 +106,8 @@ function renderLehre(cf) {
     ['Saldo', sgn(st.saldo), 'LVS im Semester'],
     ['Zeitkonten', `${sgn(st.guthaben)} / ${sgn(st.fehlbetrag)}`, 'Summe Guthaben / Fehlbeträge am Semesterende' + (st.verfallen ? ` · ${nf(st.verfallen)} LVS verfallen` : '')],
   ].map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
-  const ps = st.personen.sort((a, b) => clusterOf(a.r).localeCompare(clusterOf(b.r), 'de') || a.r.name.localeCompare(b.r.name, 'de'));
-  const flags = e => [e.ohneEintrag ? '<span class="pill sev-W">keine Lehre eingetragen</span>' : '', e.unterHaelfte && !e.ohneEintrag ? '<span class="pill sev-W">unter der Hälfte</span>' : '',
-    e.fehlbetragZuHoch ? '<span class="pill sev-W">Fehlbetrag zu hoch</span>' : '', e.verfallen ? `<span class="pill sev-I">${nf(e.verfallen)} verfallen</span>` : '',
-    e.betreuungGekappt ? '<span class="pill sev-W">Betreuung gekappt</span>' : '', e.uebertrag ? `<span class="pill">Übertrag ${nf(e.uebertrag)}</span>` : ''].filter(Boolean).join(' ');
-  const k = v => v == null ? '<span class="note">–</span>' : sgn(v);
-  $('#lvKonto').innerHTML = !ps.length ? '<p class="note">Im gewählten Semester und Cluster ist keine Lehre eingetragen.</p>' :
-    `<table><tr><th>Name</th><th>Cluster</th><th>LVVO-Gruppe</th><th class="n">Soll</th><th class="n">Lehre</th><th class="n">Betreuung</th><th class="n">Gehalten</th><th class="n">Saldo</th><th class="n">Konto Anfang</th><th class="n">Konto Ende</th><th>Hinweise</th></tr>` +
-    ps.map(({r, e}) => `<tr><td><a href="#" data-row="${r.row}">${esc([r.name, r.vorname].filter(Boolean).join(', '))}</a></td><td>${esc(clusterOf(r))}</td><td>${esc(e.gruppe.label)}</td>` +
-      `<td class="n">${nf(e.soll)}</td><td class="n">${nf(e.lehre)}</td><td class="n">${nf(e.betreuung)}</td><td class="n"><b>${nf(e.ist)}</b></td><td class="n">${sgn(e.saldo)}</td>` +
-      `<td class="n">${k(e.anfang)}</td><td class="n">${k(e.ende)}</td><td>${flags(e)}</td></tr>`).join('') +
-    `<tr class="tot"><td>Summe</td><td></td><td></td><td class="n">${nf(st.soll)}</td><td class="n">${nf(sumBy(ps, o => o.e.lehre))}</td><td class="n">${nf(sumBy(ps, o => o.e.betreuung))}</td><td class="n">${nf(st.ist)}</td><td class="n">${sgn(st.saldo)}</td><td></td><td></td><td></td></tr></table>` +
-    '<p class="note">LVS je Semester. Konto nur für Professuren und LfbA (Regellehrverpflichtung); bei WiMi wird die gehaltene Lehre mit dem Deputat verglichen. Klick auf den Namen zeigt das Zeitkonto über alle Semester.</p>';
-  $$('#lvKonto a[data-row]').forEach(a => a.onclick = ev => { ev.preventDefault(); showPerson(+a.dataset.row); });
+  KT_LIST = {ps: st.personen, st};
+  drawKonto();
 }
 
 /** Zeitkonto aller Personen mit Lehre als CSV: eine Zeile je Person und Semester (Grundlage für § 18). */
@@ -190,20 +179,28 @@ const LV_COLS = [
 ];
 let LV_LIST = {people: [], F: null};
 export const LV_SORT = {key: null, dir: 1};   // key null: Grundordnung (Cluster, Gruppe, Name)
-export function setLvSort(k) { if (LV_SORT.key === k) LV_SORT.dir = -LV_SORT.dir; else { LV_SORT.key = k; LV_SORT.dir = 1; } }
-/** Sortierte Kopie: gewählte Spalte auf- oder absteigend, leere Werte am Ende, sonst Grundordnung. */
-export function sortLvPeople(people, F, key = LV_SORT.key, dir = LV_SORT.dir) {
-  const ord = Object.keys(F.gruppen);
-  const base = (a, b) => clusterOf(a.r).localeCompare(clusterOf(b.r), 'de') || ord.indexOf(a.x.key) - ord.indexOf(b.x.key) || a.r.name.localeCompare(b.r.name, 'de') || a.r.vorname.localeCompare(b.r.vorname, 'de');
-  const col = LV_COLS.find(c => c[0] === key);
-  if (!col) return [...people].sort(base);
+export function setLvSort(k) { toggleSort(LV_SORT, k); }
+/** Sortierte Kopie einer Liste nach Spalte key (cols: [Schlüssel, Überschrift, Wert, Zahl?]): auf- (dir 1) oder
+ *  absteigend (dir −1); leere Werte (null) stehen immer am Ende; Gleichstand und key null: Grundordnung base. */
+export function sortByCols(list, cols, key, dir, base) {
+  const col = cols.find(c => c[0] === key);
+  if (!col) return [...list].sort(base);
   const v = col[2];
-  return [...people].sort((a, b) => {
+  return [...list].sort((a, b) => {
     const x = v(a), y = v(b);
     if (x == null || y == null) return (x == null) - (y == null) || base(a, b);
     const c = col[3] ? x - y : String(x).localeCompare(String(y), 'de');
     return dir * c || base(a, b);
   });
+}
+/** Umschalten wie bei einer Tabelle: neue Spalte aufsteigend, dieselbe Spalte erneut → Richtung umkehren. */
+const toggleSort = (state, k) => { if (state.key === k) state.dir = -state.dir; else { state.key = k; state.dir = 1; } };
+const sortHead = (cols, state) => `<tr>${cols.map(([k, l, , num]) => `<th class="sortable${num ? ' n' : ''}" data-k="${k}" title="Sortieren – erneuter Klick kehrt die Richtung um">${l}${state.key === k ? (state.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr>`;
+/** Sortierte Kopie: gewählte Spalte auf- oder absteigend, leere Werte am Ende, sonst Grundordnung. */
+export function sortLvPeople(people, F, key = LV_SORT.key, dir = LV_SORT.dir) {
+  const ord = Object.keys(F.gruppen);
+  const base = (a, b) => clusterOf(a.r).localeCompare(clusterOf(b.r), 'de') || ord.indexOf(a.x.key) - ord.indexOf(b.x.key) || a.r.name.localeCompare(b.r.name, 'de') || a.r.vorname.localeCompare(b.r.vorname, 'de');
+  return sortByCols(people, LV_COLS, key, dir, base);
 }
 function drawLvPersons() {
   const {people, F} = LV_LIST, nf = v => nf1.format(v);
@@ -214,8 +211,7 @@ function drawLvPersons() {
     const d = r2(x.deputat - x.soll);
     return Math.abs(d) < 0.005 ? '<span class="note">✓</span>' : `<span class="pill sev-W">${d > 0 ? '+' : '−'}${nf(Math.abs(d))}</span>`;
   };
-  const arrow = k => LV_SORT.key === k ? (LV_SORT.dir > 0 ? ' ▲' : ' ▼') : '';
-  $('#lvPersons').innerHTML = `<table><tr>${LV_COLS.map(([k, l, , num]) => `<th class="sortable${num ? ' n' : ''}" data-k="${k}" title="Sortieren – erneuter Klick kehrt die Richtung um">${l}${arrow(k)}</th>`).join('')}</tr>` +
+  $('#lvPersons').innerHTML = `<table>${sortHead(LV_COLS, LV_SORT)}` +
     sortLvPeople(people, F).map(({r, x}) => `<tr><td><a href="#" data-row="${r.row}">${esc([r.name, r.vorname].filter(Boolean).join(', '))}</a></td><td>${esc(clusterOf(r))}</td>` +
       `<td>${esc(x.gruppe.label)}${x.quelle === 'Spalte' ? ' <span class="pill" title="aus Spalte „LVVO-Gruppe“">Tabelle</span>' : ''}${x.annahme ? ` <span class="pill sev-I" title="${esc(x.annahme)}">angenommen</span>` : ''}</td>` +
       `<td class="n">${nf2.format(x.anteil)}</td><td class="n">${nf(x.basis)}${x.gruppe.art === 'hoechst' ? ' <span class="note">max.</span>' : ''}</td>` +
@@ -223,4 +219,44 @@ function drawLvPersons() {
       `<td class="n">${x.soll == null ? '–' : nf(x.soll)}</td><td class="n">${x.deputat == null ? '–' : nf(x.deputat)}</td><td>${diffTxt(x)}</td></tr>`).join('') + '</table>';
   $$('#lvPersons th.sortable').forEach(th => th.onclick = () => { setLvSort(th.dataset.k); drawLvPersons(); });
   $$('#lvPersons a[data-row]').forEach(a => a.onclick = e => { e.preventDefault(); showPerson(+a.dataset.row); });
+}
+
+/* ---------- Gehaltene Lehre und Zeitkonto: sortierbare Tabelle ---------- */
+const ktFlags = e => [e.ohneEintrag && 'keine Lehre eingetragen', e.unterHaelfte && !e.ohneEintrag && 'unter der Hälfte', e.fehlbetragZuHoch && 'Fehlbetrag zu hoch',
+  e.verfallen && `${nf1.format(e.verfallen)} verfallen`, e.betreuungGekappt && 'Betreuung gekappt', e.uebertrag && `Übertrag ${nf1.format(e.uebertrag)}`].filter(Boolean);
+const KT_COLS = [
+  ['name', 'Name', o => [o.r.name, o.r.vorname].filter(Boolean).join(', ')],
+  ['cluster', 'Cluster', o => clusterOf(o.r)],
+  ['gruppe', 'LVVO-Gruppe', o => o.e.gruppe.label],
+  ['soll', 'Soll', o => o.e.soll, true],
+  ['lehre', 'Lehre', o => o.e.lehre, true],
+  ['betreuung', 'Betreuung', o => o.e.betreuung, true],
+  ['ist', 'Gehalten', o => o.e.ist, true],
+  ['saldo', 'Saldo', o => o.e.saldo, true],
+  ['anfang', 'Konto Anfang', o => o.e.anfang ?? null, true],
+  ['ende', 'Konto Ende', o => o.e.ende ?? null, true],
+  ['hinweise', 'Hinweise', o => ktFlags(o.e).length || null, true],   // nach Zahl der Hinweise; ohne Hinweis am Ende
+];
+let KT_LIST = {ps: [], st: null};
+export const KT_SORT = {key: null, dir: 1};   // key null: Grundordnung (Cluster, Name)
+export function setKtSort(k) { toggleSort(KT_SORT, k); }
+export function sortKonto(ps, key = KT_SORT.key, dir = KT_SORT.dir) {
+  const base = (a, b) => clusterOf(a.r).localeCompare(clusterOf(b.r), 'de') || a.r.name.localeCompare(b.r.name, 'de') || a.r.vorname.localeCompare(b.r.vorname, 'de');
+  return sortByCols(ps, KT_COLS, key, dir, base);
+}
+function drawKonto() {
+  const {ps, st} = KT_LIST, nf = v => nf1.format(v);
+  if (!st) return;
+  if (!ps.length) { $('#lvKonto').innerHTML = '<p class="note">Im gewählten Semester und Cluster ist keine Lehre eingetragen.</p>'; return; }
+  const sgn = v => `<span class="${v < 0 ? 'down' : 'up'}">${v < 0 ? '−' : v > 0 ? '+' : ''}${nf(Math.abs(v))}</span>`;
+  const k = v => v == null ? '<span class="note">–</span>' : sgn(v);
+  const pill = t => `<span class="pill ${/verfallen|Übertrag/.test(t) ? (/verfallen/.test(t) ? 'sev-I' : '') : 'sev-W'}">${esc(t)}</span>`;
+  $('#lvKonto').innerHTML = `<table>${sortHead(KT_COLS, KT_SORT)}` +
+    sortKonto(ps).map(({r, e}) => `<tr><td><a href="#" data-row="${r.row}">${esc([r.name, r.vorname].filter(Boolean).join(', '))}</a></td><td>${esc(clusterOf(r))}</td><td>${esc(e.gruppe.label)}</td>` +
+      `<td class="n">${nf(e.soll)}</td><td class="n">${nf(e.lehre)}</td><td class="n">${nf(e.betreuung)}</td><td class="n"><b>${nf(e.ist)}</b></td><td class="n">${sgn(e.saldo)}</td>` +
+      `<td class="n">${k(e.anfang)}</td><td class="n">${k(e.ende)}</td><td>${ktFlags(e).map(pill).join(' ')}</td></tr>`).join('') +
+    `<tr class="tot"><td>Summe</td><td></td><td></td><td class="n">${nf(st.soll)}</td><td class="n">${nf(sumBy(ps, o => o.e.lehre))}</td><td class="n">${nf(sumBy(ps, o => o.e.betreuung))}</td><td class="n">${nf(st.ist)}</td><td class="n">${sgn(st.saldo)}</td><td></td><td></td><td></td></tr></table>` +
+    '<p class="note">LVS je Semester. Konto nur für Professuren und LfbA (Regellehrverpflichtung); bei WiMi wird die gehaltene Lehre mit dem Deputat verglichen. Klick auf eine Spaltenüberschrift sortiert, erneuter Klick kehrt die Richtung um; Klick auf den Namen zeigt das Zeitkonto über alle Semester.</p>';
+  $$('#lvKonto th.sortable').forEach(th => th.onclick = () => { setKtSort(th.dataset.k); drawKonto(); });
+  $$('#lvKonto a[data-row]').forEach(a => a.onclick = ev => { ev.preventDefault(); showPerson(+a.dataset.row); });
 }

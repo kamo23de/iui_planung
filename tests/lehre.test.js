@@ -114,3 +114,26 @@ test('Prüfregeln: fehlerhafte Zeilen im Blatt „Lehre“', () => {
   assert.ok(at(7).includes('Lehre: Zahl nicht lesbar'));
   assert.ok(at(8).includes('Lehre außerhalb der Vertragslaufzeit'));
 });
+
+test('Zeitkonto-Liste: Sortierung auf- und absteigend, leere Werte am Ende, Hinweise nach Anzahl', () => {
+  const {get, S} = setup([
+    {pnr: 1, name: 'Berg', ...PROF}, {pnr: 2, name: 'Arndt', ...PROF}, {pnr: 3, name: 'Cramer', ...PROF},
+    {pnr: 4, name: 'Dahl', beginn: '01.03.2024', deputat: 2},          // WiMi: kein Konto
+  ], {teaching: [
+    {pnr: 1, sem: 'SS 2026', art: 'Vorlesung', sws: 20},
+    {pnr: 2, sem: 'SS 2026', art: 'Vorlesung', sws: 18},
+    {pnr: 3, sem: 'SS 2026', art: 'Vorlesung', sws: 6},               // unter der Hälfte, Fehlbetrag 12
+    {pnr: 4, sem: 'SS 2026', art: 'Übung', sws: 2},
+  ]});
+  const st = get('lehreStats')(S.recs, get('parseSemester')('SS 2026'));
+  const names = (k, d) => [...get('sortKonto')(st.personen, k, d)].map(o => o.r.name);
+  assert.deepEqual(names(null, 1), ['Arndt', 'Berg', 'Cramer', 'Dahl']);
+  assert.deepEqual(names('saldo', 1), ['Cramer', 'Arndt', 'Dahl', 'Berg']);          // −12, 0, 0, +2
+  assert.deepEqual(names('saldo', -1), ['Berg', 'Arndt', 'Dahl', 'Cramer']);
+  assert.deepEqual(names('ende', 1), ['Cramer', 'Arndt', 'Berg', 'Dahl']);           // WiMi ohne Konto am Ende
+  assert.deepEqual(names('ende', -1), ['Berg', 'Arndt', 'Cramer', 'Dahl']);          // auch absteigend am Ende
+  assert.deepEqual(names('hinweise', -1), ['Cramer', 'Arndt', 'Berg', 'Dahl']);      // nur Cramer hat Hinweise
+  const K = get('KT_SORT'), set = get('setKtSort');
+  set('ist'); assert.deepEqual([K.key, K.dir], ['ist', 1]);
+  set('ist'); assert.deepEqual([K.key, K.dir], ['ist', -1]);
+});
