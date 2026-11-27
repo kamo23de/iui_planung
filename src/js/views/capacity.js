@@ -1,5 +1,5 @@
 // Ansicht Kapazität
-import {$, css, esc, fmtD, nf0, nf1, pct, r2, semIdx, semLabel, semStart, sumBy} from '../util.js';
+import {$, $$, css, esc, fmtD, nf0, nf1, pct, r2, semIdx, semLabel, semStart, sumBy} from '../util.js';
 import {S} from '../state.js';
 import {catColor, clusterOf} from '../parse.js';
 import {clusterList, inRestPeriod, isActive, isPartlyResting, used} from '../model.js';
@@ -25,6 +25,7 @@ export function alignCharts(a, b) {
     if (db < 0) pad(b, 0, -db); else if (db > 0) pad(a, 0, db);
   }
 }
+const CAP_OPEN = new Map();   // Cluster → aufgeklappt? (Liste je Organisationseinheit; bleibt beim Neuzeichnen erhalten)
 export function renderCapacity() {
   const cur = semIdx(S.today), sel = $('#capWhen'), prev = sel.value;
   sel.innerHTML = `<option value="today">heute (${fmtD(S.today)})</option>` + Array.from({length: 20}, (_, j) => cur + 1 + j).map(i => `<option value="${i}">${semLabel(i)}</option>`).join('');
@@ -69,6 +70,8 @@ export function renderCapacity() {
   Object.keys(reqBy).forEach(c => { if (!cls.includes(c)) cls.push(c); });
   cls.sort((a, b) => a.localeCompare(b, 'de'));
   const cs = Object.fromEntries(cls.map(c => [c, capStats(act.filter(r => clusterOf(r) === c), D, Q)]));
+  const ohneAngebot = cls.filter(c => !(cs[c].sws > 0));   // ausgeblendet; mit Bedarf werden sie unter der Tabelle genannt
+  cls.splice(0, cls.length, ...cls.filter(c => cs[c].sws > 0));
   const grpDs = (labels, stats) => CAP_GROUPS.map(([k, l, cat]) => barDs(l, labels.map((_, i) => stats[i][k]), catColor(cat), {stack: 's', borderRadius: 0, borderWidth: {right: 2}, borderColor: css('--card'), maxBarThickness: 22}));
   $('#lgCapCl').innerHTML = legendHtml(CAP_GROUPS.map(([, l, cat]) => [catColor(cat), l]));
   $('#capClBox').style.height = Math.max(200, cls.length * 44 + 60) + 'px';
@@ -78,7 +81,7 @@ export function renderCapacity() {
     options: {indexAxis: 'y', layout: {padding: {right: 50}}, scales: {x: axis({stacked: true, beginAtZero: true, title: {display: true, text: 'LVS je Semester'}}), y: axis({stacked: true, grid: {display: false}})},
       plugins: {tooltip: {mode: 'index', filter: x => x.raw > 0, callbacks: {label: c => ` ${c.dataset.label}: ${fmtS(c.raw)} LVS`, footer: it => 'Summe: ' + fmtS(cs[cls[it[0].dataIndex]].sws) + ' LVS'}}}}});
   // verfügbar vs. erforderlich je Cluster
-  const balCls = cls.filter(c => cs[c].year || reqBy[c]);
+  const balCls = cls;
   $('#lgCapBal').innerHTML = legendHtml([[css('--s1'), 'Lehrangebot je Jahr (verfügbar)'], [css('--s2'), 'Erforderliche Kapazität je Jahr']]);
   $('#capBalBox').style.height = Math.max(200, balCls.length * 52 + 60) + 'px';
   mkChart('cCapBal', {type: 'bar', plugins: [endLabels], data: {labels: balCls, datasets: [
@@ -90,25 +93,37 @@ export function renderCapacity() {
   const row = (lbl, st, req, cls2) => { const b = req == null ? null : r2(st.year - req), u = (req != null && st.year) ? r2(req / st.year * 100) : null;
     return `<tr class="${cls2 || ''}"><td>${lbl}</td><td class="n">${st.teach}</td><td class="n">${st.support}</td>${CAP_GROUPS.map(([k]) => `<td class="n">${fmtS(st[k])}</td>`).join('')}<td class="n"><b>${fmtS(st.sws)}</b></td><td class="n">${fmtS(st.year)}</td><td class="n">${req == null ? '<span class="note">–</span>' : fmtS(req)}</td><td class="n">${b == null ? '<span class="note">–</span>' : balTxt(b)}</td><td class="n">${req == null ? '<span class="note">–</span>' : utilPill(u)}</td></tr>`; };
   const head = (first) => `<tr><th>${first}</th><th class="n">Lehrende</th><th class="n">unterstützend</th>${CAP_GROUPS.map(([, l, cat]) => `<th class="n"><span class="sw" style="background:${catColor(cat)}"></span>${l} (LVS)</th>`).join('')}<th class="n">LVS je Semester</th><th class="n">Lehrangebot je Jahr</th><th class="n">Erforderlich je Jahr</th><th class="n">Bilanz</th><th class="n">Auslastung</th></tr>`;
-  $('#capClTable').innerHTML = `<table>${head('Cluster')}${cls.map(c => row(esc(c), cs[c], reqBy[c] ?? null)).join('')}${row('Fakultät gesamt', T, reqTot, 'tot')}</table>`;
+  const fehlend = ohneAngebot.filter(c => reqBy[c]);
+  $('#capClTable').innerHTML = `<table>${head('Cluster')}${cls.map(c => row(esc(c), cs[c], reqBy[c] ?? null)).join('')}${row('Fakultät gesamt', T, reqTot, 'tot')}</table>` +
+    (fehlend.length ? `<p class="note">Ohne Lehrangebot und deshalb nicht dargestellt, aber mit erforderlicher Kapazität: ${fehlend.map(c => `${esc(c)} (${fmtS(reqBy[c])} je Jahr)`).join(', ')} – in „Fakultät gesamt“ enthalten.</p>` : '');
 
   // ---- je Organisationseinheit ----
   const oeAct = act.filter(r => !cf || clusterOf(r) === cf);
   const oeKeys = [...new Set(oeAct.map(r => clusterOf(r) + '\u0000' + oeOf(r)))].sort(labSort);
   const os = Object.fromEntries(oeKeys.map(k => [k, capStats(oeAct.filter(r => clusterOf(r) + '\u0000' + oeOf(r) === k), D, Q)]));
   const oeLabels = oeKeys.map(k => { const [c, o] = k.split('\u0000'); return cf ? o : `${o} (${c})`; });
-  const oeShown = oeKeys.filter(k => os[k].sws > 0 || os[k].support > 0);
+  const oeShown = oeKeys.filter(k => os[k].sws > 0);
   $('#lgCapOe').innerHTML = legendHtml(CAP_GROUPS.map(([, l, cat]) => [catColor(cat), l]));
   $('#capOeBox').style.height = Math.max(200, oeShown.length * 30 + 60) + 'px';
   const oeL = oeShown.map(k => oeLabels[oeKeys.indexOf(k)]);
   mkChart('cCapOe', {type: 'bar', plugins: [totLbl(oeShown.map(k => os[k].sws))], data: {labels: oeL, datasets: grpDs(oeL, oeShown.map(k => os[k]))},
     options: {indexAxis: 'y', layout: {padding: {right: 50}}, scales: {x: axis({stacked: true, beginAtZero: true, title: {display: true, text: 'LVS je Semester'}}), y: axis({stacked: true, grid: {display: false}})},
       plugins: {tooltip: {mode: 'index', filter: x => x.raw > 0, callbacks: {label: c => ` ${c.dataset.label}: ${fmtS(c.raw)} LVS`, footer: it => 'Summe: ' + fmtS(os[oeShown[it[0].dataIndex]].sws) + ' LVS'}}}}});
-  const oeCl = [...new Set(oeKeys.map(k => k.split('\u0000')[0]))];
-  const rowO = (lbl, st, share, cls2) => `<tr class="${cls2 || ''}"><td>${lbl}</td><td class="n">${st.teach}</td><td class="n">${st.support}</td>${CAP_GROUPS.map(([k]) => `<td class="n">${fmtS(st[k])}</td>`).join('')}<td class="n"><b>${fmtS(st.sws)}</b></td><td class="n">${fmtS(st.year)}</td><td class="n">${share == null ? '' : nf1.format(share) + ' %'}</td></tr>`;
-  $('#capOeTable').innerHTML = `<table><tr><th>Cluster / Organisationseinheit</th><th class="n">Lehrende</th><th class="n">unterstützend</th>${CAP_GROUPS.map(([, l, cat]) => `<th class="n"><span class="sw" style="background:${catColor(cat)}"></span>${l} (LVS)</th>`).join('')}<th class="n">LVS je Semester</th><th class="n">Lehrangebot je Jahr</th><th class="n">Anteil am Cluster</th></tr>` +
-    oeCl.map(c => { const cst = capStats(oeAct.filter(r => clusterOf(r) === c), D, Q);
-      return rowO(esc(c), cst, null, 'tot') + oeKeys.filter(k => k.startsWith(c + '\u0000')).map(k => rowO(`<span style="padding-left:16px">${esc(k.split('\u0000')[1])}</span>`, os[k], pct(os[k].sws, cst.sws))).join(''); }).join('') + '</table>';
+  const oeCl = [...new Set(oeShown.map(k => k.split('\u0000')[0]))];
+  const rowO = (lbl, st, share) => `<tr><td>${lbl}</td><td class="n">${st.teach}</td><td class="n">${st.support}</td>${CAP_GROUPS.map(([k]) => `<td class="n">${fmtS(st[k])}</td>`).join('')}<td class="n"><b>${fmtS(st.sws)}</b></td><td class="n">${fmtS(st.year)}</td><td class="n">${share == null ? '' : nf1.format(share) + ' %'}</td></tr>`;
+  const headO = `<tr><th>Organisationseinheit</th><th class="n">Lehrende</th><th class="n">unterstützend</th>${CAP_GROUPS.map(([, l, cat]) => `<th class="n"><span class="sw" style="background:${catColor(cat)}"></span>${l} (LVS)</th>`).join('')}<th class="n">LVS je Semester</th><th class="n">Lehrangebot je Jahr</th><th class="n">Anteil am Cluster</th></tr>`;
+  const offen = c => CAP_OPEN.has(c) ? CAP_OPEN.get(c) : oeCl.length === 1 || !!cf;
+  $('#capOeTable').innerHTML = !oeCl.length ? '<p class="note">Keine Organisationseinheit mit Lehrangebot am Stichtag.</p>' :
+    `<div class="row" style="margin-bottom:8px"><button data-cap-all="1">Alle aufklappen</button><button data-cap-all="0">Alle zuklappen</button>` +
+    `<span class="note">${oeShown.length} Organisationseinheiten mit Lehrangebot in ${oeCl.length} ${oeCl.length === 1 ? 'Cluster' : 'Clustern'}</span></div>` +
+    oeCl.map(c => {
+      const cst = capStats(oeAct.filter(r => clusterOf(r) === c), D, Q), keys = oeShown.filter(k => k.startsWith(c + '\u0000'));
+      return `<details class="kreis" data-cluster="${esc(c)}"${offen(c) ? ' open' : ''}><summary><b>${esc(c)}</b>` +
+        `<span class="ksum">${keys.length} ${keys.length === 1 ? 'Organisationseinheit' : 'Organisationseinheiten'} · ${cst.teach} Lehrende · ${fmtS(cst.sws)} LVS je Semester · Lehrangebot je Jahr ${fmtS(cst.year)}</span></summary>` +
+        `<div style="overflow-x:auto"><table>${headO}${keys.map(k => rowO(esc(k.split('\u0000')[1]), os[k], pct(os[k].sws, cst.sws))).join('')}</table></div></details>`;
+    }).join('');
+  $$('#capOeTable details[data-cluster]').forEach(d => d.addEventListener('toggle', () => CAP_OPEN.set(d.dataset.cluster, d.open)));
+  $$('#capOeTable button[data-cap-all]').forEach(btn => btn.onclick = () => { const on = btn.dataset.capAll === '1'; oeCl.forEach(c => CAP_OPEN.set(c, on)); $$('#capOeTable details[data-cluster]').forEach(d => { d.open = on; }); });
 
   // ---- erforderliche Kapazität je Studiengang ----
   const sgs = [...sg].sort((a, b) => (b.req ?? -1) - (a.req ?? -1) || a.sg.localeCompare(b.sg, 'de'));

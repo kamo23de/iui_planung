@@ -33,3 +33,14 @@ test('Eingebettetes SheetJS ist mindestens 0.20.2 (ältere Versionen: Prototype 
   const cmp = v.findIndex((x, i) => x !== min[i]);
   assert.ok(cmp < 0 || v[cmp] > min[cmp], `SheetJS ${v.join('.')} ist älter als ${min.join('.')}`);
 });
+
+test('styles.css: keine Deklarationen außerhalb von Regeln (sonst verwirft der Browser die folgende Regel)', () => {
+  const css = fs.readFileSync(require('path').join(__dirname, '..', 'src', 'styles.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  let depth = 0, top = '';
+  for (const ch of css) {
+    if (ch === '{') { if (depth === 0) { assert.doesNotMatch(top, /[a-z-]+\s*:[^{};]*;/i, `Deklaration außerhalb einer Regel vor: ${top.trim().slice(0, 80)}`); top = ''; } depth++; }
+    else if (ch === '}') { depth--; assert.ok(depth >= 0, 'überzählige schließende Klammer'); }
+    else if (depth === 0) top += ch;
+  }
+  assert.equal(depth, 0, 'nicht geschlossene Klammer');
+});
