@@ -39,7 +39,7 @@ Zum Ausprobieren gibt es außerdem `testdaten/Testdaten_Personalplanung.xlsx`. D
 
 **Blatt Studierende:** Studiengang, Cluster, Art (Bachelor/Master), CNW (Curricularnormwert), Studienplätze (je neuer Studierendengruppe), Studierende (eingeschrieben)
 
-**Blatt Ermäßigungen (optional, für die LVVO):** Personalnummer, Grund, LVS oder Prozent, von, bis – eine Zeile je Ermäßigung der Lehrverpflichtung. Die Spalten werden am Inhalt der Überschrift erkannt: Grund z. B. „Grund“, „Begründung“, „Anlass“, „Art der Ermäßigung“, „Ermäßigungstatbestand“; Umfang z. B. „LVS“, „SWS“, „Stunden“, „Umfang“, „Ermäßigung in LVS“; Zeitraum „von/bis“, „ab/bis“, „Beginn/Ende“, „gültig von/bis“. Eine Spalte „Ermäßigung“ ohne weiteren Zusatz gilt je nach Inhalt als Grund (Text) oder Umfang (Zahl). Die Kopfzeile darf unter einer Titelzeile stehen oder zweizeilig sein. Ein Blatt, dessen Name auf Ermäßigungen deutet, wird schon mit einer Spalte „Personalnummer“ erkannt; sonst sind Personalnummer und Grund nötig. Der Grund wird aus dem Text erkannt (z. B. Forschung, Laborleitung, Studienfachberatung, Schwerbehinderung, Vizepräsidentschaft). Prozent: „12 %“, 12 und 0,12 bedeuten dasselbe.
+**Blatt Ermäßigungen (optional, für die LVVO):** Personalnummer, optional Name, Grund, optional Beschreibung, LVS oder Prozent, von, bis – eine Zeile je Ermäßigung der Lehrverpflichtung. Der **Name** wird mit dem Personalblatt abgeglichen („Name, Vorname“, „Vorname Name“, nur Nachname oder mit Initialen; Titel und Umlaut-Schreibweisen egal); passt er nicht zur Personalnummer, meldet die Datenprüfung das und nennt passende Personalnummern – angerechnet wird über die Personalnummer. Die **Beschreibung** ist ein Hilfstext: Sie erscheint in den Listen, im Personenfenster und im Bericht nach § 18, zählt aber nicht zur Erkennung des Grundes. Die Spalten werden am Inhalt der Überschrift erkannt: Grund z. B. „Grund“, „Begründung“, „Anlass“, „Art der Ermäßigung“, „Ermäßigungstatbestand“; Umfang z. B. „LVS“, „SWS“, „Stunden“, „Umfang“, „Ermäßigung in LVS“; Zeitraum „von/bis“, „ab/bis“, „Beginn/Ende“, „gültig von/bis“. Eine Spalte „Ermäßigung“ ohne weiteren Zusatz gilt je nach Inhalt als Grund (Text) oder Umfang (Zahl). Die Kopfzeile darf unter einer Titelzeile stehen oder zweizeilig sein. Ein Blatt, dessen Name auf Ermäßigungen deutet, wird schon mit einer Spalte „Personalnummer“ erkannt; sonst sind Personalnummer und Grund nötig. Der Grund wird aus dem Text erkannt (z. B. Forschung, Laborleitung, Studienfachberatung, Schwerbehinderung, Vizepräsidentschaft). Prozent: „12 %“, 12 und 0,12 bedeuten dasselbe.
 
 **Blatt Lehre (optional, für das Zeitkonto):** Personalnummer, Semester („WS 2026/27“, „SS 2027“, auch „WiSe 26/27“, „SoSe 27“), Veranstaltung, Art, SWS, optional Anteil (Lehrbeteiligung), Anzahl (Durchführungen im Semester) und LVS (bereits angerechnet; ersetzt die Rechnung aus SWS) – eine Zeile je Lehrveranstaltung und Semester. Art „Betreuung“ für Abschlussarbeiten, „Übertrag“ für den Kontostand vor der ersten erfassten Zeile.
 
@@ -57,6 +57,10 @@ Blätter und Spalten werden an den Überschriften erkannt. Reihenfolge und Blatt
 | Detailansicht | Auswahl nach Cluster, Laborbereich und Organisationseinheit (die Liste der Organisationseinheiten richtet sich nach Cluster und Laborbereich). Genaues Verhältnis Professur (inkl. LfbA) : WiMi : sonstige Mitarbeitende : Studierende (Köpfe und VZÄ; Studierende nur ohne Labor-/OE-Auswahl, da diesen nicht zugeordnet). Professuren und Mitarbeitende je Laborbereich mit Diagramm und Tabelle. Vollständige Personalliste, gegliedert nach Mitarbeiterkreis oder Laborbereich, mit Vertragsdaten, Restlaufzeit, kw und Status; sortierbar, durchsuchbar, als CSV speicherbar |
 | Kapazität | Lehrangebot je Cluster und Organisationseinheit, nach Personalgruppe – wahlweise aus dem LVVO-Soll (Standard) oder aus der Spalte „Deputat“; erforderliche Kapazität (CNW × Studienplätze) je Studiengang neben den eingeschriebenen Studierenden; Bilanz und Auslastung für Fakultät und (vorläufig) je Cluster; Stichtag bis 20 Semester voraus |
 | Lehrverpflichtung | LVVO Niedersachsen für Fachhochschulen: Regellehrverpflichtung (Professuren, LfbA) bzw. Höchstlehrverpflichtung (WiMi) anteilig nach VZÄ, Ermäßigungen nach Grund mit Quote nach § 9, Soll je Cluster und je Person im Vergleich zum eingetragenen Deputat (Liste per Klick auf die Spaltenüberschrift auf- oder absteigend sortierbar), Regelwerk mit Fundstellen; Stichtag bis 20 Semester voraus; gehaltene Lehre und Zeitkonto je Semester (Liste ebenfalls sortierbar) mit CSV-Export (eine Zeile je Person und Semester, mit Lehrveranstaltungen) als Grundlage für die Dokumentation nach § 18; Dokumentation nach § 18 je Studienjahr (Vorschau, Drucken/PDF, HTML-Datei) |
+
+### Tabellen sortieren
+
+Alle Tabellen lassen sich per Klick auf eine Spaltenüberschrift sortieren; ein erneuter Klick kehrt die Richtung um (▲/▼). Zahlen in deutscher Schreibweise, Datumsangaben und Semester werden erkannt, leere Werte („–“) stehen immer am Ende. Summenzeilen am Tabellenende bleiben unten; in gegliederten Tabellen (z. B. Cluster mit Organisationseinheiten darunter) werden die Gruppen und die Zeilen innerhalb jeder Gruppe sortiert. Die Sortierung bleibt erhalten, wenn eine Tabelle neu gezeichnet wird (z. B. nach einem Stichtagswechsel). Ausgenommen sind die Rechenaufstellung „Verhältnis“ in der Detailansicht, die Ampel-Matrix der Planung, das Regelwerk und der Bericht nach § 18.
 
 ### Diagramme exportieren
 
@@ -137,6 +141,7 @@ npm run build        # erzeugt Personalplanung_IuI.html
 | `src/js/views/*.js` | je Reiter eine Ansicht, dazu das Personenfenster |
 | `src/js/plan/*.js` | Planung: Szenario, Formular, Zeitstrahl, Zielwerte |
 | `src/js/search.js` | globale Suche nach Personen, Laborbereichen und Organisationseinheiten |
+| `src/js/tablesort.js` | Sortierung aller Tabellen per Klick auf die Spaltenüberschrift |
 | `src/js/main.js` | Laden der Datei, Reiterwechsel, Ereignisse, `init()` |
 | `src/js/app.js` | Einstiegspunkt: startet die Anwendung |
 
@@ -171,6 +176,7 @@ Die Tests laufen ohne Browser mit dem in Node eingebauten Test-Runner (`node:tes
 | `suche.test.js` | Suche: Reihenfolge Personen – Laborbereiche – Organisationseinheiten, Treffer am Wortanfang, Akzente, Vervollständigung |
 | `doku.test.js` | Dokumentation nach § 18: Studienjahr, Referenzwerte, Hinweise, Vertragsende, Befreiung, mehrere Verträge, sicherer HTML-Bericht |
 | `ermaessigungen-blatt.test.js` | Erkennung des Blatts „Ermäßigungen“ in 12 realistischen Varianten (Überschriften, Titelzeile, zweizeiliger Kopf, Blattreihenfolge, führende Nullen), Meldungen zu nicht erkannten Blättern |
+| `tabellen-sortierung.test.js` | Allgemeine Tabellensortierung: Werte (Zahlen, Datum, Semester, Text, leer), flache und gegliederte Tabellen, Summenzeilen |
 | `planung.test.js` | Szenarien (Nachbesetzung, neue Stelle, Vertragsende) und Zielwerte |
 | `testdaten.test.js` | Gesamtlauf mit der Testdatei und festgehaltenen Referenzwerten (Stichtag 26.11.2026) |
 | `build.test.js` | `Personalplanung_IuI.html` ist aktuell; Content-Security-Policy ohne Netzwerkzugriff |

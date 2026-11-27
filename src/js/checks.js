@@ -2,7 +2,7 @@
 import {fmtD, fromDay, nf2, r2, semEnd, semLabel, semStart, sumBy} from './util.js';
 import {S} from './state.js';
 import {lvvoFassung} from './lvvo.js';
-import {clusterOf, kreisOf, OPTIONAL_COLS, pnrKey, str, STUD_FIELDS, tarifNum} from './parse.js';
+import {clusterOf, kreisOf, nameMatches, OPTIONAL_COLS, pnrKey, str, STUD_FIELDS, tarifNum} from './parse.js';
 import {effVz, grpOf, inContract, inRestPeriod, isActive, restShare, restVz} from './model.js';
 import {lvvo, lvvoGruppe, lvvoStats, zeitkonto} from './teaching.js';
 
@@ -221,10 +221,14 @@ export function runChecks() {
     if (qAnnahme.length) add('I', 'LVVO-Gruppe angenommen', null, 'LVVO-Gruppe', `${qAnnahme.length} befristete WiMi: Beschäftigung auch zur Weiterqualifikation angenommen – Höchstlehrverpflichtung 4 statt 8 LVS (§ 5 Abs. 2 Nr. 2). Abweichungen in der Spalte „LVVO-Gruppe“ eintragen.`);
     // Blatt „Ermäßigungen“
     for (const e of S.reductions || []) {
-      const p = byPnr.get(e.pk), ref = {row: e.row, pnr: e.pnr, pk: e.pk, name: p ? p.name : e.grundRaw, vorname: p ? p.vorname : '', sheet: 'Ermäßigungen'};
+      const p = byPnr.get(e.pk), ref = {row: e.row, pnr: e.pnr, pk: e.pk, name: p ? p.name : (e.name || e.grundRaw), vorname: p ? p.vorname : '', sheet: 'Ermäßigungen'};
       const G = F.gruende.find(q => q.key === e.grund);
       if (!e.pnr) { add('E', 'Ermäßigung: Pflichtfeld leer', ref, 'Personalnummer', 'Personalnummer fehlt – Ermäßigung wird nicht berücksichtigt.'); continue; }
-      if (!p) { add('E', 'Ermäßigung: Person nicht gefunden', ref, 'Personalnummer', `Personalnummer ${e.pnr} kommt im Personalblatt nicht vor – Ermäßigung wird nicht berücksichtigt.`); continue; }
+      const andere = () => e.name ? [...new Map(recs.filter(x => nameMatches(e.name, x)).map(x => [x.pk, x])).values()] : [];
+      const vorschlag = l => l.length ? ` Der Name „${e.name}“ passt zu ${l.slice(0, 3).map(x => `${x.vorname} ${x.name} (Pers.-Nr. ${x.pnr})`).join(', ')}${l.length > 3 ? ' …' : ''}.` : '';
+      if (!p) { add('E', 'Ermäßigung: Person nicht gefunden', ref, 'Personalnummer', `Personalnummer ${e.pnr} kommt im Personalblatt nicht vor – Ermäßigung wird nicht berücksichtigt.` + vorschlag(andere())); continue; }
+      if (e.name && nameMatches(e.name, p) === false) add('W', 'Ermäßigung: Name passt nicht zur Personalnummer', ref, 'Name',
+        `„${e.name}“ passt nicht zu Personalnummer ${e.pnr} – laut Personalblatt ${[p.vorname, p.name].filter(Boolean).join(' ')}. Die Ermäßigung wird dieser Person angerechnet.` + vorschlag(andere()));
       for (const [k, f] of [['lvsErr', 'LVS'], ['pctErr', 'Prozent'], ['vonErr', 'von'], ['bisErr', 'bis']])
         if (e[k]) add('E', 'Ermäßigung: Wert nicht lesbar', ref, f, `${f} ist ${f === 'von' || f === 'bis' ? 'kein gültiges Datum' : 'keine Zahl'} – Ermäßigung wird nicht berücksichtigt.`);
       if (e.lvs == null && e.pct == null && !e.lvsErr && !e.pctErr) add('E', 'Ermäßigung ohne Umfang', ref, 'LVS/Prozent', 'Weder LVS noch Prozent angegeben – Ermäßigung wird nicht berücksichtigt.');

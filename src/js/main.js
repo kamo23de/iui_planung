@@ -2,6 +2,7 @@
 import {$, $$, isoD, parseIso, toDay} from './util.js';
 import {S} from './state.js';
 import {readWorkbook} from './parse.js';
+import {initTableSort} from './tablesort.js';
 import {chartDefaults, charts} from './charts.js';
 import {renderAll} from './render.js';
 import {renderCapacity} from './views/capacity.js';
@@ -81,6 +82,7 @@ function loadBuffer(buf, name, isDemo) {
     showTab('check');
 }
 export function init() {
+  initTableSort();   // alle Tabellen per Klick auf die Spaltenüberschrift sortierbar
   chartDefaults();
   const n = new Date(); S.today = toDay(n.getFullYear(), n.getMonth() + 1, n.getDate());
   $('#today').value = isoD(S.today);
