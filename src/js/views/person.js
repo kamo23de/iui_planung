@@ -54,7 +54,7 @@ export function showPerson(rowNo) {
         ['Wirksame VZÄ heute', inRestPeriod(r, T) ? `<b>${nf1.format(effVz(r, T))}</b> <span class="note">(${nf1.format(restVz(r, T))} VZÄ ruhen)</span>` : ''],
         ['Lehrdeputat', r.deputat == null ? '' : `${nf1.format(r.deputat)} SWS je Semester` + (inRestPeriod(r, T) && r.deputat > 0 ? ` <span class="note">– wirksam heute ${nf1.format(effDep(r, T))} SWS</span>` : '') + (r.deputat === 0 ? ' <span class="note">(nur unterstützend in der Lehre)</span>' : '')],
         S.showWip && ['Lehrverpflichtung (LVVO)', (() => { const x = lvvo(r, T); if (x.gruppe.art === 'keine') return x.quelle === 'Spalte' ? 'keine (Spalte „LVVO-Gruppe“)' : '';
-          const er = x.erm.map(e => `${esc((x.F.gruende.find(g => g.key === e.grund) || {kurz: e.e.grundRaw || 'Grund unbekannt'}).kurz)} ${nf1.format(e.lvs)}`).join(', ');
+          const er = x.erm.map(e => `${esc((x.F.gruende.find(g => g.key === e.grund) || {kurz: e.e.grundRaw || 'Grund unbekannt'}).kurz)} ${nf1.format(e.lvs)}${e.e.text ? ` (${esc(e.e.text)})` : ''}`).join(', ');
           return `${esc(x.gruppe.label)}: ${x.gruppe.art === 'regel' ? `<b>${nf1.format(x.soll)} LVS</b> je Semester (${x.gruppe.lvs} LVS × ${nf1.format(x.anteil)} VZÄ` + (x.ermSum ? ` − Ermäßigungen ${nf1.format(x.ermSum)}: ${er}` : '') + ')'
             : `höchstens ${nf1.format(x.basis)} LVS (${x.gruppe.lvs} LVS × ${nf1.format(x.anteil)} VZÄ)`} <span class="note">${x.gruppe.ref}${x.quelle === 'Spalte' ? ', Gruppe aus Spalte „LVVO-Gruppe“' : ''}${x.annahme ? ' – ' + esc(x.annahme) : ''}</span>`; })()],
       ])}</section>

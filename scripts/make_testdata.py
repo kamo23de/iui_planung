@@ -183,9 +183,15 @@ lfba[6], lfba[LVVO], lfba[DEP] = "E12", "LfbA 24", round(24 * lfba[4] / 100, 2) 
 wimis[2][LVVO] = "Dozent"                                 # Fehler: LVVO-Gruppe nicht erkannt
 wimis[3][LVVO] = "Professur"                              # Fehler: LVVO-Gruppe passt nicht zum Mitarbeiterkreis
 frei = [r for r in profs if r is not dekan and r is not praesident and r[RUHT] is None]
-erm = []   # Personalnummer, Grund, LVS, Prozent, von, bis
-def ermaessigung(r, grund, lvs=None, pct=None, von=None, bis=None, deputat=None):
-    erm.append([r[0] if r else 999998, grund, lvs, pct, von, bis])
+erm = []   # Personalnummer, Name, Grund, Beschreibung, LVS, von, bis
+BESCHREIBUNG = {"Forschung (Drittmittelprojekt)": "DFG-Projekt, Bewilligung 2026", "Laborleitung": "Hochschullabor, Leitung seit 2024",
+                "Studienfachberatung Informatik B.Sc.": "ein Studiengang", "Schwerbehinderung (GdB 50)": "12 % der Lehrverpflichtung",
+                "Leitung Rechenzentrum": "kommissarisch"}
+def ermaessigung(r, grund, lvs=None, pct=None, von=None, bis=None, deputat=None, name=None):
+    if pct is not None and r is not None:     # Prozentangabe in LVS umrechnen (das Blatt hat nur noch die Spalte LVS)
+        lvs = round(18 * r[4] / 100 * float(str(pct).replace("%", "").strip()) / 100, 2)
+    nm = name if name is not None else (f"{r[1]}, {r[2]}" if r is not None else "")
+    erm.append([r[0] if r else 999998, nm, grund, BESCHREIBUNG.get(grund), lvs, von, bis])
     if r is not None and deputat is not None: r[DEP] = deputat
 ermaessigung(frei[0], "Forschung (Drittmittelprojekt)", 4, None, d(2026, 9, 1), d(2027, 8, 31), 14)
 ermaessigung(frei[1], "Laborleitung", 2, None, d(2024, 3, 1), None, 16)
@@ -196,11 +202,12 @@ ermaessigung(frei[4], "Leitung Rechenzentrum", 4, None, d(2025, 9, 1), None)    
 ermaessigung(frei[5], "Leitung Labor CAD", 5, None, d(2025, 9, 1), None, 13)          # Fehler: Funktion 5 > 4 LVS
 ermaessigung(frei[6], "Studienreform", 2, None, d(2024, 9, 1), d(2025, 8, 31))        # abgelaufen
 ermaessigung(frei[7], "Transferprojekt", 3, None, d(2026, 9, 1), d(2027, 8, 31))      # Fehler: Deputat nicht angepasst (18 statt 15)
-ermaessigung(None, "Forschung", 2, None, d(2026, 9, 1), None)                          # Fehler: Personalnummer unbekannt
+ermaessigung(None, "Forschung", 2, None, d(2026, 9, 1), None, name=f"{frei[11][2]} {frei[11][1]}")   # Fehler: Personalnummer unbekannt (Name passt zu einer anderen Person)
 ermaessigung(frei[8], "Sonstiges", 1, None, d(2026, 9, 1), d(2027, 2, 28), 17)       # Grund nicht erkannt
 ermaessigung(frei[9], "Labor", None, None, d(2026, 9, 1), None)                        # Fehler: weder LVS noch Prozent
 ermaessigung(wimis[4], "Forschung", 1, None, d(2026, 9, 1), None)                      # Fehler: WiMi ohne Regellehrverpflichtung
 ermaessigung(frei[10], "Praktikantenbetreuung", 1, None, d(2027, 9, 1), d(2027, 3, 1))  # Fehler: von nach bis
+ermaessigung(frei[12], "Studienfachberatung", 1, None, d(2026, 9, 1), None, name="Muster, Erika")   # Fehler: Name passt nicht zur Personalnummer
 
 # ---- Blatt „Lehre“: gehaltene Lehre je Lehrveranstaltung und Semester (für das Zeitkonto nach § 11) ----
 rl = random.Random(11)                                    # eigener Zufall: die Personaldaten oben bleiben unverändert
@@ -278,10 +285,10 @@ for r in [("Informatik B.Sc.", "Informatik", "Bachelor", 6.4, 90, 820),
 for c in ws2[1]: c.font = Font(bold=True)
 
 ws3 = wb.create_sheet("Ermäßigungen")
-ws3.append(["Personalnummer", "Grund", "LVS", "Prozent", "von", "bis"])
+ws3.append(["Personalnummer", "Name", "Grund", "Beschreibung", "LVS", "von", "bis"])
 for r in erm: ws3.append(r)
 for c in ws3[1]: c.font = Font(bold=True)
-for col in "EF":
+for col in "FG":
     for cell in ws3[col][1:]: cell.number_format = "DD.MM.YYYY"
 ws4 = wb.create_sheet("Lehre")
 ws4.append(["Personalnummer", "Semester", "Veranstaltung", "Art", "SWS", "Anteil", "Anzahl", "LVS"])

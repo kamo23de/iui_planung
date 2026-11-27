@@ -215,7 +215,7 @@ function drawLvPersons() {
     sortLvPeople(people, F).map(({r, x}) => `<tr><td><a href="#" data-row="${r.row}">${esc([r.name, r.vorname].filter(Boolean).join(', '))}</a></td><td>${esc(clusterOf(r))}</td>` +
       `<td>${esc(x.gruppe.label)}${x.quelle === 'Spalte' ? ' <span class="pill" title="aus Spalte „LVVO-Gruppe“">Tabelle</span>' : ''}${x.annahme ? ` <span class="pill sev-I" title="${esc(x.annahme)}">angenommen</span>` : ''}</td>` +
       `<td class="n">${nf2.format(x.anteil)}</td><td class="n">${nf(x.basis)}${x.gruppe.art === 'hoechst' ? ' <span class="note">max.</span>' : ''}</td>` +
-      `<td>${x.erm.map(e => `${esc((F.gruende.find(g => g.key === e.grund) || {kurz: e.e.grundRaw || 'unbekannt'}).kurz)}: ${nf(e.lvs)}`).join('<br>')}</td>` +
+      `<td>${x.erm.map(e => `<span title="${esc([e.e.grundRaw, e.e.text].filter(Boolean).join(' – '))}">${esc((F.gruende.find(g => g.key === e.grund) || {kurz: e.e.grundRaw || 'unbekannt'}).kurz)}: ${nf(e.lvs)}</span>${e.e.text ? ` <span class="note">${esc(e.e.text)}</span>` : ''}`).join('<br>')}</td>` +
       `<td class="n">${x.soll == null ? '–' : nf(x.soll)}</td><td class="n">${x.deputat == null ? '–' : nf(x.deputat)}</td><td>${diffTxt(x)}</td></tr>`).join('') + '</table>';
   $$('#lvPersons th.sortable').forEach(th => th.onclick = () => { setLvSort(th.dataset.k); drawLvPersons(); });
   $$('#lvPersons a[data-row]').forEach(a => a.onclick = e => { e.preventDefault(); showPerson(+a.dataset.row); });

@@ -29,11 +29,13 @@ export const OPTIONAL_COLS = ['ruht bis', 'Ruheanteil', 'Ruhestand', 'Vertretung
 /** Optionales Blatt „Ermäßigungen“ (LVVO): eine Zeile je Ermäßigung der Lehrverpflichtung. */
 export const ERM_FIELDS = [
   ['pnr', 'Personalnummer', ['personalnummer', 'persnr', 'personalnr', 'pnr']],
+  ['name', 'Name', ['name']],
   ['grund', 'Grund', ['grund', 'ermässigungsgrund', 'ermäßigungsgrund', 'ermaessigungsgrund', 'anlass']],
   ['lvs', 'LVS', ['lvs', 'ermässigunglvs', 'ermäßigunglvs', 'umfanglvs', 'sws']],
   ['pct', 'Prozent', ['prozent', 'ermässigungprozent', 'ermäßigungprozent', 'anteilprozent']],
   ['von', 'von', ['von', 'gültigab', 'gueltigab']],
   ['bis', 'bis', ['bis', 'gültigbis', 'gueltigbis']],
+  ['text', 'Beschreibung', ['beschreibung']],
 ];
 /** Optionales Blatt „Lehre“ (LVVO): gehaltene Lehre, eine Zeile je Lehrveranstaltung und Semester. */
 export const LEHRE_FIELDS = [
@@ -113,6 +115,19 @@ export const STUD_FIELDS = [
  *  („00123“ und 123 sind dieselbe Person). Die Anzeige verwendet weiter die Schreibweise der Tabelle. */
 export const pnrKey = v => { const t = String(v ?? '').replace(/\s+/g, '').replace(/\.0+$/, ''); return /^\d+$/.test(t) ? t.replace(/^0+(?=\d)/, '') : t.toLowerCase(); };
 
+/* Namensabgleich (Blatt „Ermäßigungen“ ↔ Personalblatt): Groß-/Kleinschreibung, Akzente, Satzzeichen und Titel
+   egal; Schreibweisen „Name, Vorname“, „Vorname Name“, nur Nachname oder mit Initialen („M. Müller“). */
+const TITEL = new Set(['dr', 'prof', 'med', 'rer', 'nat', 'ing', 'dipl', 'phil', 'habil', 'pd', 'apl', 'hc', 'mult', 'jur', 'oec', 'pol']);
+// Umlaute: „Müller“, „Mueller“ und „Muller“ gelten als gleich (ä/ae, ö/oe, ü/ue)
+export const nameTokens = t => String(t ?? '').toLowerCase().replace(/ß/g, 'ss').replace(/([aou])e/g, '$1').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .split(/[^a-z0-9]+/).filter(w => w && !TITEL.has(w));
+/** Passt der Name (Freitext) zur Person r? null, wenn kein Name angegeben ist. */
+export function nameMatches(text, r) {
+  const e = nameTokens(text); if (!e.length) return null;
+  const nach = nameTokens(r.name), alle = [...nach, ...nameTokens(r.vorname)];
+  if (!e.some(w => w.length > 1 && nach.includes(w))) return false;                 // Nachname muss vorkommen
+  return e.every(w => alle.includes(w) || (w.length === 1 && alle.some(a => a.startsWith(w))));
+}
 /** Blattart nach dem Blattnamen (nur als Hinweis): 'erm', 'lehre', 'stud', 'pers' oder null. */
 export function sheetHint(sn) {
   const s = normH(sn).replace(/[äöü]/g, c => ({ä: 'a', ö: 'o', ü: 'u'}[c]));
@@ -124,7 +139,8 @@ export function sheetHint(sn) {
 }
 
 /* Spalten des Blatts „Ermäßigungen“ nach Inhalt der Überschrift erkennen (robuster als feste Namen).
-   Reihenfolge der Prüfung je Überschrift: Personalnummer, von, bis, Prozent, Umfang (LVS), Grund. */
+   Reihenfolge der Prüfung je Überschrift: Personalnummer, von, bis, Prozent, Umfang (LVS), Name, Beschreibung, Grund.
+   „Beschreibung“ ist ein Hilfstext und zählt nicht zur Erkennung des Grundes. */
 const fold = h => normH(h).replace(/[äöü]/g, c => ({ä: 'a', ö: 'o', ü: 'u'}[c]));
 const ERM_RULES = [
   ['pnr', h => /personalnummer|personalnr|persnr|^pnr$|^pernr$/.test(h)],
@@ -132,6 +148,8 @@ const ERM_RULES = [
   ['bis', h => /^(bis|ende|enddatum|bisdatum)$/.test(h) || /(gultig|gueltig|zeitraum|ermassigung|ermaessigung)bis$/.test(h)],
   ['pct', (h, raw) => /prozent/.test(h) || String(raw ?? '').includes('%')],
   ['lvs', h => /lvs|sws|stunden|umfang/.test(h)],
+  ['name', h => /^(name|nachname|familienname|person|lehrperson|namevorname|vornamename|namevorname)$/.test(h)],
+  ['text', h => /beschreibung|erlauterung|erlaeuterung|bemerkung|kommentar|hinweis|notiz|details?$/.test(h)],
   ['grund', h => /grund|anlass|tatbestand|bezeichnung|aufgabe|funktion|^art|art$/.test(h)],
 ];
 const isNumCell = v => typeof v === 'number' || /^\s*\d+([.,]\d+)?\s*%?\s*$/.test(String(v ?? ''));
@@ -285,6 +303,7 @@ export function buildRecords() {
       const lvs = parseNum(cell('lvs')), p = parseNum(cell('pct')), von = parseDate(cell('von')), bis = parseDate(cell('bis'));
       const grundRaw = str(cell('grund'));
       S.reductions.push({row: i + 1, pnr: str(cell('pnr')).replace(/\.0+$/, ''), pk: pnrKey(cell('pnr')), grundRaw, grund: grundKey(grundRaw),
+        name: str(cell('name')), text: str(cell('text')),
         lvs: lvs.v == null ? null : r2(lvs.v), lvsErr: lvs.err,
         pct: p.v == null ? null : r2(p.pct || p.v > 1 ? p.v : p.v * 100), pctErr: p.err,   // 0,25 und 25 % bedeuten beide 25 %
         von: von.v, vonErr: von.err, bis: bis.v, bisErr: bis.err});

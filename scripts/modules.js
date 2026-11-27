@@ -15,7 +15,7 @@ const path = require('path');
 const SRC = path.join(__dirname, '..', 'src', 'js');
 
 // Schichtenfolge – bestimmt nur die Reihenfolge der import-Zeilen; neue Module ohne Eintrag stehen am Ende.
-const LAYERS = ['util.js', 'state.js', 'lvvo.js', 'parse.js', 'checks.js', 'model.js', 'teaching.js', 'doku.js', 'charts.js', 'render.js', 'views/', 'plan/', 'search.js', 'main.js', 'app.js'];
+const LAYERS = ['util.js', 'state.js', 'lvvo.js', 'parse.js', 'checks.js', 'model.js', 'teaching.js', 'doku.js', 'tablesort.js', 'charts.js', 'render.js', 'views/', 'plan/', 'search.js', 'main.js', 'app.js'];
 const rank = f => { const i = LAYERS.findIndex(l => l.endsWith('/') ? f.startsWith(l) : f === l); return i < 0 ? LAYERS.length : i; };
 
 /** Alle Module unter src/js/ (ohne package.json), in Schichtenfolge. */

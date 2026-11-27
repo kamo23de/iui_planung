@@ -26,7 +26,7 @@ test('Testdatei wird vollständig eingelesen', () => {
 test('Absichtlich eingebaute Fehler werden gefunden', () => {
   const {S} = load();
   const count = {E: 0, W: 0, I: 0}; S.issues.forEach(i => count[i.sev]++);
-  assert.deepEqual(count, {E: 21, W: 45, I: 89});
+  assert.deepEqual(count, {E: 21, W: 47, I: 89});
   const checks = new Set(S.issues.filter(i => i.sev === 'E').map(i => i.check));
   for (const c of ['Personalnummer mehrfach vergeben', 'Datum nicht lesbar', 'Beginn nach Vertragsende', 'Wert außerhalb des Bereichs',
     'Zahl nicht lesbar', 'Pflichtfeld leer', 'Befristet ohne Vertragsende', 'Doppelte Zeile', 'Vertretung: vertretene Person nicht gefunden',
@@ -49,7 +49,7 @@ test('Referenzwerte Bestand heute und zum SS 2029', () => {
 test('Referenzwerte Lehrangebot heute', () => {
   const {get, S} = load();
   const pick = c => ({sws: c.sws, P: c.P, L: c.L, W: c.W, teach: c.teach, support: c.support, erm: c.erm});
-  assert.deepEqual(pick(get('capStats')(get('used')(), S.today)), {sws: 1304.84, P: 996.84, L: 217, W: 91, teach: 94, support: 62, erm: 29.16});
+  assert.deepEqual(pick(get('capStats')(get('used')(), S.today)), {sws: 1303.84, P: 995.84, L: 217, W: 91, teach: 94, support: 62, erm: 30.16});
   assert.deepEqual(pick(get('capStats')(get('used')(), S.today, 'deputat')), {sws: 1258.34, P: 968.34, L: 217, W: 73, teach: 91, support: 64, erm: 0});
 });
 
@@ -65,8 +65,8 @@ test('Referenzwerte Lehrverpflichtung nach LVVO heute', () => {
   const {get, S} = load();
   const st = get('lvvoStats')(get('used')().filter(r => get('inContract')(r, S.today)), S.today);
   assert.deepEqual({regel: st.regel, erm: st.erm, ermP9: st.ermP9, soll: st.soll, wimi: st.wimi, lehre: st.lehre, p9Quote: st.p9Quote},
-    {regel: 1261, erm: 29.16, ermP9: 24, soll: 1231.84, wimi: 73, lehre: 1304.84, p9Quote: 1.9});
-  assert.equal(S.reductions.length, 14);
+    {regel: 1261, erm: 30.16, ermP9: 24, soll: 1230.84, wimi: 73, lehre: 1303.84, p9Quote: 1.9});
+  assert.equal(S.reductions.length, 15);
 });
 
 test('Referenzwerte gehaltene Lehre und Zeitkonto (WS 2026/27)', () => {

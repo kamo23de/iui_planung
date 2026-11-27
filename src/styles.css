@@ -98,7 +98,8 @@ table.dt td.n,table.dt td:first-child{white-space:nowrap}
 }
 table.dt .pill{white-space:nowrap}
 table.dt th{white-space:normal}
-th.sortable{cursor:pointer;user-select:none}
+th.sortable,th.ts-th{cursor:pointer;user-select:none}
+th.ts-th:hover{color:var(--text-primary)}
 th.sortable:hover{color:var(--text-primary)}
 .ratio-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin-bottom:16px}
 .ratio-tile{flex:1 1 150px;text-align:center}

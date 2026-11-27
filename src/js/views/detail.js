@@ -117,7 +117,7 @@ export function renderDetail() {
   $('#dtRatio').innerHTML = tiles.map(([l, v, d], i) => `${i ? '<div class="ratio-sep">:</div>' : ''}<div class="kpi ratio-tile"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
   const sc = withStud ? (l => `<td class="n">${f2(q2(studN, K(l)))}</td><td class="n">${f2(q2(studN, V(l)))}</td>`) : (() => '');
   const rowR = (lbl, l, strong) => `<tr${strong ? ' class="tot"' : ''}><td>${lbl}</td><td class="n">${nf0.format(K(l))}</td><td class="n">${nf1.format(V(l))}</td><td class="n">${f2(q2(K(l), K(PL)))}</td><td class="n">${f2(q2(V(l), V(PL)))}</td>${sc(l)}</tr>`;
-  $('#dtRatioTable').innerHTML = `<table><tr><th>Gruppe</th><th class="n">Köpfe</th><th class="n">VZÄ</th><th class="n">je Professur (Köpfe)</th><th class="n">je Professur (VZÄ)</th>${withStud ? '<th class="n">Studierende je Person</th><th class="n">Studierende je VZÄ</th>' : ''}</tr>` +
+  $('#dtRatioTable').innerHTML = `<table data-nosort><tr><th>Gruppe</th><th class="n">Köpfe</th><th class="n">VZÄ</th><th class="n">je Professur (Köpfe)</th><th class="n">je Professur (VZÄ)</th>${withStud ? '<th class="n">Studierende je Person</th><th class="n">Studierende je VZÄ</th>' : ''}</tr>` +
     rowR('Professor/innen', g.P) + rowR('LfbA', g.L) + rowR('Professuren inkl. LfbA', PL, true) +
     rowR('WiMi', g.W) + rowR('Sonstige Mitarbeitende', g.O) + rowR('Mitarbeitende gesamt', MA, true) + rowR('Personal gesamt', act, true) +
     (withStud ? `<tr><td>Studierende</td><td class="n">${nf0.format(studN)}</td><td></td><td class="n">${f2(q2(studN, K(PL)))}</td><td class="n">${f2(q2(studN, V(PL)))}</td><td></td><td></td></tr>` : '') + '</table>' +
