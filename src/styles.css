@@ -227,7 +227,6 @@ td.g-warn{background:color-mix(in srgb, var(--warning) 35%, transparent)}
 td.g-bad{background:color-mix(in srgb, var(--critical) 28%, transparent)}
 td.g-na{color:var(--muted)}
 .gm .ic{font-weight:800;margin-right:2px}
-  background:repeating-linear-gradient(-45deg,#fab219 0 18px,#0b0b0b 18px 36px);position:relative}
 .png-btn{position:absolute;top:-4px;right:0;z-index:2;font-size:11px;padding:1px 6px;border-radius:5px;border:1px solid var(--border);background:var(--card);color:var(--text-secondary);opacity:.55;cursor:pointer}
 .chartbox:hover .png-btn,.png-btn:focus{opacity:1}
 @media (hover:none){.png-btn{opacity:.85}}
